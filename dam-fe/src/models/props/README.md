@@ -1,0 +1,3 @@
+# props
+
+Some of the common component prop types go here...
