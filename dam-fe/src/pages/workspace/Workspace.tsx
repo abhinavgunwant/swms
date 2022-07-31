@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import WorkspaceFab from './WorkspaceFab';
-import ImageThumbnailModel from '../../models/ImageThumbnailModel';
-import ImageThumbnail from '../../components/ImageThumbnail';
+import Thumbnail from '../../components/Thumbnail';
 
 import { styled } from '@mui/material/styles';
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 import ImageListItem from '../../components/ImageListItem';
+import LinkModel from '../../models/LinkModel';
+import ViewImage from './view-image/ViewImage';
 
 const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 9.25rem);
@@ -18,49 +20,74 @@ const WorkspaceGrid = styled(Grid)`
     margin-top: 1rem;
 `;
 
-const thumbnails: ImageThumbnailModel[] = [
-    {
-        imageID: '1',
-        thumbnailLocation: '/logo512.png',
-        title: 'Image 1',
-    },
-    {
-        imageID: '2',
-        thumbnailLocation: '/scrumtools-io-logo.png',
-        title: 'Scrumtools.io Logo!',
-    },
-    {
-        imageID: '3',
-        thumbnailLocation: '/logo512.png',
-        title: 'Image 3',
-    },
-    {
-        imageID: '4',
-        thumbnailLocation: '/logo512.png',
-        title: 'Image 4',
-    },
-];
-
 const Workspace = ():React.ReactElement => {
     const store = useWorkspaceStore();
 
+    const navigate = useNavigate();
+    const { projectSlug, path, imageSlug } = useParams();
+
+    console.log('Image Slug: ', imageSlug);
+    
+
+    const [ breadcrumbLinks, setBreadcrumbLinks ]
+        = useState<Array<LinkModel | string>>(['Workspace']);
+
+    const [ pageType, setPageType ] = useState('LIST');
+
+    const onThumbnailClicked = (path: string, slug: string) => {
+        return () => navigate('/workspace/tree/' + projectSlug + (path && path !== '/' ? path : '') + '/' + slug);
+    };
+
+    useEffect(() => {
+        if (projectSlug) {
+            for(let i=0; i<store.projectList.length; ++i) {
+                if (projectSlug === store.projectList[i].slug) {
+                    setBreadcrumbLinks([
+                        {
+                            text: 'Workspace',
+                            to: '/workspace',
+                        },
+                        store.projectList[i].title,
+                    ]);
+                    break;
+                }
+            }
+        }
+
+        //// TODO: query backend the path and see if it is valid
+        //// if valid, return the type of resource it is.
+        if (imageSlug === 'scrumtools-io-logo.jpg') {
+            setPageType('IMAGE');
+        }
+    }, []);
+
+    if (pageType === 'IMAGE') {
+        console.log('Image page type!');
+        
+        return <ViewImage imageId={ imageSlug } />;
+    }
+
     return <div className="page page--workspace">
-        <WorkspaceTopRow links={ ['Workspace'] } />
+        <WorkspaceTopRow links={ breadcrumbLinks } />
 
         {
             store.displayStyle === 'GRID' ?
                 <WorkspaceGrid container spacing={2}>
                     {
-                        thumbnails.map(t =>
-                            <ImageThumbnail {...t} key={t.imageID} />
+                        store.imageList.map(t =>
+                            <Thumbnail
+                                { ...t }
+                                key={ t.id }
+                                isImage={ true }
+                                onClick={ onThumbnailClicked( t.path, t.slug ) } />
                         )
                     }
                 </WorkspaceGrid>
             :
                 <List dense>
                     {
-                        thumbnails.map(t =>
-                            <ImageListItem {...t} key={t.imageID} />
+                        store.imageList.map(t =>
+                            <ImageListItem {...t} key={t.id} isImage={true} />
                         )
                     }
                 </List>

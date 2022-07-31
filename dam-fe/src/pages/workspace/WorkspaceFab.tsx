@@ -4,6 +4,7 @@ import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
 import ImageIcon from '@mui/icons-material/Image';
 import FolderIcon from '@mui/icons-material/Folder';
+import SelectAllIcon from '@mui/icons-material/SelectAll';
 import DeselectIcon from '@mui/icons-material/Deselect';
 import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -31,14 +32,16 @@ const WorkspaceFabWrapper = styled.div`
     align-items: flex-end;
 `;
 
-const AddFabWrapper = styled.div`${ commonStyle }`;
+const AddFabWrapper = styled.div`${ commonStyle }margin-left: 1rem;`;
 
 const AddFabMenu = styled.div`
     ${ commonStyle }
-    background: #00000033;
-    padding: 1rem;
-    border-radius: 1rem;
-    margin-bottom: 0.5rem;
+    background: linear-gradient(to bottom right, #00000033, #00000000);
+    padding: 1rem 1rem 3.5rem 1rem;
+    border-radius: 1.5rem;
+    position: relative;
+    bottom: -3rem;
+    z-index: 1050;
 `;
 
 const ImageFab = muiStyled(Fab)`margin-bottom: 0.5rem`;
@@ -60,9 +63,21 @@ const WorkspaceFab = () => {
     const addFabRef: React.MutableRefObject<HTMLElement|undefined> = useRef();
     const addFabMenuRef: React.MutableRefObject<HTMLElement|undefined> = useRef();
 
-    const onUnselectClicked = () => {
+    const onDeselectAllClicked = () => {
         startTransition(() => {
             store.setSelecting(false);
+            store.selectedImages.forEach(
+                img => store.removeImageFromSelected(img)
+            );
+        })
+    }
+
+    const onSelectAllClicked = () => {
+        startTransition(() => {
+            store.setSelecting(true);
+            store.imageList.forEach(
+                img => store.addImageToSelected(img.id)
+            );
         })
     }
 
@@ -104,11 +119,19 @@ const WorkspaceFab = () => {
 
     return <WorkspaceFabWrapper>
         {
+            store.imageList.length !== store.selectedImages.length &&
+            <StyledFab variant="extended" onClick={ onSelectAllClicked }>
+                <SelectAllIcon />
+                <FabText>Select All</FabText>
+            </StyledFab>
+        }
+
+        {
             store.selecting ?
                 <Fragment>
-                    <StyledFab variant="extended" onClick={ onUnselectClicked }>
+                    <StyledFab variant="extended" onClick={ onDeselectAllClicked }>
                         <DeselectIcon />
-                        <FabText>Unselect</FabText>
+                        <FabText>Deselect All</FabText>
                     </StyledFab>
                     <StyledFab variant="extended">
                         <DriveFileMoveIcon />

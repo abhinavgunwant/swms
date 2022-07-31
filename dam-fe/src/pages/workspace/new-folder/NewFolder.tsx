@@ -31,7 +31,7 @@ const ImagePreview = styled(Box)`
 
 const NewFolder = () => {
     return <div className="page page--new-image">
-        <Breadcrumbs links={[{ text: 'Workspace', to: '/workspace' }, 'New Image']} />
+        <Breadcrumbs links={[{ text: 'Workspace', to: '/workspace' }, 'New Folder']} />
 
         <Typography variant="h5">
             New Folder

@@ -10,7 +10,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { styled } from '@mui/material/styles';
 
-import ImageThumbnailModel from '../models/ImageThumbnailModel';
+import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 
 const ThumbnailSubtitle = styled(Typography)`color: #888888;`;
@@ -20,19 +20,19 @@ const ThumbnailActions = styled(CardActions)`
     justify-content: center;
 `;
 
-const ImageThumbnail = (props: ImageThumbnailModel) => {
+const Thumbnail = (props: ThumbnailExtendedProps) => {
     const store = useWorkspaceStore();
 
     const fileNameContent = props.thumbnailLocation.split('/');
     const subtitle = fileNameContent[fileNameContent.length - 1];
 
-    const selected = store.isSelected(props.imageID);
+    const selected = store.isSelected(props.id);
 
     const onSelectClicked = () => {
         if (selected) {
-            store.removeImageFromSelected(props.imageID);
+            store.removeImageFromSelected(props.id);
         } else {
-            store.addImageToSelected(props.imageID);
+            store.addImageToSelected(props.id);
             store.setSelecting(true);
         }
     };
@@ -44,7 +44,7 @@ const ImageThumbnail = (props: ImageThumbnailModel) => {
                 backgroundColor: selected ? '#1976d244' : 'transparent',
                 boxShadow: selected ? '0 0 0.5rem #1976d244' : 'none',
             }}
-            onClick={ store.selecting ? onSelectClicked : undefined }>
+            onClick={ store.selecting ? onSelectClicked : props.onClick }>
             <CardMedia
                 component="img"
                 height="200"
@@ -61,12 +61,15 @@ const ImageThumbnail = (props: ImageThumbnailModel) => {
             </CardContent>
 
             <ThumbnailActions disableSpacing>
-                <IconButton aria-label="select" onClick={ onSelectClicked }>
-                    { selected ? <DeselectIcon /> : <CheckIcon />}
-                </IconButton>
+                {
+                    props.isImage &&
+                    <IconButton aria-label="select" onClick={ onSelectClicked }>
+                        { selected ? <DeselectIcon /> : <CheckIcon />}
+                    </IconButton>
+                }
 
                 {
-                    !store.selecting &&
+                    !(store.selecting && props.isImage) &&
                     <Fragment>
                         <IconButton aria-label="edit">
                             <EditIcon />
@@ -82,4 +85,4 @@ const ImageThumbnail = (props: ImageThumbnailModel) => {
     </Grid>;
 }
 
-export default ImageThumbnail;
+export default Thumbnail;

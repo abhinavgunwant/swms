@@ -10,6 +10,70 @@ const useWorkspaceStore = create<WorkspaceState>()(
             selecting: false,
             selectedImages: [],
             displayStyle: 'GRID', //// TODO: Make a const file and replace this...
+            imageList: [
+                {
+                    id: '1',
+                    thumbnailLocation: '/logo512.png',
+                    title: 'Image 1',
+                    slug: 'image-1.png',
+                    path: '/',
+                    // extension: 'jpg',
+                },
+                {
+                    id: '2',
+                    thumbnailLocation: '/scrumtools-io-logo.png',
+                    title: 'Scrumtools.io Logo!',
+                    slug: 'scrumtools-io-logo.jpg',
+                    path: '/',
+                    // extension: 'jpg',
+                },
+                {
+                    id: '3',
+                    thumbnailLocation: '/logo512.png',
+                    title: 'Image 3',
+                    slug: 'image-3.jpg',
+                    path: '/',
+                    // extension: 'jpg',
+                },
+                {
+                    id: '4',
+                    thumbnailLocation: '/logo512.png',
+                    title: 'Image 4',
+                    slug: 'image-4.jpg',
+                    path: '/',
+                    // extension: 'jpg',
+                },
+            ],
+            projectList: [
+                {
+                    id: '1',
+                    thumbnailLocation: '/logo512.png',
+                    title: 'Product Images',
+                    slug: 'product-images',
+                    path: '/',
+                },
+                {
+                    id: '2',
+                    thumbnailLocation: '/scrumtools-io-logo.png',
+                    title: 'Stock Images',
+                    slug: 'stock-images',
+                    path: '/',
+                },
+                {
+                    id: '3',
+                    thumbnailLocation: '/logo512.png',
+                    title: 'Cars',
+                    slug: 'cars',
+                    path: '/',
+                },
+                {
+                    id: '4',
+                    thumbnailLocation: '/logo512.png',
+                    title: 'Stickers',
+                    slug: 'stickers',
+                    path: '/',
+                },
+            ],
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(

@@ -1,3 +1,5 @@
+import ThumbnailItemModel from "../../models/ThumbnailItemModel";
+import ProjectListItemModel from "../../models/ProjectListItemModel";
 
 export default interface WorkspaceState {
     /**
@@ -15,6 +17,8 @@ export default interface WorkspaceState {
      * Whether to display list or grid.
      */
     displayStyle: string,
+    imageList: ThumbnailItemModel[],
+    projectList: ThumbnailItemModel[],
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: string) => void;

@@ -15,7 +15,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-import ImageThumbnailModel from '../models/ImageThumbnailModel';
+import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 
 import { styled } from '@mui/material/styles';
@@ -27,7 +27,7 @@ const StyledAvatar = styled(Avatar)`
 const ActionBox = styled(Box)`
     display: flex;
     justify-content: flex-end;
-    align-item: center;
+    align-items: center;
 `;
 
 const ButtonLeftMargin = styled(Button)`
@@ -38,26 +38,27 @@ const ImageText = styled(ListItemText)`
     width: 400px;
 `
 
-const ImageListItem = (props: ImageThumbnailModel) => {
+const ImageListItem = (props: ThumbnailExtendedProps) => {
     const store = useWorkspaceStore();
 
-    const selected = store.isSelected(props.imageID);
+    const selected = store.isSelected(props.id);
 
     const fileNameContent = props.thumbnailLocation.split('/');
     const subtitle = fileNameContent[fileNameContent.length - 1];
 
     const onSelectClicked = () => {
         if (selected) {
-            store.removeImageFromSelected(props.imageID);
+            store.removeImageFromSelected(props.id);
         } else {
-            store.addImageToSelected(props.imageID);
+            store.addImageToSelected(props.id);
             store.setSelecting(true);
         }
     };
 
     return <Fragment>
         <ListItem>
-            {/* <ListItemButton> */}
+            {
+                props.isImage &&
                 <ListItemIcon>
                     <Checkbox
                         edge="start"
@@ -65,13 +66,13 @@ const ImageListItem = (props: ImageThumbnailModel) => {
                         checked={ selected }
                         onChange={ onSelectClicked } />
                 </ListItemIcon>
-            {/* </ListItemButton> */}
-
-            <ListItemAvatar>
-                <StyledAvatar alt={ props.title } src={ props.thumbnailLocation } />
-            </ListItemAvatar>
+            }
 
             <ListItemButton>
+                <ListItemAvatar>
+                    <StyledAvatar alt={ props.title } src={ props.thumbnailLocation } />
+                </ListItemAvatar>
+
                 <ImageText>
                     <Typography variant="h6">
                         { props.title }
@@ -90,11 +91,14 @@ const ImageListItem = (props: ImageThumbnailModel) => {
                     Edit
                 </Button>
 
-                <ButtonLeftMargin
-                    variant="outlined"
-                    startIcon={ <DriveFileMoveIcon /> }>
-                    Move
-                </ButtonLeftMargin>
+                {
+                    props.isImage &&
+                    <ButtonLeftMargin
+                        variant="outlined"
+                        startIcon={ <DriveFileMoveIcon /> }>
+                        Move
+                    </ButtonLeftMargin>
+                }
 
                 <ButtonLeftMargin
                     variant="contained"

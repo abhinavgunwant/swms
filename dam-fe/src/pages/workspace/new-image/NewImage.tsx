@@ -37,7 +37,6 @@ const NewImage = () => {
     const [ slug, setSlug ] = useState();
 
     const onTitleChanged = (e: any) => {
-        
         let slg = e.target.value;
 
         if (typeof slg === 'string' && slg.trim()) {
@@ -62,7 +61,7 @@ const NewImage = () => {
 
         <StyledGrid container>
             <Grid item xs={12} lg={6}>
-                <StyledTextField label="Upload Path" defaultValue="/" required />
+                <StyledTextField label="Folder Path" defaultValue="/" required />
                 <StyledTextField label="Image Title" onChange={ onTitleChanged } required />
                 <StyledTextField label="Image Details" rows={3} multiline />
                 
@@ -89,7 +88,10 @@ const NewImage = () => {
                         required />
                 </Grid>
                 <Grid item xs={1}>
-                    <IconButton color="primary" style={{marginTop: '1rem'}}>
+                    <IconButton color="primary" style={{
+                            marginTop: '1rem',
+                            marginLeft: '1rem',
+                        }}>
                         <ContentCopyIcon />
                     </IconButton>
                 </Grid>
@@ -103,7 +105,10 @@ const NewImage = () => {
                         disabled />
                 </Grid>
                 <Grid item xs={1}>
-                    <IconButton color="primary" style={{marginTop: '1rem'}}>
+                    <IconButton color="primary" style={{
+                            marginTop: '1rem',
+                            marginLeft: '1rem',
+                        }}>
                         <ContentCopyIcon />
                     </IconButton>
                 </Grid>
