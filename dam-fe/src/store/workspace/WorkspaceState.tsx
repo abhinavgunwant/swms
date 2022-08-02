@@ -11,7 +11,7 @@ export default interface WorkspaceState {
     /**
      * Array holding imageID of the thumbnail selected
      */
-    selectedImages: string[],
+    selectedImages: Set<string> ,
 
     /**
      * Whether to display list or grid.

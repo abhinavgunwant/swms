@@ -11,6 +11,12 @@ actix-web-static-files = "4.0"
 actix-multipart = "0.4.0"
 actix-form-data = "0.6.2"
 static-files = "0.2.1"
+futures = "0.3.21"
+raster = "0.2.0"
+mysql = "22.2.0"
+chrono = "0.4"
+num-traits = "0.2"
+num-derive = "0.2"
 
 [dependencies.uuid]
 version = "1.1.2"

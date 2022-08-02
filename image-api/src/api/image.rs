@@ -1,52 +1,46 @@
-use std::path::PathBuf;
+// use std::path::PathBuf;
 use std::io::Write;
+use std::fs::{ File, create_dir_all };
+use std::path::Path;
 use actix_multipart::Multipart;
-use actix_web::{ get, post, web::{Data}, HttpResponse, Responder };
-use actix_form_data::{handle_multipart, Error, Field, FilenameGenerator, Form};
+use actix_web::{ get, post, web, HttpResponse, Responder };
+use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
+use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 
-// #[post("/api/image")]
-// pub async fn upload(mut payload: Multipart, file_path: String) -> impl Responder {
-//     while let Ok(Some(mut field)) = payload.try_next().await {
-//         let id: Uuid = Uuid::new_v4();
-//         let extension = file_path.split('.').collect::<Vec<&str>>().last().unwrap();
-//         let new_file_name = format!("{}", Uuid::new_v4());
-//         // new_file_name.push_str(format!("{}", id));
-//         new_file_name.push_str(".");
-//         new_file_name.push_str(extension);
-
-//         println!("{}", new_file_name);
-//         // let new_file_name = format!("{}.{}", id, String::from(extension));
-        
-//         let mut f = web::block(|| std::fs::File::create(new_file_name)).await.unwrap();
-        
-//         while let Some(chunk) = field.next().await {
-//             let data = chunk.unwrap();
-//             f = web::block(move || f.write_all(&data).map(|_| f))
-//                 .await
-//                 .unwrap();
-//         }
-//     }
-
-//     HttpResponse::Ok()
-// }
-
-pub struct FileNamer;
-
-impl FilenameGenerator for FileNamer {
-    fn next_filename(&self) -> Option<PathBuf> {
-        let mut p = PathBuf::new();
-        p.push(format!("uploaded-images/{}.jpg", Uuid::new_v4()));
-        Some(p)
-    }
-}
-
 #[post("/api/image")]
-pub async fn upload((mp, state): (Multipart, Data<Form>)) -> impl Responder {
-    // Box::new(
-        handle_multipart(mp, state.get_ref().clone()).map(|uploaded_content| {
-            println!("Uploaded Content: {:?}", uploaded_content);
-        });
-    // )
-    HttpResponse::Ok()
+pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
+    // iterate over multipart stream
+    while let Ok(Some(mut field)) = payload.try_next().await {
+        // let content_type = field.content_disposition().unwrap();
+        //let filename = content_type.get_filename().unwrap();
+        // let filepath = format!(".{}", file_path);
+
+        let filename = format!("image-uploads/{}.jpg", Uuid::new_v4());
+
+        let path = Path::new(String::as_str(&filename));
+        let parents = path.parent().unwrap();
+
+        create_dir_all(parents).unwrap();
+
+        println!("Created file: {}", filename);
+
+        // File::create is blocking operation, use threadpool
+        let mut file = web::block(move || File::create(filename))
+            .await
+            .unwrap()
+            .expect("error");
+
+        // Field in turn is stream of *Bytes* object
+        while let Some(chunk) = field.next().await {
+            let data = chunk.unwrap();
+            // filesystem operations are blocking, we have to use threadpool
+            file = web::block(move || file.write_all(&data).map(|_| file))
+                .await
+                .unwrap()
+                .expect("error");
+        }
+    }
+
+    return HttpResponse::Ok().body("!!");
 }

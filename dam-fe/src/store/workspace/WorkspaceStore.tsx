@@ -8,7 +8,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
     //     persist(
         (set, get) => ({
             selecting: false,
-            selectedImages: [],
+            selectedImages: new Set<string>(),
             displayStyle: 'GRID', //// TODO: Make a const file and replace this...
             imageList: [
                 {
@@ -77,25 +77,31 @@ const useWorkspaceStore = create<WorkspaceState>()(
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(
-                (state) => ({
-                    ...state,
-                    selectedImages: [...state.selectedImages, imageID]
-                })),
+                (state) => {
+                    const selImg = state.selectedImages;
+                    selImg.add(imageID);
+                    return {
+                        ...state,
+                        selectedImages: selImg,
+                    }
+                }),
             removeImageFromSelected: (imageID) => set(
                 (state) => {
-                    const selImgs = [...state.selectedImages];
+                    const selImgs = state.selectedImages;
 
-                    for(let i=0; i<selImgs.length; ++i) {
-                        if (selImgs[i] === imageID) {
-                            selImgs.splice(i, 1);
-                            break;
-                        }
-                    }
+                    // for(let i=0; i<selImgs.length; ++i) {
+                    //     if (selImgs[i] === imageID) {
+                    //         selImgs.splice(i, 1);
+                    //         break;
+                    //     }
+                    // }
 
-                    if (selImgs.length === 0) {
+                    selImgs.delete(imageID);
+
+                    if (selImgs.size === 0) {
                         return {
                             ...state,
-                            selectedImages: [],
+                            selectedImages: new Set<string>(),
                             selecting: false
                         };
                     }
@@ -105,17 +111,20 @@ const useWorkspaceStore = create<WorkspaceState>()(
             setDisplayStyle: (dstyle) => set(
                 (state) => ({ ...state, displayStyle: dstyle })
             ),
-            isSelected: (imageID) => {
-                const selImgs = get().selectedImages;
+            isSelected: (imageID) => get().selectedImages.has(imageID),
+            // {
+                // const selImgs = get().selectedImages;
 
-                for(let i=0; i<selImgs.length; ++i) {
-                    if (selImgs[i] === imageID) {
-                        return true
-                    }
-                }
+                // for(let i=0; i<selImgs.length; ++i) {
+                //     if (selImgs[i] === imageID) {
+                //         return true
+                //     }
+                // }
 
-                return false;
-            }
+                // return false;
+
+            //     return get().selectedImages.has(imageID);
+            // }
         })
     //     )
     // )

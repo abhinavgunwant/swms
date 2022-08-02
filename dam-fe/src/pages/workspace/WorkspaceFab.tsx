@@ -116,10 +116,10 @@ const WorkspaceFab = () => {
             document.removeEventListener('click', onOutsideClicked);
         }
     };
-
+    
     return <WorkspaceFabWrapper>
         {
-            store.imageList.length !== store.selectedImages.length &&
+            store.imageList.length !== store.selectedImages.size &&
             <StyledFab variant="extended" onClick={ onSelectAllClicked }>
                 <SelectAllIcon />
                 <FabText>Select All</FabText>
