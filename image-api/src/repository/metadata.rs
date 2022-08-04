@@ -5,3 +5,7 @@ struct Metadata {
     description: String;
     description_writer: String;
 }
+
+struct MetadataRepository {
+    get(id: u32) -> vector<Metadata>;
+}

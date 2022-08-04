@@ -1,4 +1,5 @@
 use num_derive::FromPrimitive;
+mod repostory::rendition;
 
 /**
  * 0 - 19: Raw Images
@@ -35,4 +36,17 @@ struct Image {
     width: u16;
     metadata_id: u32;
     slug: String;
+    getRenditions() -> Vec<rendition::Rendition>;
+    getRenditions(device: String) -> Vec<rendition::Rendition>;
+    getRendition(width: u32) -> rendition::Rendition;
+    getRendition(name: String) -> rendition::Rendition;
+    getMetadata() -> Metadata;
+}
+
+struct ImageRepository {
+    get(id: u32) -> Image;
+    add(img: Image);
+    update(img: Image);
+    remove(id: u32);
+    remove(img: Image);
 }
