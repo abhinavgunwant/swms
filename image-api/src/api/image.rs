@@ -1,12 +1,18 @@
 // use std::path::PathBuf;
 use std::io::Write;
-use std::fs::{ File, create_dir_all };
+use std::fs::{ File, create_dir_all, read };
 use std::path::Path;
 use actix_multipart::Multipart;
-use actix_web::{ get, post, web, HttpResponse, Responder };
+use actix_web::{ get, post, web, HttpResponse, Responder, http:: {StatusCode} };
 use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+pub struct FileRequest {
+    filename: String
+}
 
 #[post("/api/image")]
 pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
@@ -43,4 +49,16 @@ pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
     }
 
     return HttpResponse::Ok().body("!!");
+}
+
+#[get("/api/image")]
+pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
+    let image_file = web::block(move || read(format!("image-uploads/{}", file_req.filename)))
+        .await
+        .unwrap()
+        .expect("Error while downloading");
+
+    return HttpResponse::build(StatusCode::OK)
+        .content_type("image/jpeg")
+        .body(image_file);
 }

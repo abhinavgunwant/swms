@@ -43,6 +43,32 @@ struct Image {
     getMetadata() -> Metadata;
 }
 
+impl Item for Image {
+    fn getId() -> u32 {
+        return id;
+    }
+
+    fn getSlug(&self) -> String {
+        return self.slug;
+    }
+
+    fn getCreatedOn(&self) -> DateTime {
+        return self.createdOn;
+    }
+
+    fn getCreatedBy(&self) -> u16 {
+        return self.createdOn;
+    }
+
+    fn getModifiedOn(&self) -> DateTime {
+        return self.createdOn;
+    }
+
+    fn getModifiedBy(&self) -> u16 {
+        return self.createdOn;
+    }
+}
+
 struct ImageRepository {
     get(id: u32) -> Image;
     add(img: Image);
@@ -50,3 +76,4 @@ struct ImageRepository {
     remove(id: u32);
     remove(img: Image);
 }
+

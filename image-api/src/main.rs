@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    db::adapters::mysql::print_data();
+    // db::adapters::mysql::print_data();
 
     HttpServer::new(|| {
         let generated = generate();
@@ -17,6 +17,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::PayloadConfig::new(1000000 * 250))
             .service(api::echo)
             .service(api::image::upload)
+            .service(api::image::download)
             .service(ResourceFiles::new("/", generated))
     })
     .bind(("127.0.0.1", 8080))?
