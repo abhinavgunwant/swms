@@ -8,6 +8,8 @@ use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::Deserialize;
+use crate::repository::image::{ Image };
+use crate::repository::image::db as imgdb;
 
 #[derive(Debug, Deserialize)]
 pub struct FileRequest {
@@ -61,4 +63,13 @@ pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
     return HttpResponse::build(StatusCode::OK)
         .content_type("image/jpeg")
         .body(image_file);
+}
+
+#[get("/api/imagedata")]
+pub async fn imagedata() -> web::Json<Image> {
+    let repo = imgdb::get_image_repository();
+
+    let image: Image = repo.get(0);
+
+    web::Json(image);
 }

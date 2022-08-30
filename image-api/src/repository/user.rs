@@ -1,7 +1,9 @@
 use chrono::DateTime;
 
+use super::item::Item;
+
 struct User {
-    id: u16,
+    id: u32,
     name: String,
     login_id: String,
     email: String,
@@ -11,27 +13,27 @@ struct User {
 }
 
 impl Item for User {
-    fn getId(&self) -> u32 {
+    fn id(&self) -> u32 {
         return self.id;
     }
 
-    fn getSlug(&self) -> String {
+    fn slug(&self) -> String {
         return String::to_string("Test slug");
     }
 
-    fn getCreatedOn(&self) -> DateTime {
+    fn created_on(&self) -> DateTime {
         return DateTime;
     }
 
-    fn getCreatedBy(&self) -> u16 {
+    fn created_by(&self) -> u16 {
         return 0;
     }
 
-    fn getModifiedOn(&self) -> DateTime {
+    fn modified_on(&self) -> DateTime {
         return DateTime;
     }
 
-    fn getModifiedBy(&self) -> u16 {
+    fn modified_by(&self) -> u16 {
         return 0;
     }
 }

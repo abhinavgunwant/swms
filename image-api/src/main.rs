@@ -1,5 +1,6 @@
 mod api;
 mod db;
+mod repository;
 
 use actix_web::{get, post, App, HttpResponse, HttpServer, Responder, web};
 use actix_web_static_files::ResourceFiles;
