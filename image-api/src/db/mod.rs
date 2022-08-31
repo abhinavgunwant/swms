@@ -1,2 +1,20 @@
+use dbcontext::{ DBContext, MySQLContext };
+
 mod dbcontext;
-// mod mysqlcontext;
+
+pub enum DBImpl {
+    MYSQL = 1
+}
+
+/**
+ * Main objective of this function is to read the config and return appropriate
+ * db context object.
+ */
+fn get_db_context(db: DBImpl) -> Box::<dyn DBContext> {
+    match db {
+        DBImpl::MYSQL => Box::<dyn DBContext>::new(MySQLContext {
+            connection_string: "mysql://root:Welcome1@localhost:3306/test".to_string(),
+            db_name: "mysql".to_string()
+        })
+    }
+}
