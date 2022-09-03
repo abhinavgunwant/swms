@@ -17,7 +17,7 @@ mysql = "22.2.0"
 chrono = "0.4"
 num-traits = "0.2"
 num-derive = "0.2"
-serde = { version = "1.0.143", feature = [ "derive" ] }
+serde = { version = "1.0", features = ["derive"] }
 
 [dependencies.uuid]
 version = "1.1.2"

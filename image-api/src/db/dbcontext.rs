@@ -36,3 +36,17 @@ impl DBContext for MySQLContext {
         println!("System check starting...");
     }
 }
+
+impl<T: ?Sized> DBContext for Box<T> where T: DBContext {
+    fn db_name(&self) -> String {
+        (**self).db_name()
+    }
+
+    fn connection_string(&self) -> String {
+        (**self).connection_string()
+    }
+
+    fn systems_check(&self) {
+        (**self).systems_check();
+    }
+}
