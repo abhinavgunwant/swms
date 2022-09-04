@@ -1,7 +1,7 @@
 /**
  * Tells us how to connect to a data source.
  */
-pub trait DBContext {
+pub trait DBContext: Sized {
     /**
      * Connection string
      */
@@ -19,17 +19,17 @@ pub trait DBContext {
 }
 
 pub struct MySQLContext {
-    db_name: String,
-    connection_string: String
+    pub db_name: String,
+    pub connection_string: String
 }
 
 impl DBContext for MySQLContext {
     fn db_name(&self) -> String {
-        return self.db_name;
+        self.db_name.clone()
     }
     
     fn connection_string(&self) -> String {
-        return self.connection_string;
+        self.connection_string.clone()
     }
 
     fn systems_check(&self) {
@@ -50,3 +50,4 @@ impl<T: ?Sized> DBContext for Box<T> where T: DBContext {
         (**self).systems_check();
     }
 }
+

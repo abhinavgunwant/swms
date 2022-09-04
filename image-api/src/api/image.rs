@@ -3,13 +3,20 @@ use std::io::Write;
 use std::fs::{ File, create_dir_all, read };
 use std::path::Path;
 use actix_multipart::Multipart;
-use actix_web::{ get, post, web, HttpResponse, Responder, http:: {StatusCode} };
+use actix_web::{ get, post, web, HttpResponse, Responder, http::{StatusCode} };
 use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
-use serde::Deserialize;
-use crate::repository::image::{ Image };
-use crate::repository::image::db as imgdb;
+use serde::{ Serialize, Deserialize };
+use crate::repository;
+use crate::repository::{ Repository, item::Item };
+use crate::repository::image::{ Image, ImageItem, encoding::Encoding };
+
+#[derive(Serialize)]
+pub struct ImageJson {
+    slug: String,
+    id: u32,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct FileRequest {
@@ -55,7 +62,9 @@ pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
 
 #[get("/api/image")]
 pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
-    let image_file = web::block(move || read(format!("image-uploads/{}", file_req.filename)))
+    let image_file = web::block(
+            move || read(format!("image-uploads/{}", file_req.filename))
+        )
         .await
         .unwrap()
         .expect("Error while downloading");
@@ -66,10 +75,20 @@ pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
 }
 
 #[get("/api/imagedata")]
-pub async fn imagedata() -> web::Json<Image> {
-    let repo = imgdb::get_image_repository();
+pub async fn imagedata() -> web::Json<ImageJson> {
+    let repo = repository::get_image_repository();
 
-    let image: Image = repo.get(0);
+    //let repo: dyn Repository = boxed_repo.downcast().expect("Problem unboxing repository");
+//    let repo: dyn Repository = *boxed_repo;
 
-    web::Json(image);
+    let image = repo.get(0);
+    //let imageItem = image as Box<dyn ImageItem>;
+
+    let img: ImageJson = ImageJson {
+        id: image.id(),
+        slug: image.slug(),
+    };
+
+    web::Json(img)
 }
+

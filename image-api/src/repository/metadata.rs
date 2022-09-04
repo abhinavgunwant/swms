@@ -1,9 +1,9 @@
 pub struct Metadata {
-    id: u32,
-    image_id: u32,
-    title: String,
-    description: String,
-    description_writer: String
+    pub id: u32,
+    pub image_id: u32,
+    pub title: String,
+    pub description: String,
+    pub description_writer: String
 }
 
 struct MetadataRepository {}

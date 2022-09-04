@@ -11,3 +11,30 @@ pub trait Item {
     fn modified_on(&self) -> DateTime<Utc>;
     fn modified_by(&self) -> u16;
 }
+
+impl <T: ?Sized> Item for Box<T> where T: Item {
+    fn id(&self) -> u32 {
+        (**self).id()
+    }
+
+    fn slug(&self) -> String {
+        (**self).slug()
+    }
+
+    fn created_on(&self) -> DateTime<Utc> {
+        (**self).created_on()
+    }
+
+    fn created_by(&self) -> u16 {
+        (**self).created_by()
+    }
+
+    fn modified_on(&self) -> DateTime<Utc> {
+        (**self).modified_on()
+    }
+
+    fn modified_by(&self) -> u16 {
+        (**self).modified_by()
+    }
+}
+

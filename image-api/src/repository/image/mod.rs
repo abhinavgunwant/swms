@@ -1,5 +1,5 @@
 pub mod db;
-mod encoding;
+pub mod encoding;
 
 use serde::Serialize;
 use super::rendition::Rendition;
@@ -8,22 +8,21 @@ use encoding::Encoding;
 use chrono::{DateTime, Utc};
 use crate::repository::item::Item;
 
-#[derive(Serialize)]
 pub struct Image {
-    name: String, // name vs title in metadata?
-    id: u32,
-    encoding: Encoding,
-    height: u16,
-    width: u16,
-    metadata_id: u32,
-    slug: String,
-    created_on: DateTime<Utc>,
-    created_by: u16,
-    modified_on: DateTime<Utc>,
-    modified_by: u16
+    pub name: String, // name vs title in metadata?
+    pub id: u32,
+    pub encoding: Encoding,
+    pub height: u16,
+    pub width: u16,
+    pub metadata_id: u32,
+    pub slug: String,
+    pub created_on: DateTime<Utc>,
+    pub created_by: u16,
+    pub modified_on: DateTime<Utc>,
+    pub modified_by: u16
 }
 
-trait ImageItem : Item {
+pub trait ImageItem : Item {
     fn get_all(&self) -> Vec<Rendition>;
     fn renditions_for_device(&self, device: String) -> Vec<Rendition>;
     fn rendition_for_width(&self, width: u32) -> Rendition;
@@ -108,7 +107,7 @@ impl Item for Image {
     }
 
     fn slug(&self) -> String {
-        return self.slug;
+        self.slug.clone()
     }
 
     fn created_on(&self) -> DateTime<Utc> {
@@ -127,3 +126,26 @@ impl Item for Image {
         return self.modified_by;
     }
 }
+
+impl <T: ?Sized> ImageItem for Box<T> where T: ImageItem {
+    fn get_all(&self) -> Vec<Rendition> {
+        (**self).get_all()
+    }
+
+    fn renditions_for_device(&self, device: String) -> Vec<Rendition> {
+        (**self).renditions_for_device(device)
+    }
+
+    fn rendition_for_width(&self, width: u32) -> Rendition {
+        (**self).rendition_for_width(width)
+    }
+
+    fn rendition_for_name(&self, name: String) -> Rendition {
+        (**self).rendition_for_name(name)
+    }
+
+    fn metadata(&self) -> Metadata {
+        (**self).metadata()
+    }
+}
+

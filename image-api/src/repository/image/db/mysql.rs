@@ -71,3 +71,4 @@ impl Repository for ImageRepositoryMySQL {
         println!("Removing image with id: {}", id);
     }
 }
+

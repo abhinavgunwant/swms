@@ -19,6 +19,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::echo)
             .service(api::image::upload)
             .service(api::image::download)
+            .service(api::image::imagedata)
             .service(ResourceFiles::new("/", generated))
     })
     .bind(("127.0.0.1", 8080))?
