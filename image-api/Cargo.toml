@@ -17,6 +17,8 @@ mysql = "22.2.0"
 chrono = "0.4"
 num-traits = "0.2"
 num-derive = "0.2"
+cached = "0.39.0"
+lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
 [dependencies.uuid]

@@ -24,7 +24,7 @@ pub trait Repository {
 
 pub fn get_image_repository () -> impl Repository {
     // TODO: Read config here to get the configured DB.
-
+    println!("Getting Repository config...");
     let mut db = DBImpl::MYSQL;
 
     match db {

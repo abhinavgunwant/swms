@@ -1,7 +1,8 @@
 use crate::repository::item::Item;
 use crate::repository::Repository;
 use crate::repository::image::{ Image, Encoding };
-
+use crate::db::dbcontext::DBContext;
+use crate::db::{ get_db_context, DBImpl };
 use chrono::Utc;
 
 pub struct ImageRepositoryMySQL {}
@@ -10,6 +11,15 @@ pub struct ImageRepositoryMySQL {}
 impl Repository for ImageRepositoryMySQL {
     fn get(&self, id: u32) -> Box::<dyn Item> {
         println!("Getting image with id: {}", id);
+
+        let context = get_db_context();
+
+        println!("DB Context:");
+        println!(
+            "\tDB Name: {}\n\tConnection String: {}",
+            context.db_name(),
+            context.connection_string()
+        );
 
         Box::new(Image {
             name: "test".to_string(),
@@ -24,6 +34,15 @@ impl Repository for ImageRepositoryMySQL {
             created_on: Utc::now(),
             modified_on: Utc::now()
         })
+
+        // let dbc = get_db_context(DBImpl::MYSQL);
+        // dbc
+
+        // Box::new(Image {
+        //     name: String::from_str("test"),
+        //     id: 0,
+        //     encoding: Encoding::JPG,
+        // })
     }
 
     fn get_all(&self) -> Vec::<Box<dyn Item>> {
