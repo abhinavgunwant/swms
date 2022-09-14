@@ -8,6 +8,7 @@ use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::{ Serialize, Deserialize };
+use raster;
 use crate::repository;
 use crate::repository::{ Repository, item::Item };
 use crate::repository::image::{ Image, ImageItem, encoding::Encoding };
@@ -62,16 +63,35 @@ pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
 
 #[get("/api/image")]
 pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
+    let tmp = Vec::from_iter(file_req.filename.split(".").map(String::from));
+
+    let source_file_path = format!("image-uploads/{}.{}", tmp[0], tmp[1]);
+
+    // Here `-mobile` describes the name of the rendition (not meant to be in final code).
+    let dest_file_name = format!(
+        "image-rendition-cache/{}-mobile.{}",
+        tmp[0],
+        tmp[1]
+    );
+
+    let mut image = raster::open(source_file_path.as_str()).unwrap();
+
+    // Assuming this rendition to be intended for mobile with width 480,
+    // calculate height (ofcourse with final product, this will be
+    // fully configurable).
+    let new_height: i32 = 480*&image.height/&image.width;
+
+    raster::editor::resize(&mut image, 480, new_height, raster::ResizeMode::Fit).unwrap();
+    raster::save(&image, dest_file_name.as_str()).unwrap();
+
     let image_file = web::block(
-            move || read(format!("image-uploads/{}", file_req.filename))
-        )
-        .await
-        .unwrap()
-        .expect("Error while downloading");
+        move || read(String::from(dest_file_name))
+        ).await.unwrap().expect("Error whie downloading!");
 
     return HttpResponse::build(StatusCode::OK)
         .content_type("image/jpeg")
         .body(image_file);
+        //.body(image.bytes);
 }
 
 #[get("/api/imagedata")]

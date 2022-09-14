@@ -7,6 +7,7 @@ use super::metadata::Metadata;
 use encoding::Encoding;
 use chrono::{DateTime, Utc};
 use crate::repository::item::Item;
+use crate::db::CURRENT_DB;
 
 pub struct Image {
     pub name: String, // name vs title in metadata?
@@ -23,6 +24,7 @@ pub struct Image {
 }
 
 pub trait ImageItem : Item {
+    fn get(&self) -> Image;
     fn get_all(&self) -> Vec<Rendition>;
     fn renditions_for_device(&self, device: String) -> Vec<Rendition>;
     fn rendition_for_width(&self, width: u32) -> Rendition;
@@ -31,6 +33,24 @@ pub trait ImageItem : Item {
 }
 
 impl ImageItem for Image {
+    fn get(&self) -> Image {
+        println!("curent db: {}", CURRENT_DB.db_name());
+
+        Image {
+            name: "test".to_string(),
+            id: 0,
+            encoding: Encoding::JPG,
+            height: 0,
+            width: 0,
+            metadata_id: 0,
+            slug: "test".to_string(),
+            created_on: Utc::now(),
+            created_by: 0,
+            modified_on: Utc::now(),
+            modified_by: 0
+        }
+    }
+
     fn get_all(&self) -> Vec<Rendition> {
         let mut renditions = Vec::new();
 
@@ -127,25 +147,25 @@ impl Item for Image {
     }
 }
 
-impl <T: ?Sized> ImageItem for Box<T> where T: ImageItem {
-    fn get_all(&self) -> Vec<Rendition> {
-        (**self).get_all()
-    }
-
-    fn renditions_for_device(&self, device: String) -> Vec<Rendition> {
-        (**self).renditions_for_device(device)
-    }
-
-    fn rendition_for_width(&self, width: u32) -> Rendition {
-        (**self).rendition_for_width(width)
-    }
-
-    fn rendition_for_name(&self, name: String) -> Rendition {
-        (**self).rendition_for_name(name)
-    }
-
-    fn metadata(&self) -> Metadata {
-        (**self).metadata()
-    }
-}
+//impl <T: ?Sized> ImageItem for Box<T> where T: ImageItem {
+//    fn get_all(&self) -> Vec<Rendition> {
+//        (**self).get_all()
+//    }
+//
+//    fn renditions_for_device(&self, device: String) -> Vec<Rendition> {
+//        (**self).renditions_for_device(device)
+//    }
+//
+//    fn rendition_for_width(&self, width: u32) -> Rendition {
+//        (**self).rendition_for_width(width)
+//    }
+//
+//    fn rendition_for_name(&self, name: String) -> Rendition {
+//        (**self).rendition_for_name(name)
+//    }
+//
+//    fn metadata(&self) -> Metadata {
+//        (**self).metadata()
+//    }
+//}
 

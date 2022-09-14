@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 pub mod dbcontext;
 
 lazy_static! {
-    static ref CURRENT_DB: DBContext = get_db_context();
+    pub static ref CURRENT_DB: DBContext = get_db_context();
 }
 
 #[derive(PartialEq, Eq, Hash, Copy)]
@@ -30,7 +30,7 @@ impl Clone for DBImpl {
  * Main objective of this function is to read the config and return appropriate
  * db context object.
  */
-#[cached]
+//#[cached]
 pub fn get_db_context() -> DBContext {
         //if (!CONFIG_READ) {
             //CONFIG_READ = true;
