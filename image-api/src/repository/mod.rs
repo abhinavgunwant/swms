@@ -22,15 +22,15 @@ pub trait Repository {
     fn remove(&self, id: u32);
 }
 
-pub fn get_image_repository () -> impl Repository {
-    // TODO: Read config here to get the configured DB.
-    println!("Getting Repository config...");
-    let mut db = DBImpl::MYSQL;
-
-    match db {
-        DBImpl::MYSQL => mysql::ImageRepositoryMySQL {}
-    }
-}
+//pub fn get_image_repository () -> impl Repository {
+//    // TODO: Read config here to get the configured DB.
+//    println!("Getting Repository config...");
+//    let mut db = DBImpl::MYSQL;
+//
+//    match db {
+//        DBImpl::MYSQL => mysql::ImageRepositoryMySQL {}
+//    }
+//}
 
 impl<T: ?Sized> Repository for Box<T> where T: Repository {
     fn get(&self, id: u32) -> Box::<dyn Item> {

@@ -1,3 +1,5 @@
+use serde::ser::{ Serialize, Serializer };
+
 /**
  * The integer values associated with enum variants are categorized according
  * the ranges below:
@@ -7,6 +9,7 @@
  * 60 - 79: Images that can have both lossy and lossless compression
  * 80+: Vector graphics images
  */
+#[derive(Copy, Clone)]
 pub enum Encoding {
     TIF = 0,
     BMP = 1,
@@ -26,3 +29,18 @@ pub enum Encoding {
     EPS = 80,
     SVG = 81
 }
+
+impl Serialize for Encoding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer {
+
+//        match self {
+//            Encoding::TIF => serializer.serialize_u8(Encoding::TIF as u8),
+//            Encoding::JPG => serializer.serialize_u8(Encoding::JPG as u8),
+//            _ => serializer.serialize_u8(0)
+//        }
+      let t = *self;
+        serializer.serialize_u8(t as u8)
+    }
+}
+

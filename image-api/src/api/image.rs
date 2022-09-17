@@ -11,7 +11,7 @@ use serde::{ Serialize, Deserialize };
 use raster;
 use crate::repository;
 use crate::repository::{ Repository, item::Item };
-use crate::repository::image::{ Image, ImageItem, encoding::Encoding };
+use crate::repository::image::{ Image, encoding::Encoding, ImageRepository, get_image_repository };
 
 #[derive(Serialize)]
 pub struct ImageJson {
@@ -95,8 +95,10 @@ pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
 }
 
 #[get("/api/imagedata")]
-pub async fn imagedata() -> web::Json<ImageJson> {
-    let repo = repository::get_image_repository();
+pub async fn imagedata() -> web::Json<Image> {
+    let repo = get_image_repository();
+
+    println!("got id: {}, name: {}", repo.get(0).id, repo.get(0).name);
 
     //let repo: dyn Repository = boxed_repo.downcast().expect("Problem unboxing repository");
 //    let repo: dyn Repository = *boxed_repo;
@@ -105,10 +107,10 @@ pub async fn imagedata() -> web::Json<ImageJson> {
     //let imageItem = image as Box<dyn ImageItem>;
 
     let img: ImageJson = ImageJson {
-        id: image.id(),
-        slug: image.slug(),
+        id: image.id,
+        slug: image.slug.clone(),
     };
 
-    web::Json(img)
+    web::Json(image)
 }
 

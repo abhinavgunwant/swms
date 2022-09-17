@@ -43,7 +43,7 @@ pub fn get_db_context() -> DBContext {
                 // DBImpl::MYSQL => 
                 DBContext::new(
                     DBImpl::MYSQL,
-                    "mysql://root:Welcome1@localhost:3306/test".to_string(),
+                    "mysql://root:Welcome1@localhost:3306/dam".to_string(),
                     "mysql".to_string()
                 )
             // }

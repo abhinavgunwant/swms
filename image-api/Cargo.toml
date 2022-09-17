@@ -14,7 +14,7 @@ static-files = "0.2.1"
 futures = "0.3.21"
 raster = "0.2.0"
 mysql = "22.2.0"
-chrono = "0.4"
+chrono = { version = "0.4", features = [ "serde" ] }
 num-traits = "0.2"
 num-derive = "0.2"
 cached = "0.39.0"
