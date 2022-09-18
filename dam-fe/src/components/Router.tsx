@@ -3,13 +3,13 @@ import {
   BrowserRouter,
   Route,
   Routes,
-  useLocation
 } from "react-router-dom";
 import Home from "../pages/Home";
 import NewFolder from "../pages/workspace/new-folder/NewFolder";
 import NewImage from "../pages/workspace/new-image/NewImage";
 import Project from "../pages/workspace/project/Projects";
 import Workspace from "../pages/workspace/Workspace";
+import Admin from "../pages/admin/Admin";
 
 import { getImagePathFromURL } from '../utils/PathUtils';
 
@@ -19,6 +19,7 @@ const Router = ():React.ReactElement => {
         <Routes>
             <Route path="/" element={ <Home /> } />
             <Route path="/workspace" element={ <Project /> } />
+            <Route path="/admin" element={ <Admin /> } />
             <Route path="/workspace/tree/:projectSlug" element={ <Workspace /> } />
             <Route path={`/workspace/tree/:projectSlug/${ imagePath + (imagePath ? '/' : '') }:imageSlug`} element={ <Workspace /> } />
             <Route path="/workspace/new-image" element={ <NewImage /> } />

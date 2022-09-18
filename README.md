@@ -4,6 +4,12 @@ This is a prototype "Digital Asset Manager".
 
 Contains `dam-fe` a.k.a the "Dam Frontend" and `iamge-api` a.k.a the "Dam Backend" folders.
 
+## Building and executing
+
+`cargo run` to run a development build
+`cargo watch -x 'run'` to run app in "watch mode" (auto reloading).
+
+
 WORK IN PROGRESS!
 
 example file path:

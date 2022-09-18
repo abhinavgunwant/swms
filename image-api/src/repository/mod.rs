@@ -1,7 +1,7 @@
 pub mod image;
 pub mod item;
 mod metadata;
-mod rendition;
+pub mod rendition;
 mod user;
 
 use item::Item;
