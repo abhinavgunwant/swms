@@ -5,4 +5,3 @@ pub struct Rendition {
     pub height: u16,
     pub slug: String
 }
-

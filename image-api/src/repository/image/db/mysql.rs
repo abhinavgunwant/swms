@@ -1,8 +1,6 @@
-use crate::repository::item::Item;
-use crate::repository::Repository;
 use crate::repository::image::{ Image, Encoding, ImageRepository };
 use crate::db::dbcontext::DBContext;
-use crate::db::{ get_db_context, DBImpl };
+use crate::db::get_db_context;
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
@@ -12,6 +10,17 @@ const SELECT_ONE: &'static str = r"
         ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED, PROJECT_ID,
         FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON, SLUG
     FROM IMAGE";
+
+const ADD_ONE: &'static str = r"
+    INSERT INTO IMAGE (
+        ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED, PROJECT_ID,
+        FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON, SLUG
+    ) VALUES (
+        :id, :original_filename, :title, :height, :width, :published,
+        :project_id, :folder_id, :created_by, :modified_by, current_timestamp(),
+        current_timestamp(), :slug
+    )
+";
 
 pub struct MySQLImageRepository {}
 
@@ -89,7 +98,27 @@ impl ImageRepository for MySQLImageRepository {
     }
 
     fn add(&self, image: Image) {
-        println!("ading an image");
+        println!("adding an image");
+
+        let dbc:DBContext = get_db_context();
+
+        let pool = Pool::new(String::as_str(&dbc.connection_string));
+
+        let mut conn = pool.unwrap().get_conn().unwrap();
+
+        conn.exec_drop(ADD_ONE, params! {
+            "id" => &image.id,
+            "original_filename" => &image.name,
+            "title" => &image.title,
+            "height" => &image.height,
+            "width" => &image.width,
+            "published" => &image.is_published,
+            "project_id" => &image.project_id,
+            "folder_id" => &image.folder_id,
+            "created_by" => &image.created_by,
+            "modified_by" => &image.modified_by,
+            "slug" => &image.slug
+        }).expect("Whatever");
     }
 
     fn update(&self, image: Image) {
@@ -104,4 +133,3 @@ impl ImageRepository for MySQLImageRepository {
         println!("Removing an image item");
     }
 }
-

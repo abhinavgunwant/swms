@@ -1,13 +1,9 @@
 pub mod image;
+pub mod admin;
 
-use actix_web::{get, post, App, HttpResponse, HttpServer, Responder};
-
-static mut COUNTER: u128 = 0;
+use actix_web::{get, HttpResponse, Responder};
 
 #[get("/api/echo")]
 async fn echo() -> impl Responder {
-    unsafe {
-        COUNTER += 1;
-        HttpResponse::Ok().body(format!("Image API version 0.0.1\n\n{}", COUNTER))
-    }
+    HttpResponse::Ok().body("Image API, Version 0.0.1\n\nAPI is live!")
 }

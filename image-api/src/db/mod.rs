@@ -8,6 +8,11 @@ lazy_static! {
     pub static ref CURRENT_DB: DBContext = get_db_context();
 }
 
+#[derive(PartialEq)]
+pub enum DBError {
+    NOT_FOUND
+}
+
 #[derive(PartialEq, Eq, Hash, Copy)]
 pub enum DBImpl {
     MYSQL = 1// ,
@@ -27,33 +32,13 @@ impl Clone for DBImpl {
 }
 
 /**
- * Main objective of this function is to read the config and return appropriate
- * db context object.
+ * Reads config and returns appropriate db context object ().
  */
-//#[cached]
+#[cached]
 pub fn get_db_context() -> DBContext {
-        //if (!CONFIG_READ) {
-            //CONFIG_READ = true;
-            // match db {
-//                DBImpl::MYSQL => DBContext {
-//                    dbimpl: db,
-//                    connection_string: "mysql://root:Welcome1@localhost:3306/test".to_string(),
-//                    db_name: "mysql".to_string()
-//                }
-                // DBImpl::MYSQL => 
-                DBContext::new(
-                    DBImpl::MYSQL,
-                    "mysql://root:Welcome1@localhost:3306/dam".to_string(),
-                    "mysql".to_string()
-                )
-            // }
-        //} else {
-            // TODO: initialized the context in the first time!
-            //return MySQLContext {
-                    //connection_string: "mysql://root:Welcome1@localhost:3306/test".to_string(),
-                    //db_name: "mysql".to_string()
-                //}
-        //}
-    //}
+    DBContext::new(
+        DBImpl::MYSQL,
+        "mysql://root:Welcome1@localhost:3306/dam".to_string(),
+        "mysql".to_string()
+    )
 }
-

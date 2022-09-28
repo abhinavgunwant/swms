@@ -5,12 +5,12 @@ use std::path::Path;
 use std::time::{ Duration, Instant };
 use actix_multipart::Multipart;
 use actix_web::{ get, post, web, HttpResponse, HttpRequest, Responder, http::{StatusCode} };
-use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
+// use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::{ Serialize, Deserialize };
 use raster;
-use crate::repository;
+// use crate::repository;
 use crate::repository::{ Repository, item::Item, rendition::Rendition };
 use crate::repository::image::{ Image, encoding::Encoding, ImageRepository, get_image_repository };
 
@@ -115,7 +115,7 @@ pub async fn imagedata() -> web::Json<Image> {
 pub async fn getimage(req: HttpRequest) -> HttpResponse {
     let req_path: String = req.match_info().get("img").unwrap().parse().unwrap();
 
-    let path_vec = Vec::from_iter(req_path.split(".").map(String::from));
+    // let path_vec = Vec::from_iter(req_path.split(".").map(String::from));
 
     let repo = get_image_repository();
     

@@ -1,12 +1,10 @@
 pub mod image;
+pub mod user;
 pub mod item;
 mod metadata;
 pub mod rendition;
-mod user;
 
 use item::Item;
-use crate::db::DBImpl;
-use image::db::mysql;
 
 /**
  * Repository trait for all repositories
@@ -21,16 +19,6 @@ pub trait Repository {
     fn remove_item(&self, item: Box::<dyn Item>);
     fn remove(&self, id: u32);
 }
-
-//pub fn get_image_repository () -> impl Repository {
-//    // TODO: Read config here to get the configured DB.
-//    println!("Getting Repository config...");
-//    let mut db = DBImpl::MYSQL;
-//
-//    match db {
-//        DBImpl::MYSQL => mysql::ImageRepositoryMySQL {}
-//    }
-//}
 
 impl<T: ?Sized> Repository for Box<T> where T: Repository {
     fn get(&self, id: u32) -> Box::<dyn Item> {
@@ -61,4 +49,3 @@ impl<T: ?Sized> Repository for Box<T> where T: Repository {
         (**self).remove(id)
     }
 }
-

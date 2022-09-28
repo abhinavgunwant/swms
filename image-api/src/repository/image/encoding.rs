@@ -34,13 +34,7 @@ impl Serialize for Encoding {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer {
 
-//        match self {
-//            Encoding::TIF => serializer.serialize_u8(Encoding::TIF as u8),
-//            Encoding::JPG => serializer.serialize_u8(Encoding::JPG as u8),
-//            _ => serializer.serialize_u8(0)
-//        }
-      let t = *self;
+        let t = *self;
         serializer.serialize_u8(t as u8)
     }
 }
-

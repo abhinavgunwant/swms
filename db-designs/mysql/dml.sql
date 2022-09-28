@@ -24,5 +24,5 @@ INSERT INTO USER (
     ID, LOGIN_ID, EMAIL, NAME, USER_ROLE, CREATED_ON, LAST_LOGIN_ON
 )
 VALUES
-(0, 'unknown', '', 'Unknown User', 0, '2022-07-30 09:26:14', NULL),
-(1, 'admin', 'admin@localhost', 'Administrator', 1, NOW(), NULL);
+-- (0, 'unknown', '', 'Unknown User', 0, '2022-07-30 09:26:14', NULL),
+(0, 'admin', 'admin@localhost', 'Administrator', 1, NOW(), NULL);
