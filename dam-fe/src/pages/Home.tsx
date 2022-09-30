@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ChangeEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Grid from '@mui/material/Grid';
@@ -18,11 +18,40 @@ const FullWidthColumn = styled.div`
 `
 
 const Home = (): React.ReactElement => {
+    const [ username, setUsername ] = useState('');
+    const [ password, setPassword ] = useState('');
+
     const navigate = useNavigate();
 
-    const onLogin = () => {
-        navigate('/workspace');
+    const onLogin = async () => {
+        const response = await fetch('http://localhost:8080/api/admin/auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password }),
+        });
+
+        if (response.status === 200) {
+            const responseJson = await response.json();
+    
+            if (responseJson.success) {
+                navigate('/workspace');
+            }
+
+            return;
+        }
+        
+        console.log('Username and password combination is incorrect!');
     };
+
+    const onUsernameChanged = (e: ChangeEvent<HTMLInputElement>) => {
+        setUsername(e.target.value);
+    }
+
+    const onPasswordChanged = (e: ChangeEvent<HTMLInputElement>) => {
+        setPassword(e.target.value);
+    }
 
     return <div className="homepage">
         <Grid
@@ -43,11 +72,17 @@ const Home = (): React.ReactElement => {
                     </Typography>
 
                     <FullWidthColumn>
-                        <TextField required label="Username"/>
+                        <TextField
+                            label="Username"
+                            value={ username }
+                            onChange={ onUsernameChanged }
+                            required />
                         <TextField
                             required
                             label="Password"
                             type="password"
+                            value={ password }
+                            onChange={ onPasswordChanged }
                             sx={{ marginTop: '0.5rem' }} />
                     </FullWidthColumn>
 

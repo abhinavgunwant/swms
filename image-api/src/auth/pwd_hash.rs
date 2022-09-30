@@ -34,3 +34,12 @@ pub fn generate_password_hash(password: String) -> String {
         .unwrap()
         .to_string()
 }
+
+pub fn verify_password(password: String, hash: String) -> bool {
+    let parsed_hash = PasswordHash::new(hash.as_str()).unwrap();
+
+    get_password_hasher().verify_password(
+        password.as_bytes(),
+        &parsed_hash
+    ).is_ok()
+}

@@ -21,8 +21,12 @@ VALUES
 -- The time of creation of "Unknown User" is the time (in UTC) when this
 -- project was first initialized!
 INSERT INTO USER (
-    ID, LOGIN_ID, EMAIL, NAME, USER_ROLE, CREATED_ON, LAST_LOGIN_ON
+    ID, LOGIN_ID, EMAIL, PASSWORD, NAME, USER_ROLE, CREATED_ON, LAST_LOGIN_ON,
+    CREATED_BY, MODIFIED_ON, MODIFIED_BY
 )
 VALUES
 -- (0, 'unknown', '', 'Unknown User', 0, '2022-07-30 09:26:14', NULL),
-(0, 'admin', 'admin@localhost', 'Administrator', 1, NOW(), NULL);
+(
+    0, 'admin', 'admin@localhost',
+'$argon2id$v=19$m=16384,t=2,p=1$Hbs85Unihs0YdlwxkTb1KQ$Cs2MWaGX6pHGAGHEGU2hwV4djkpBJMrTwSM51rDOjvid2WdYC0YElOEMR92TfwZb3GogZH5RXV+KwECjSX8nBw',
+'Administrator', 1, NOW(), NULL, 0, NOW(), 0);

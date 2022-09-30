@@ -24,6 +24,7 @@ pub struct User {
 pub trait UserRepository {
     fn get(&self, id: u32) -> Result<User, DBError>;
     fn get_from_login_id(&self, login_id: String) -> Result<User, DBError>;
+    fn get_password_for_login_id(&self, login_id: String) -> Result<String, DBError>;
     fn get_all(&self) -> Vec::<User>;
     fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<User>;
     fn add(&self, user: User);

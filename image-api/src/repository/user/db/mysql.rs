@@ -3,7 +3,7 @@ use mysql::*;
 use mysql::prelude::*;
 use crate::repository::user::{ User, UserRepository };
 use crate::db::{ DBError, get_db_context, dbcontext::DBContext };
-use crate::authtools::generate_password_hash;
+use crate::auth::pwd_hash::generate_password_hash;
 
 const SELECT_ONE: &'static str = r"
     SELECT
@@ -78,7 +78,7 @@ impl UserRepository for MySQLUserRepository {
     }
 
     fn get_from_login_id(&self, login_id: String) -> std::result::Result<User, DBError> {
-        let dbc:DBContext = get_db_context();
+        let dbc: DBContext = get_db_context();
 
         let pool = Pool::new(String::as_str(&dbc.connection_string));
 
@@ -94,20 +94,65 @@ impl UserRepository for MySQLUserRepository {
         get_user_from_row(rows.get(0))
     }
 
-    fn get_all(&self) -> Vec::<User> {
-        let user_result = self.get(0);
+    fn get_password_for_login_id(&self, login_id: String)
+        -> std::result::Result<String, DBError> {
+        let dbc:DBContext = get_db_context();
 
-        let mut users = Vec::new();
+        let pool = Pool::new(String::as_str(&dbc.connection_string));
 
-        match user_result {
-            Ok(user) => {
-                users.push(user);
+        let mut conn = pool.unwrap().get_conn().unwrap();
+
+        let statement = conn.prep(SELECT_ONE_LOGIN_ID).unwrap();
+
+        let rows: Vec<Row> = conn.exec(
+            &statement,
+            params! { "login_id" => login_id}
+        ).unwrap();
+
+        if rows.len() == 0 {
+            return Err(DBError::NOT_FOUND);
+        }
+
+        let mut row: Row = rows.get(0).unwrap().clone();
+
+        let password: Option<String> = row.take("PASSWORD");
+
+        match password {
+            Some (password) => {
+                Ok (password)
             }
 
-            Err(e) => {
-                println!("Error while getting all users!!!!");
+            None => {
+                Err(DBError::NOT_FOUND)
             }
         }
+    }
+
+    fn get_all(&self) -> Vec::<User> {
+        let dbc:DBContext = get_db_context();
+
+        let pool = Pool::new(String::as_str(&dbc.connection_string));
+
+        let mut conn = pool.unwrap().get_conn().unwrap();
+
+        let users: Vec<User> = conn.query_map(
+            SELECT_ALL,
+            |(id, login_id, email, user_role, created_by, modified_by, name)| {
+                User {
+                    id: id,
+                    login_id: login_id,
+                    email: email,
+                    user_role: user_role,
+                    last_login_on: Utc::now(),
+                    created_by: created_by,
+                    modified_by: modified_by,
+                    created_on: Utc::now(),
+                    modified_on: Utc::now(),
+                    name: name,
+                    password: String::from("####")
+                }
+            }
+        ).unwrap();
 
         users
     }
@@ -117,8 +162,6 @@ impl UserRepository for MySQLUserRepository {
     }
 
     fn add(&self, user: User) {
-        println!("adding an user");
-
         let dbc:DBContext = get_db_context();
 
         let pool = Pool::new(String::as_str(&dbc.connection_string));

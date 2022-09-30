@@ -1,6 +1,7 @@
-use actix_web::{ post, web::{ Json } };
+use actix_web::{ post, web::{ Json }, HttpResponse };
 use serde::{ Serialize, Deserialize };
-use crate::authtools;
+use crate::repository::user::{ get_user_repository, User, UserRepository };
+use crate::auth::pwd_hash::{ verify_password };
 
 #[derive(Deserialize)]
 pub struct AuthRequest {
@@ -15,21 +16,35 @@ pub struct AuthMessage {
 }
 
 #[post("/api/admin/auth")]
-pub async fn auth(req_obj: Json<AuthRequest>) -> Json<AuthMessage> {
-    if req_obj.username.eq("abhii") {
-        return Json(AuthMessage {
-            success: true,
-            message: format!(
-                "Password Hash is: {}",
-                authtools::generate_password_hash(req_obj.password.clone())
-            )
-        })
-    }
+pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
+    let repo = get_user_repository();
 
-    Json(AuthMessage {
-        success: false,
-        message: String::from(
-            "The username and password combination is not valid!"
-        )
-    })
+    let pw = repo.get_password_for_login_id(req_obj.username.clone());
+
+    match pw {
+        Ok (password_hash) => {
+            let valid = verify_password(
+                req_obj.password.clone(),
+                password_hash
+            );
+
+            if valid {
+                return HttpResponse::Ok().json(AuthMessage {
+                    success: true, message: String::from("Login Successful!")
+                });
+            }
+
+            HttpResponse::NotFound().json(AuthMessage {
+                success: false,
+                message: String::from("Username/Password combination is invalid")
+            })
+        }
+
+        Err(_e) => {
+            HttpResponse::NotFound().json(AuthMessage {
+                success: false,
+                message: String::from("Username/Password combination is invalid")
+            })
+        }
+    }
 }
