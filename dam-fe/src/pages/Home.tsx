@@ -1,29 +1,73 @@
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useState, useTransition, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Grid from '@mui/material/Grid';
-import Typography from '@mui/material/Typography';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
+import {
+    Alert, Grid, Typography, Card, CardContent, TextField, Button,
+    CircularProgress,
+} from '@mui/material/';
 
+import useUserStore from '../store/workspace/UserStore';
+
+import { styled as materialStyled } from '@mui/material/styles';
 import styled from '@emotion/styled';
+
+const LoginAlert = materialStyled(Alert)`
+    margin: 1rem 0 0.5rem 0;
+`;
 
 const FullWidthColumn = styled.div`
     display: flex;
     flex-direction: column;
     width: 100%;
     margin-top: 1rem;
-`
+`;
+
+const FlexCentered = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem;
+`;
+
+const ProcessingAnimation = () => <FlexCentered>
+    <CircularProgress />
+</FlexCentered>;
 
 const Home = (): React.ReactElement => {
-    const [ username, setUsername ] = useState('');
-    const [ password, setPassword ] = useState('');
+    const userStore = useUserStore();
+
+    const [ username, setUsername ] = useState<string>('');
+    const [ password, setPassword ] = useState<string>('');
+
+    const [ error, setError ] = useState<string>('Unknown error');
+    const [ showError, setShowError ] = useState<boolean>(false);
+    const [ processing, setProcessing ] = useState<boolean>(false);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [ _, startTransition ] = useTransition();
 
     const navigate = useNavigate();
 
-    const onLogin = async () => {
+    const onLogin = async (e: React.SyntheticEvent) => {
+        if (e) {
+            e.preventDefault();
+        }
+
+        if (username === '' || password === '') {
+            startTransition(() => {
+                setProcessing(false);
+                setError('Username and Password should not be empty.');
+                setShowError(true);
+            });
+
+            return;
+        }
+
+        startTransition(() => {
+            setShowError(false);
+            setProcessing(true);
+        });
+
         const response = await fetch('http://localhost:8080/api/admin/auth', {
             method: 'POST',
             headers: {
@@ -36,21 +80,45 @@ const Home = (): React.ReactElement => {
             const responseJson = await response.json();
     
             if (responseJson.success) {
+                userStore.setSession(responseJson.s, 0);
+
                 navigate('/workspace');
+
+                return;
             }
 
+            startTransition(() => {
+                setError(responseJson.message);
+                setShowError(true);
+                setProcessing(false);
+            });
+        }
+
+        if (response.status === 404) {
+            startTransition(() => {
+                setError('The username and password combination is invalid. Retry with correct credentials.');
+                setShowError(true);
+                setProcessing(false);
+            });
+            
             return;
         }
-        
-        console.log('Username and password combination is incorrect!');
+
+        startTransition(() => {
+            setError('Unknown error, please try again later!')
+            setShowError(true);
+            setProcessing(false);
+        });
     };
 
     const onUsernameChanged = (e: ChangeEvent<HTMLInputElement>) => {
         setUsername(e.target.value);
+        setShowError(false);
     }
 
     const onPasswordChanged = (e: ChangeEvent<HTMLInputElement>) => {
         setPassword(e.target.value);
+        setShowError(false);
     }
 
     return <div className="homepage">
@@ -71,40 +139,59 @@ const Home = (): React.ReactElement => {
                         In order to use DAM, you must login.
                     </Typography>
 
-                    <FullWidthColumn>
-                        <TextField
-                            label="Username"
-                            value={ username }
-                            onChange={ onUsernameChanged }
-                            required />
-                        <TextField
-                            required
-                            label="Password"
-                            type="password"
-                            value={ password }
-                            onChange={ onPasswordChanged }
-                            sx={{ marginTop: '0.5rem' }} />
-                    </FullWidthColumn>
+                    <form onSubmit={ onLogin }>
+                        <FullWidthColumn>
+                            <TextField
+                                label="Username"
+                                value={ username }
+                                onChange={ onUsernameChanged }
+                                error={ showError }
+                                required />
+                            <TextField
+                                label="Password"
+                                type="password"
+                                value={ password }
+                                onChange={ onPasswordChanged }
+                                error={ showError }
+                                sx={{ marginTop: '0.5rem' }}
+                                required />
+                        </FullWidthColumn>
 
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        sx={{
-                            textTransform: 'capitalize',
-                            marginTop: '0.5rem',
-                        }}
-                        onClick={ onLogin }>
-                        Login
-                    </Button>
-                    <Button
-                        variant="text"
-                        sx={{
-                            textTransform: 'capitalize',
-                            marginTop: '0.5rem',
-                            marginLeft: '0.5rem',
-                        }}>
-                        Forgot password?
-                    </Button>
+                        {
+                            showError &&
+                            <LoginAlert severity="error">
+                                { error }
+                            </LoginAlert>
+                        }
+
+                        {
+                            processing ?
+                                <ProcessingAnimation />
+                            :
+                                <Fragment>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        sx={{
+                                            textTransform: 'capitalize',
+                                            marginTop: '0.5rem',
+                                        }}
+                                        disabled={ showError }
+                                        onClick={ onLogin }>
+                                        Login
+                                    </Button>
+                                    <Button
+                                        variant="text"
+                                        sx={{
+                                            textTransform: 'capitalize',
+                                            marginTop: '0.5rem',
+                                            marginLeft: '0.5rem',
+                                        }}>
+                                        Forgot password?
+                                    </Button>
+                                </Fragment>
+                        }
+                    </form>
                 </CardContent>
             </Card>
         </Grid>

@@ -1,3 +1,4 @@
+use mysql::{ PooledConn, Pool };
 use dbcontext::{ DBContext, MySQLContext };
 use cached::proc_macro::cached;
 use lazy_static::lazy_static;
@@ -10,7 +11,8 @@ lazy_static! {
 
 #[derive(PartialEq)]
 pub enum DBError {
-    NOT_FOUND
+    NOT_FOUND,
+    OtherError
 }
 
 #[derive(PartialEq, Eq, Hash, Copy)]
@@ -41,4 +43,12 @@ pub fn get_db_context() -> DBContext {
         "mysql://root:Welcome1@localhost:3306/dam".to_string(),
         "mysql".to_string()
     )
+}
+
+pub fn get_db_connection() -> PooledConn {
+    let dbc:DBContext = get_db_context();
+    let pool = Pool::new(String::as_str(&dbc.connection_string));
+    let conn: PooledConn = pool.unwrap().get_conn().unwrap();
+
+    conn
 }

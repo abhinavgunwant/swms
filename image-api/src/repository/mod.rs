@@ -3,6 +3,7 @@ pub mod user;
 pub mod item;
 mod metadata;
 pub mod rendition;
+pub mod project;
 
 use item::Item;
 

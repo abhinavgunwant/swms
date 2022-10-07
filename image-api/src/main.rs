@@ -36,6 +36,8 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::auth::auth)
             .service(api::admin::user::create_user)
             .service(api::admin::user::get_user)
+            .service(api::admin::project::get_projects)
+            .service(api::admin::project::add_project)
             .service(api::image::upload)
             .service(api::image::download)
             .service(api::image::imagedata)

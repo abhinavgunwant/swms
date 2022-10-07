@@ -1,2 +1,2 @@
 pub mod pwd_hash;
-mod token;
+pub mod token;

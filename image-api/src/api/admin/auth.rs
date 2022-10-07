@@ -1,7 +1,12 @@
-use actix_web::{ post, web::{ Json }, HttpResponse };
+use actix_web::{ web::{ Json }, HttpResponse, cookie::Cookie, post };
 use serde::{ Serialize, Deserialize };
 use crate::repository::user::{ get_user_repository, User, UserRepository };
-use crate::auth::pwd_hash::{ verify_password };
+use crate::auth::{
+    pwd_hash::{ verify_password },
+    token::{
+        RefreshToken, create_session_token, create_refresh_token
+    }
+};
 
 #[derive(Deserialize)]
 pub struct AuthRequest {
@@ -12,6 +17,8 @@ pub struct AuthRequest {
 #[derive(Serialize)]
 pub struct AuthMessage {
     success: bool,
+    // Session token (JWT)
+    s: String,
     message: String
 }
 
@@ -29,13 +36,28 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
             );
 
             if valid {
-                return HttpResponse::Ok().json(AuthMessage {
-                    success: true, message: String::from("Login Successful!")
+                let refresh_token: RefreshToken = create_refresh_token(req_obj.username.clone());
+
+                let ref_token_cookie: Cookie = Cookie::build(
+                        "r", refresh_token.refresh_token
+                    ).path("/")
+                    .domain("localhost") // TODO: make this configurable
+                    // .secure(true) // TODO: uncomment this for secure cookie!
+                    .http_only(true)
+                    .finish();
+
+                return HttpResponse::Ok()
+                    .cookie(ref_token_cookie)
+                    .json(AuthMessage {
+                        success: true,
+                        s: create_session_token(req_obj.username.clone()),
+                        message: String::from("Login Successful!")
                 });
             }
 
             HttpResponse::NotFound().json(AuthMessage {
                 success: false,
+                s: String::from(""),
                 message: String::from("Username/Password combination is invalid")
             })
         }
@@ -43,6 +65,7 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
         Err(_e) => {
             HttpResponse::NotFound().json(AuthMessage {
                 success: false,
+                s: String::from(""),
                 message: String::from("Username/Password combination is invalid")
             })
         }
