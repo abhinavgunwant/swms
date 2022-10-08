@@ -2,7 +2,7 @@
 
 This is a prototype "Digital Asset Manager".
 
-Contains `dam-fe` a.k.a the "Dam Frontend" and `iamge-api` a.k.a the "Dam Backend" folders.
+Contains `dam-fe` a.k.a the "Dam Frontend" and `image-api` a.k.a the "Dam Backend" folders.
 
 ## Building and executing
 
@@ -21,3 +21,7 @@ Here:
 - `/books/ebooks` is the image path
 - `ebook-cover1` is the image slug
 - `jpg` is the desired image encoding (This is an optional feature)
+
+## Setting up
+1. Create `image-rendition-cache` and `image-uploads` folders.
+2. Run ddl and dml SQL scripts.
