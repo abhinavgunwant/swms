@@ -19,11 +19,14 @@ export default interface WorkspaceState {
     displayStyle: string,
     imageList: ThumbnailItemModel[],
     projectList: ThumbnailItemModel[],
+    // sessionToken: string,
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: string) => void;
     removeImageFromSelected: (imageID: string) => void;
     setDisplayStyle: (dstyle: string) => void;
+    setProjectList: (projectList: ThumbnailItemModel[]) => void;
+    // setSessionToken: (sessionToken: string) => void;
 
     /**
      * Whether the passed imageID matches the selected images.

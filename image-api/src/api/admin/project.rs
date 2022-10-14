@@ -1,4 +1,4 @@
-use actix_web::{ web::{ Json }, HttpResponse, cookie::Cookie, post, get };
+use actix_web::{ web::{ Json }, HttpResponse, HttpRequest, cookie::Cookie, post, get };
 use serde::{ Serialize, Deserialize };
 use crate::db::DBError;
 use crate::repository::{
@@ -60,10 +60,46 @@ pub async fn get_projects() -> HttpResponse {
 }
 
 #[get("/api/admin/projects-for-user")]
-pub async fn get_projects_for_user(project: Json<UserProjectRequest>) -> HttpResponse {
+pub async fn get_projects_for_user(req: HttpRequest) -> HttpResponse {
     let repo = get_project_repository();
 
-    let projects_wrapped = repo.get_user_projects(project.user_id.clone());
+    let auth_header = req.headers().get("Authorization")
+        .unwrap().to_str().unwrap();
+
+    if auth_header.chars().count() < 8 {
+        return HttpResponse::Unauthorized().json(ProjectResponse {
+            success: false,
+            message: vec![String::from("Anauthorized")],
+            projects: vec![],
+        });
+    }
+
+    // TODO: Extract the user id here...
+    // for now, since jwt setup is pending, i'm extracting it from the repo.
+    let login_id = format!("{}", &auth_header[7..]);
+    println!("Login ID: {}", login_id);
+    let user_repo = get_user_repository();
+    let user_res: Result<User, DBError> = user_repo.get_from_login_id(login_id);
+
+    let user: User;
+
+    match user_res {
+        Ok (usr) => {
+            user = usr;
+
+            println!("user: {} {}", &user.id, user.name.clone());
+        }
+
+        Err (_e) => {
+            return HttpResponse::Unauthorized().json(ProjectResponse {
+                success: false,
+                message: vec![String::from("Anauthorized")],
+                projects: vec![],
+            });
+        }
+    }
+
+    let projects_wrapped = repo.get_user_projects(user.id);
 
     match projects_wrapped {
         Ok (projects) => {

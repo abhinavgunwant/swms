@@ -170,4 +170,3 @@ pub async fn getimage(req: HttpRequest) -> HttpResponse {
         .content_type("image/jpeg")
         .body(image_file);
 }
-

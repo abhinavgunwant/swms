@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Grid from '@mui/material/Grid';
@@ -8,10 +8,12 @@ import Box from '@mui/material/Box';
 
 import WorkspaceTopRow from '../WorkspaceTopRow';
 import Thumbnail from '../../../components/Thumbnail';
+import ImageListItem from '../../../components/ImageListItem';
+
+import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+import useAPI from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
-import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
-import ImageListItem from '../../../components/ImageListItem';
 
 const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 14rem);
@@ -36,12 +38,16 @@ const StyledBox = styled(Box)`
 
 const Project = () => {
     const store = useWorkspaceStore();
-    // const { projectSlug } = useParams();
+    const { getProjects } = useAPI();
     const navigate = useNavigate();
 
     const onThumbnailClicked = (slug: string) => {
         return () => navigate('/workspace/tree/' + slug);
     }
+
+    useEffect(() => {
+        getProjects();
+    }, []);
 
     return <div className="page page--project">
         <WorkspaceTopRow links={ ['Workspace'] } />

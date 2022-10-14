@@ -141,7 +141,7 @@ impl ProjectRepository for MySQLProjectRepository {
                 P.SLUG
             FROM PROJECT P, USER_PROJECT UP
             WHERE P.RESTRICT_USERS = FALSE OR (
-                P.ID = UP.ID AND P.USER_ID = :user_id)
+                P.ID = UP.PROJECT_ID AND UP.USER_ID = :user_id)
         ").unwrap();
 
         let rows_wrapped: Result<Vec::<Row>, Error> = conn.exec(statement, params! { "user_id" => user_id });
@@ -153,14 +153,38 @@ impl ProjectRepository for MySQLProjectRepository {
                 for row in rows.iter() {
                     let mut r = row.clone();
 
+                    let restrict_users_wrapped = r.take("RESTRICT_USERS");
+                    let restrict_users: bool;
+                    // let modified_by_wrapped = r.take("MODIFIED_BY");
+                    // let modified_by: u32;
+
+                    match restrict_users_wrapped {
+                        Some(ru) => {
+                            restrict_users = ru;
+                        }
+
+                        None => {
+                            restrict_users = false;
+                        }
+                    }
+
+                    // match modified_by_wrapped {
+                    //     Some(mb) => {
+                    //         modified_by = mb;
+                    //     }
+
+                    //     None => {
+                    //         modified_by = 0;
+                    //     }
+                    // }
                     projects.push(Project {
                         id: r.take("ID").unwrap(),
                         name: r.take("NAME").unwrap(),
                         slug: r.take("SLUG").unwrap(),
                         description: r.take("DESCRIPTION").unwrap(),
-                        restrict_users: r.take("RESTRICT_USERS").unwrap(),
+                        restrict_users,
                         created_by: r.take("CREATED_BY").unwrap(),
-                        modified_by: r.take("MODIFIED_BY").unwrap(),
+                        modified_by: 0,
                         created_on: Utc::now(),
                         modified_on: Utc::now(),
                     });

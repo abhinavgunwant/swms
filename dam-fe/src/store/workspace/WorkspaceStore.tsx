@@ -74,6 +74,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
                     path: '/',
                 },
             ],
+            // sessionToken: '',
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(
@@ -125,6 +126,12 @@ const useWorkspaceStore = create<WorkspaceState>()(
 
             //     return get().selectedImages.has(imageID);
             // }
+            setProjectList: (projectList) => set((state) => ({
+                ...state, projectList
+            })),
+            // setSessionToken: (sessionToken) => set((state) => ({
+            //     ...state, sessionToken
+            // })),
         })
     //     )
     // )
