@@ -70,12 +70,12 @@ const ImageListItem = (props: ThumbnailExtendedProps) => {
 
             <ListItemButton>
                 <ListItemAvatar>
-                    <StyledAvatar alt={ props.title } src={ props.thumbnailLocation } />
+                    <StyledAvatar alt={ props.name } src={ props.thumbnailLocation } />
                 </ListItemAvatar>
 
                 <ImageText>
                     <Typography variant="h6">
-                        { props.title }
+                        { props.name }
                     </Typography>
                 </ImageText>
 

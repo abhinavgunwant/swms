@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 
 import WorkspaceTopRow from '../WorkspaceTopRow';
@@ -37,6 +38,8 @@ const StyledBox = styled(Box)`
 `;
 
 const Project = () => {
+    const [ loading, setLoading ] = useState(true);
+
     const store = useWorkspaceStore();
     const { getProjects } = useAPI();
     const navigate = useNavigate();
@@ -47,6 +50,7 @@ const Project = () => {
 
     useEffect(() => {
         getProjects();
+        setLoading(false);
     }, []);
 
     return <div className="page page--project">
@@ -57,32 +61,47 @@ const Project = () => {
                 Projects
             </Typography>
 
-            <Typography variant="subtitle1">
-                Click on a project to view images
-            </Typography>
+            {
+                !loading &&
+                <Typography variant="subtitle1">
+                    Click on a project to view images
+                </Typography>
+            }
         </StyledBox>
 
         {
-            store.displayStyle === 'GRID' ?
-                <WorkspaceGrid container spacing={2}>
-                    {
-                        store.projectList.map(t =>
-                            <Thumbnail
-                                { ...t }
-                                key={ t.id }
-                                isImage={false}
-                                onClick={ onThumbnailClicked( t.slug ) } />
-                        )
-                    }
-                </WorkspaceGrid>
+            loading ?
+                <CircularProgress />
             :
-                <List dense>
-                    {
-                        store.projectList.map(t =>
-                            <ImageListItem {...t} key={t.id} isImage={false} />
-                        )
-                    }
-                </List>
+                store.displayStyle === 'GRID' ?
+                    <WorkspaceGrid container spacing={2}>
+                        {
+                            store.projectList.map(t =>
+                                <Thumbnail
+                                    id= { t.id }
+                                    name={ t.name }
+                                    thumbnailLocation=""
+                                    key={ t.id }
+                                    isImage={false}
+                                    onClick={
+                                        onThumbnailClicked( t.slug )
+                                    } />
+                            )
+                        }
+                    </WorkspaceGrid>
+                :
+                    <List dense>
+                        {
+                            store.projectList.map(t =>
+                                <ImageListItem
+                                    id= { t.id }
+                                    name={ t.name }
+                                    thumbnailLocation=""
+                                    key={t.id}
+                                    isImage={false} />
+                            )
+                        }
+                    </List>
         }
     </div>
 }

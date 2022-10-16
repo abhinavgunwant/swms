@@ -1,5 +1,6 @@
 import ThumbnailItemModel from "../../models/ThumbnailItemModel";
 import ProjectListItemModel from "../../models/ProjectListItemModel";
+import Project from '../../models/Project';
 
 export default interface WorkspaceState {
     /**
@@ -11,25 +12,25 @@ export default interface WorkspaceState {
     /**
      * Array holding imageID of the thumbnail selected
      */
-    selectedImages: Set<string> ,
+    selectedImages: Set<number> ,
 
     /**
      * Whether to display list or grid.
      */
     displayStyle: string,
     imageList: ThumbnailItemModel[],
-    projectList: ThumbnailItemModel[],
+    projectList: Project[],
     // sessionToken: string,
 
     setSelecting: (sel: boolean) => void;
-    addImageToSelected: (imageID: string) => void;
-    removeImageFromSelected: (imageID: string) => void;
+    addImageToSelected: (imageID: number) => void;
+    removeImageFromSelected: (imageID: number) => void;
     setDisplayStyle: (dstyle: string) => void;
-    setProjectList: (projectList: ThumbnailItemModel[]) => void;
+    setProjectList: (projectList: Project[]) => void;
     // setSessionToken: (sessionToken: string) => void;
 
     /**
      * Whether the passed imageID matches the selected images.
      */
-    isSelected: (imageID: string) => boolean;
+    isSelected: (imageID: number) => boolean;
 }

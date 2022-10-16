@@ -1,28 +1,27 @@
-// import Project from '../models/Project';
-// import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 import useUserStore from '../store/workspace/UserStore';
-
-const getProjects = (token: string) => async () => {
-    const response = await fetch('http://localhost:8080/api/admin/projects-for-user', {
-        headers: {
-            'Authorization': 'Bearer ' + token,
-        }
-    });
-
-    if (response.status === 200) {
-        const json = await response.json();
-        console.log('received json: ', json);
-    }
-
-    return [];
-}
+import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 
 const useAPI = () => {
-    // const store = useWorkspaceStore();
     const userStore = useUserStore();
+    const wsStore = useWorkspaceStore();
 
     return {
-        getProjects: getProjects(userStore.sessionToken),
+        /**
+         * Gets the list of projects from dam api and assigns it to store.
+         */
+        getProjects: async () => {
+            const response = await fetch('http://localhost:8080/api/admin/projects-for-user', {
+                headers: {
+                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
+                    'Authorization': 'Bearer admin',
+                }
+            });
+
+            if (response.status === 200) {
+                const json = await response.json();
+                wsStore.setProjectList(json.projects);
+            }
+        }
     }
 };
 

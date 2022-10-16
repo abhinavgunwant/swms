@@ -47,7 +47,7 @@ const Workspace = ():React.ReactElement => {
                             text: 'Workspace',
                             to: '/workspace',
                         },
-                        store.projectList[i].title,
+                        store.projectList[i].name,
                     ]);
                     break;
                 }
@@ -76,8 +76,11 @@ const Workspace = ():React.ReactElement => {
                     {
                         store.imageList.map(t =>
                             <Thumbnail
-                                { ...t }
+                                // { ...t }
                                 key={ t.id }
+                                id={ t.id }
+                                name={ t.name }
+                                thumbnailLocation=""
                                 isImage={ true }
                                 onClick={ onThumbnailClicked( t.path, t.slug ) } />
                         )
@@ -87,7 +90,13 @@ const Workspace = ():React.ReactElement => {
                 <List dense>
                     {
                         store.imageList.map(t =>
-                            <ImageListItem {...t} key={t.id} isImage={true} />
+                            <ImageListItem
+                                // {...t}
+                                key={t.id}
+                                id={ t.id }
+                                name={ t.name }
+                                thumbnailLocation=""
+                                isImage={true} />
                         )
                     }
                 </List>

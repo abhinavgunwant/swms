@@ -49,11 +49,11 @@ const Thumbnail = (props: ThumbnailExtendedProps) => {
                 component="img"
                 height="200"
                 image="/logo192.png"
-                alt={ props.title } />
+                alt={ props.name } />
 
             <CardContent>
                 <Typography variant="h5">
-                    { props.title }
+                    { props.name }
                 </Typography>
                 <ThumbnailSubtitle>
                     { subtitle }
