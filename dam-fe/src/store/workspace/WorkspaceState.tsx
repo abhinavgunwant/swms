@@ -1,6 +1,8 @@
 import ThumbnailItemModel from "../../models/ThumbnailItemModel";
 import ProjectListItemModel from "../../models/ProjectListItemModel";
 import Project from '../../models/Project';
+import Image from "../../models/Image";
+import Folder from "../../models/Folder";
 
 export default interface WorkspaceState {
     /**
@@ -18,16 +20,17 @@ export default interface WorkspaceState {
      * Whether to display list or grid.
      */
     displayStyle: string,
-    imageList: ThumbnailItemModel[],
+    imageList: Image[],
     projectList: Project[],
-    // sessionToken: string,
+    folderList: Folder[],
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
     removeImageFromSelected: (imageID: number) => void;
     setDisplayStyle: (dstyle: string) => void;
     setProjectList: (projectList: Project[]) => void;
-    // setSessionToken: (sessionToken: string) => void;
+    setImageList: (imageList: Image[]) => void;
+    setFolderList: (folderList: Folder[]) => void;
 
     /**
      * Whether the passed imageID matches the selected images.

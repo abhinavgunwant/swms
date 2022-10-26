@@ -155,8 +155,6 @@ impl ProjectRepository for MySQLProjectRepository {
 
                     let restrict_users_wrapped = r.take("RESTRICT_USERS");
                     let restrict_users: bool;
-                    // let modified_by_wrapped = r.take("MODIFIED_BY");
-                    // let modified_by: u32;
 
                     match restrict_users_wrapped {
                         Some(ru) => {
@@ -168,15 +166,6 @@ impl ProjectRepository for MySQLProjectRepository {
                         }
                     }
 
-                    // match modified_by_wrapped {
-                    //     Some(mb) => {
-                    //         modified_by = mb;
-                    //     }
-
-                    //     None => {
-                    //         modified_by = 0;
-                    //     }
-                    // }
                     projects.push(Project {
                         id: r.take("ID").unwrap(),
                         name: r.take("NAME").unwrap(),

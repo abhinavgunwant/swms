@@ -10,36 +10,8 @@ const useWorkspaceStore = create<WorkspaceState>()(
             selecting: false,
             selectedImages: new Set<number>(),
             displayStyle: 'GRID', //// TODO: Make a const file and replace this...
-            imageList: [
-                {
-                    id: 1,
-                    thumbnailLocation: '/logo512.png',
-                    name: 'Image 1',
-                    slug: 'image-1.png',
-                    path: '/',
-                },
-                {
-                    id: 2,
-                    thumbnailLocation: '/scrumtools-io-logo.png',
-                    name: 'Scrumtools.io Logo!',
-                    slug: 'scrumtools-io-logo.jpg',
-                    path: '/',
-                },
-                {
-                    id: 3,
-                    thumbnailLocation: '/logo512.png',
-                    name: 'Image 3',
-                    slug: 'image-3.jpg',
-                    path: '/',
-                },
-                {
-                    id: 4,
-                    thumbnailLocation: '/logo512.png',
-                    name: 'Image 4',
-                    slug: 'image-4.jpg',
-                    path: '/',
-                },
-            ],
+            imageList: [],
+            folderList: [],
             projectList: [],
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
@@ -75,6 +47,12 @@ const useWorkspaceStore = create<WorkspaceState>()(
             setProjectList: (projectList) => set((state) => ({
                 ...state, projectList
             })),
+            setImageList: (imageList) => set(
+                (state) => ({ ...state, imageList: imageList })
+            ),
+            setFolderList: (folderList) => set(
+                (state) => ({ ...state, folderList: folderList })
+            ),
         })
 );
 

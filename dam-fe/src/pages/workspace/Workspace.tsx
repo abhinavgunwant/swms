@@ -13,8 +13,9 @@ import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 import ImageListItem from '../../components/ImageListItem';
 import LinkModel from '../../models/LinkModel';
 import ViewImage from './view-image/ViewImage';
+import useAPI from '../../hooks/useAPI';
 
-const WorkspaceGrid = styled(Grid)`
+export const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 9.25rem);
     overflow: auto;
     margin-top: 1rem;
@@ -26,16 +27,20 @@ const Workspace = ():React.ReactElement => {
     const navigate = useNavigate();
     const { projectSlug, path, imageSlug } = useParams();
 
-    console.log('Image Slug: ', imageSlug);
-    
+    const { getImages } = useAPI();
+
+//    console.log('Image Slug: ', imageSlug);
 
     const [ breadcrumbLinks, setBreadcrumbLinks ]
         = useState<Array<LinkModel | string>>(['Workspace']);
 
-    const [ pageType, setPageType ] = useState('LIST');
+    const [ pageType, setPageType ] = useState('PROJECT');
 
     const onThumbnailClicked = (path: string, slug: string) => {
-        return () => navigate('/workspace/tree/' + projectSlug + (path && path !== '/' ? path : '') + '/' + slug);
+        return () => navigate(
+            '/workspace/tree/' + projectSlug +
+            (path && path !== '/' ? path : '') + '/' + slug
+        );
     };
 
     useEffect(() => {
@@ -56,16 +61,23 @@ const Workspace = ():React.ReactElement => {
 
         //// TODO: query backend the path and see if it is valid
         //// if valid, return the type of resource it is.
-        if (imageSlug === 'scrumtools-io-logo.jpg') {
+        if (imageSlug?.endsWith('.jpg')) {
             setPageType('IMAGE');
         }
+
+        // TODO: pass the rquired slug (i.e. project slug if user is at root
+        // of project and folder slug if user is in some project)
+        getImages(projectSlug||'');
     }, []);
 
-    if (pageType === 'IMAGE') {
-        console.log('Image page type!');
-        
-        return <ViewImage imageId={ imageSlug } />;
-    }
+//    if (pageType === 'IMAGE') {
+//        console.log('Image page type!');
+//        
+//        return <ViewImage 
+//            projectSlug={ projectSlug }
+//            path={ path }
+//            imageSlug={ imageSlug } />;
+//    }
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ breadcrumbLinks } />
@@ -76,13 +88,12 @@ const Workspace = ():React.ReactElement => {
                     {
                         store.imageList.map(t =>
                             <Thumbnail
-                                // { ...t }
                                 key={ t.id }
                                 id={ t.id }
                                 name={ t.name }
                                 thumbnailLocation=""
                                 isImage={ true }
-                                onClick={ onThumbnailClicked( t.path, t.slug ) } />
+                                onClick={ onThumbnailClicked('', t.slug ) } />
                         )
                     }
                 </WorkspaceGrid>
@@ -91,7 +102,6 @@ const Workspace = ():React.ReactElement => {
                     {
                         store.imageList.map(t =>
                             <ImageListItem
-                                // {...t}
                                 key={t.id}
                                 id={ t.id }
                                 name={ t.name }
