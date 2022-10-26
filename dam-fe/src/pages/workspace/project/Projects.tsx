@@ -45,9 +45,13 @@ const Project = () => {
     const navigate = useNavigate();
 
     const onThumbnailClicked = (slug: string) => {
-        return () => navigate('/workspace/tree/' + slug);
+        return () => {
+            store.setImageList([]);
+            navigate('/workspace/tree/' + slug);
+        };
     }
 
+    /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
         getProjects();
         setLoading(false);
@@ -83,9 +87,7 @@ const Project = () => {
                                     thumbnailLocation=""
                                     key={ t.id }
                                     isImage={false}
-                                    onClick={
-                                        onThumbnailClicked( t.slug )
-                                    } />
+                                    onClick={ onThumbnailClicked( t.slug ) } />
                             )
                         }
                     </WorkspaceGrid>

@@ -75,7 +75,7 @@ const Thumbnail = (props: ThumbnailExtendedProps) => {
                             <EditIcon />
                         </IconButton>
 
-                        <IconButton aria-label="edit">
+                        <IconButton aria-label="delete">
                             <DeleteIcon />
                         </IconButton>
                     </Fragment>
