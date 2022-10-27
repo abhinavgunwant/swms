@@ -41,8 +41,8 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     let _type = qs.get("type").unwrap();
     let slug = String::from(qs.get("slug").unwrap());
 
-    let repo = get_image_repository();
-    let images_wrapped = repo.get_all_from_project_slug(slug);
+    let img_repo = get_image_repository();
+    let images_wrapped = img_repo.get_all_from_project_slug(slug);
 
     let mut response_images: Vec<Image> = vec![];
     let mut response_folders:Vec<u32> = vec![];
@@ -57,12 +57,11 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     // collect images
     match images_wrapped {
         Ok (images) => {
-            //HttpResponse::Ok().json(ImageResponse {images})
             response_images = images;
             images_found = true;
         }
 
-        Err (e) => {
+        Err (_e) => {
             eprintln!("Some internal error occured while fetching project images.");
 
             error = true;

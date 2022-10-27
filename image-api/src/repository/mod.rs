@@ -4,6 +4,7 @@ pub mod item;
 mod metadata;
 pub mod rendition;
 pub mod project;
+pub mod folder;
 
 use item::Item;
 
