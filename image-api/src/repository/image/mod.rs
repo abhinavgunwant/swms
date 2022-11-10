@@ -2,12 +2,13 @@ pub mod db;
 pub mod encoding;
 
 use serde::Serialize;
+use serde_json;
 use encoding::Encoding;
 use chrono::{DateTime, Utc};
 use crate::db::{ DBImpl, get_db_context, DBError };
 use db::mysql::MySQLImageRepository;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct Image {
     pub id: u32,
     pub name: String, // Original Filename
@@ -28,6 +29,10 @@ pub struct Image {
 
 pub trait ImageRepository {
     fn get(&self, id: u32) -> Image;
+    fn get_from_project_image_slug(&self, p_slug: String, i_slug: String)
+        -> Result<Image, DBError>;
+    fn get_from_folder_image_slug(&self, f_slug: String, i_slug: String)
+        -> Result<Image, DBError>;
     fn get_all(&self) -> Vec::<Image>;
     fn get_all_from_project(&self, project_id: u32)
         -> Result<Vec::<Image>, DBError>;
@@ -47,5 +52,11 @@ pub fn get_image_repository() -> impl ImageRepository {
         DBImpl::MYSQL => {
             MySQLImageRepository {}
         }
+    }
+}
+
+impl std::fmt::Display for Image {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Image {}", serde_json::to_string(&self).unwrap())
     }
 }

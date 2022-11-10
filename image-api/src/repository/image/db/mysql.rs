@@ -6,6 +6,52 @@ use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
 
+fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image, DBError> {
+    match row_wrapped {
+        Ok (row_option) => {
+            match row_option {
+                Some (r) => {
+                    let mut row: Row = r.clone();
+
+                    Ok (Image {
+                        id: row.take("ID").unwrap(),
+                        name: row.take("ORIGINAL_FILENAME").unwrap(),
+                        title: row.take("TITLE").unwrap(),
+                        height: row.take("HEIGHT").unwrap(),
+                        width: row.take("WIDTH").unwrap(),
+                        is_published: true,
+                        // is_published: row.take("is_published").unwrap() == true,
+                        project_id: 0,
+                        // project_id: row.take("PROJECT_ID").unwrap_or_default(),
+                        folder_id: 0,
+                        // folder_id: row.take("FOLDER_ID").unwrap_or_default(),
+                        created_by: row.take("CREATED_BY").unwrap(),
+                        modified_by: row.take("MODIFIED_BY").unwrap(),
+                        created_on: Utc::now(),
+                        // created_on: row.take("created_on").unwrap(),
+                        modified_on: Utc::now(),
+                        // modified_on: row.take("modified_on").unwrap(),
+                        slug: String::from(""),
+                        //slug: row.take("SLUG").unwrap_or_default(),
+                        encoding: Encoding::JPG,
+                        //metadata_id: 0,
+                    })
+                }
+
+                None => {
+                    Err(DBError::NOT_FOUND)
+                }
+            }
+        }
+
+        Err (_e) => {
+            eprintln!("Error while getting images from query: {}", _e);
+
+            Err(DBError::OtherError)
+        }
+    }
+}
+
 fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
     -> Result<Vec::<Image>, DBError> {
 
@@ -132,6 +178,54 @@ impl ImageRepository for MySQLImageRepository {
             encoding: Encoding::JPG,
             //metadata_id: 0,
         }
+    }
+
+    fn get_from_project_image_slug(&self, p_slug: String, i_slug: String)
+        -> Result<Image, DBError> {
+        let dbc:DBContext = get_db_context();
+
+        let pool = Pool::new(String::as_str(&dbc.connection_string));
+
+        let mut conn = pool.unwrap().get_conn().unwrap();
+
+        let row: Result<Option<Row>, Error> = conn.exec_first(
+            r"SELECT
+                I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
+                I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
+                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON, I.SLUG
+            FROM IMAGE I, PROJECT P
+            WHERE P.SLUG = :p_slug AND I.SLUG = :i_slug
+                AND I.PROJECT_ID = P.ID",
+            params! {
+                "i_slug" => i_slug,
+                "p_slug" => p_slug,
+            });
+
+        get_image_from_row(row)
+    }
+
+    fn get_from_folder_image_slug(&self, f_slug: String, i_slug: String)
+        -> Result<Image, DBError> {
+        let dbc:DBContext = get_db_context();
+
+        let pool = Pool::new(String::as_str(&dbc.connection_string));
+
+        let mut conn = pool.unwrap().get_conn().unwrap();
+
+        let row: Result<Option<Row>, Error> = conn.exec_first(
+            r"SELECT
+                I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
+                I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
+                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON, I.SLUG
+            FROM IMAGE I, FOLDER F
+            WHERE F.SLUG = :p_slug AND I.SLUG = :i_slug
+                AND I.FOLDER_ID = F.ID",
+            params! {
+                "i_slug" => i_slug,
+                "f_slug" => f_slug,
+            });
+
+        get_image_from_row(row)
     }
 
     fn get_all(&self) -> Vec::<Image> {

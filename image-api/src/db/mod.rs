@@ -1,9 +1,10 @@
+pub mod dbcontext;
+pub mod utils;
+
 use mysql::{ PooledConn, Pool };
 use dbcontext::{ DBContext, MySQLContext };
 use cached::proc_macro::cached;
 use lazy_static::lazy_static;
-
-pub mod dbcontext;
 
 lazy_static! {
     pub static ref CURRENT_DB: DBContext = get_db_context();

@@ -2,6 +2,7 @@ pub mod image;
 pub mod auth;
 pub mod user;
 pub mod project;
+pub mod rendition;
 
 use actix_web::{
     web::{ Json }, HttpResponse, HttpRequest, cookie::Cookie, post, get

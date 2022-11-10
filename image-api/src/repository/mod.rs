@@ -12,7 +12,6 @@ use item::Item;
  * Repository trait for all repositories
  */
 pub trait Repository {
-    // fn get(&self, id: u32) -> dyn Item; // TODO: change Item to Box<Item> ??
     fn get(&self, id: u32) -> Box::<dyn Item>; // TODO: change Item to Box<Item> ??
     fn get_all(&self) -> Vec::<Box::<dyn Item>>;
     fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<Box::<dyn Item>>;

@@ -1213,6 +1213,7 @@ dependencies = [
  "num-traits 0.2.15",
  "qstring",
  "raster",
+ "regex",
  "serde",
  "serde_json",
  "static-files",
