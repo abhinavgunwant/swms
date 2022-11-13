@@ -1,62 +1,81 @@
+use std::result::Result;
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
 use crate::repository::user::{ User, UserRepository };
-use crate::db::{ DBError, get_db_context, dbcontext::DBContext };
+use crate::db::{
+    utils::mysql::{ get_row_from_query, get_rows_from_query },
+    DBError, get_db_context, dbcontext::DBContext, get_db_connection
+};
 use crate::auth::pwd_hash::generate_password_hash;
 
-const SELECT_ONE: &'static str = r"
-    SELECT
-        ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
-        CREATED_ON, MODIFIED_ON, NAME, PASSWORD
-    FROM USER WHERE ID = :id";
-
-const SELECT_ONE_LOGIN_ID: &'static str = r"
-    SELECT
-        ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
-        CREATED_ON, MODIFIED_ON, NAME, PASSWORD
-    FROM USER WHERE LOGIN_ID = :login_id";
-
-const SELECT_ALL: &'static str = r"
-    SELECT
-        ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
-        CREATED_ON, MODIFIED_ON, NAME, PASSWORD
-    FROM USER";
-
-const ADD_ONE: &'static str = r"
-    INSERT INTO USER (
-        LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
-        CREATED_ON, MODIFIED_ON, NAME, PASSWORD
-    ) VALUES (
-        :login_id, :email, :user_role, NULL, :created_by, :modified_by,
-        CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), :name, :password
-    )
-";
-
-fn get_user_from_row(row_wrapped: Option<&Row>)
-    -> std::result::Result<User, DBError> {
+fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
+    -> Result<User, DBError> {
 
     match row_wrapped {
-        Some(row_ref) => {
-            let mut row = row_ref.clone();
+        Ok (row_option) => {
+            match row_option {
+                Some(row_ref) => {
+                    let mut row = row_ref.clone();
 
-            Ok(User {
-                id: row.take("ID").unwrap(),
-                name: row.take("NAME").unwrap(),
-                password: String::from("HIDDEN"),
-                login_id: row.take("LOGIN_ID").unwrap(),
-                email: row.take("EMAIL").unwrap(),
-                user_role: row.take("USER_ROLE").unwrap(),
-                created_by: row.take("CREATED_BY").unwrap(),
-                modified_by: row.take("MODIFIED_BY").unwrap(),
-                created_on: Utc::now(),
-                modified_on: Utc::now(),
-                last_login_on: Utc::now(),
-            })
+                    Ok(User {
+                        id: row.take("ID").unwrap(),
+                        name: row.take("NAME").unwrap(),
+                        password: String::from("HIDDEN"),
+                        login_id: row.take("LOGIN_ID").unwrap(),
+                        email: row.take("EMAIL").unwrap(),
+                        user_role: row.take("USER_ROLE").unwrap(),
+                        created_by: row.take("CREATED_BY").unwrap(),
+                        modified_by: row.take("MODIFIED_BY").unwrap(),
+                        created_on: Utc::now(),
+                        modified_on: Utc::now(),
+                        last_login_on: Utc::now(),
+                    })
+                }
+
+                None => Err(DBError::NOT_FOUND)
+            }
         }
 
-        None => {
-            Err(DBError::NOT_FOUND)
+        Err (e) => {
+            eprintln!("Error while getting rendition from query: {}", e);
+
+            Err(DBError::OtherError)
+        }
+    }
+}
+
+fn get_users_from_row(row_wrapped: Result<Vec<Row>, Error>)
+    -> Result<Vec<User>, DBError> {
+    match row_wrapped {
+        Ok (rows) => {
+            let mut users: Vec<User> = vec![];
+
+            for row_ref in rows.iter() {
+                let mut row = row_ref.clone();
+
+                users.push(User {
+                    id: row.take("ID").unwrap(),
+                    name: row.take("NAME").unwrap(),
+                    password: String::from("HIDDEN"),
+                    login_id: row.take("LOGIN_ID").unwrap(),
+                    email: row.take("EMAIL").unwrap(),
+                    user_role: row.take("USER_ROLE").unwrap(),
+                    created_by: row.take("CREATED_BY").unwrap(),
+                    modified_by: row.take("MODIFIED_BY").unwrap(),
+                    created_on: Utc::now(),
+                    modified_on: Utc::now(),
+                    last_login_on: Utc::now(),
+                });
+            }
+
+            Ok (users)
+        }
+
+        Err (e) => {
+            eprintln!("Error while getting rendition from query: {}", e);
+
+            Err(DBError::OtherError)
         }
     }
 }
@@ -65,44 +84,32 @@ pub struct MySQLUserRepository {}
 
 impl UserRepository for MySQLUserRepository {
     fn get(&self, id: u32) -> std::result::Result<User, DBError> {
-        let dbc:DBContext = get_db_context();
-
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-        let statement = conn.prep(SELECT_ONE).unwrap();
-
-        let rows: Vec<Row> = conn.exec(statement, params! {"id" => id}).unwrap();
-
-        get_user_from_row(rows.get(0))
+        get_user_from_row(get_row_from_query(
+            r"SELECT
+                ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY,
+                MODIFIED_BY, CREATED_ON, MODIFIED_ON, NAME
+            FROM USER WHERE ID = :id",
+            Params::Empty,
+        ))
     }
 
     fn get_from_login_id(&self, login_id: String) -> std::result::Result<User, DBError> {
-        let dbc: DBContext = get_db_context();
-
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        let statement = conn.prep(SELECT_ONE_LOGIN_ID).unwrap();
-
-        let rows: Vec<Row> = conn.exec(
-            &statement,
+        get_user_from_row(get_row_from_query(
+            r"SELECT
+                ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
+                CREATED_ON, MODIFIED_ON, NAME
+            FROM USER WHERE LOGIN_ID = :login_id",
             params! { "login_id" => login_id}
-        ).unwrap();
-
-        get_user_from_row(rows.get(0))
+        ))
     }
 
     fn get_password_for_login_id(&self, login_id: String)
         -> std::result::Result<String, DBError> {
-        let dbc:DBContext = get_db_context();
+        let mut conn = get_db_connection();
 
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        let statement = conn.prep(SELECT_ONE_LOGIN_ID).unwrap();
+        let statement = conn.prep(
+            r"SELECT PASSWORD FROM USER WHERE LOGIN_ID = :login_id"
+        ).unwrap();
 
         let rows: Vec<Row> = conn.exec(
             &statement,
@@ -113,70 +120,62 @@ impl UserRepository for MySQLUserRepository {
             return Err(DBError::NOT_FOUND);
         }
 
-        let mut row: Row = rows.get(0).unwrap().clone();
+        match rows.get(0) {
+            Some (row_ref) => {
+                let mut row = row_ref.clone();
+                let password: Option<String> = row.take("PASSWORD");
 
-        let password: Option<String> = row.take("PASSWORD");
-
-        match password {
-            Some (password) => {
-                Ok (password)
+                match password {
+                    Some (password) => Ok (password),
+                    None => Err(DBError::NOT_FOUND),
+                }
             }
 
-            None => {
-                Err(DBError::NOT_FOUND)
-            }
+            None => Err(DBError::NOT_FOUND),
         }
     }
 
-    fn get_all(&self) -> Vec::<User> {
-        let dbc:DBContext = get_db_context();
-
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        let users: Vec<User> = conn.query_map(
-            SELECT_ALL,
-            |(id, login_id, email, user_role, created_by, modified_by, name)| {
-                User {
-                    id: id,
-                    login_id: login_id,
-                    email: email,
-                    user_role: user_role,
-                    last_login_on: Utc::now(),
-                    created_by: created_by,
-                    modified_by: modified_by,
-                    created_on: Utc::now(),
-                    modified_on: Utc::now(),
-                    name: name,
-                    password: String::from("####")
-                }
-            }
-        ).unwrap();
-
-        users
+    fn get_all(&self) -> Result<Vec<User>, DBError> {
+        get_users_from_row(get_rows_from_query(
+            r"SELECT
+                ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
+                CREATED_ON, MODIFIED_ON, NAME, PASSWORD
+            FROM USER",
+            Params::Empty,
+        ))
     }
 
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<User> {
-        self.get_all()
+    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<User>, DBError> {
+        get_users_from_row(get_rows_from_query(
+            r"SELECT
+                ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
+                CREATED_ON, MODIFIED_ON, NAME
+            FROM USER LIMIT :page1, :page2",
+            params! { "page1" => page*page_length, "page2" => page }
+        ))
     }
 
     fn add(&self, user: User) {
-        let dbc:DBContext = get_db_context();
+        let mut conn = get_db_connection();
 
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        conn.exec_drop(ADD_ONE, params! {
-            "name" => &user.name,
-            "login_id" => &user.login_id,
-            "password" => generate_password_hash(user.password),
-            "email" => &user.email,
-            "user_role" => &user.user_role,
-            "created_by" => &user.created_by,
-            "modified_by" => &user.modified_by,
-        }).expect("Error while creating user");
+        conn.exec_drop(
+            r"INSERT INTO USER (
+                LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
+                CREATED_ON, MODIFIED_ON, NAME, PASSWORD
+            ) VALUES (
+                :login_id, :email, :user_role, NULL, :created_by, :modified_by,
+                CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), :name, :password
+            )",
+            params! {
+                "name" => &user.name,
+                "login_id" => &user.login_id,
+                "password" => generate_password_hash(user.password),
+                "email" => &user.email,
+                "user_role" => &user.user_role,
+                "created_by" => &user.created_by,
+                "modified_by" => &user.modified_by,
+            }
+        ).expect("Error while creating user");
     }
 
     fn update(&self, user: User) {

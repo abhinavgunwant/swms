@@ -4,20 +4,15 @@ pub mod user;
 pub mod project;
 pub mod rendition;
 
-use actix_web::{
-    web::{ Json }, HttpResponse, HttpRequest, cookie::Cookie, post, get
-};
+use actix_web::{ HttpResponse, HttpRequest, get };
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
-use crate::db::DBError;
-use crate::repository::{
-    image::{
-        Image, ImageRepository, get_image_repository
+
+use crate::{
+    repository::{
+        image::{ ImageRepository, get_image_repository },
     },
-    project::{
-        Project, ProjectRepository, get_project_repository, validate_project
-    },
-    user::{ get_user_repository, User, UserRepository }
+    model::image::Image,
 };
 
 #[derive(Deserialize)]

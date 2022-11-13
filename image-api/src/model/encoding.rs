@@ -40,7 +40,7 @@ impl Serialize for Encoding {
 }
 
 impl Encoding {
-    fn extension(&self) -> String {
+    pub fn extension(&self) -> String {
         use Encoding::*;
 
         match *self {
@@ -60,7 +60,7 @@ impl Encoding {
         }
     }
 
-    fn mime_type(&self) -> String {
+    pub fn mime_type(&self) -> String {
         use Encoding::*;
 
         match *self {

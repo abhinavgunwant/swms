@@ -126,19 +126,14 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all(&self) -> Vec::<Rendition> {
-        let mut renditions: Vec::<Rendition> = vec![];
-
-        let rendition: Result<Rendition, DBError> = self.get(0);
-
-        match rendition {
-            Ok (ren) => {
-                renditions.push(ren);
-            }
-            Err (_e) => {}
-        }
-
-        renditions
+    fn get_all(&self) -> Result<Vec<Rendition>, DBError> {
+        get_renditions_from_row(get_rows_from_query(
+            r"SELECT
+                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG, PUBLISHED,
+                CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON
+            FROM IMAGE_RENDITION",
+            Params::Empty,
+        ))
     }
 
     fn get_all_from_image(&self, image_id: u32) -> Result<Vec<Rendition>, DBError> {
@@ -153,7 +148,7 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<Rendition> {
+    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Rendition>, DBError> {
         self.get_all()
     }
 

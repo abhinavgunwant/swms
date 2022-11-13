@@ -1,11 +1,11 @@
 use actix_web::{ web::{ Json }, HttpResponse, cookie::Cookie, post };
 use serde::{ Serialize, Deserialize };
-use crate::repository::user::{ get_user_repository, User, UserRepository };
-use crate::auth::{
-    pwd_hash::{ verify_password },
-    token::{
-        RefreshToken, create_session_token, create_refresh_token
-    }
+use crate::{
+    repository::user::{ get_user_repository, UserRepository },
+    auth::{
+        pwd_hash::{ verify_password },
+        token::{ create_session_token, create_refresh_token },
+    },
 };
 
 #[derive(Deserialize)]

@@ -2,6 +2,7 @@ mod api;
 mod db;
 mod repository;
 mod auth;
+mod model;
 
 use actix_web::{ App, HttpServer, web };
 use actix_cors::Cors;

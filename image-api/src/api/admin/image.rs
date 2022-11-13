@@ -1,20 +1,10 @@
 use actix_web::{ web::{ Json }, HttpResponse, HttpRequest, cookie::Cookie, post, get };
-use serde::{ Serialize, Deserialize };
-use crate::db::DBError;
-use crate::repository::{
-    image::{
-        Image, ImageRepository, get_image_repository
-    },
-    project::{
-        Project, ProjectRepository, get_project_repository, validate_project
-    },
-    user::{ get_user_repository, User, UserRepository }
+use serde::{ Serialize };
+use crate::{
+    db::DBError,
+    repository::{ image::{ ImageRepository, get_image_repository } },
+    model::image::Image,
 };
-
-//#[derive(Deserialize)]
-//pub struct ProjectImageRequest {
-//    project_id: u32
-//}
 
 #[derive(Serialize)]
 pub struct ImageResponse {

@@ -1,8 +1,12 @@
 use actix_web::{ get, post, web::{ Json }, HttpRequest, HttpResponse };
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
-use crate::repository::user::{ get_user_repository, User, UserRepository };
-use crate::db::DBError;
+
+use crate::{
+    repository::user::{ get_user_repository, UserRepository },
+    db::DBError,
+    model::user::User
+};
 
 #[derive(Deserialize)]
 pub struct CreateUserRequest {

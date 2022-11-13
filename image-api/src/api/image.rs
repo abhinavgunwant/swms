@@ -4,37 +4,28 @@ use std::fs::{ File, create_dir_all, read };
 use std::path::Path;
 use std::time::{ Duration, Instant };
 use actix_multipart::Multipart;
-use actix_web::{ get, post, web, HttpResponse, HttpRequest, Responder, http::{StatusCode} };
+use actix_web::{ get, post, web, HttpResponse, HttpRequest };
 // use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
-use chrono::Utc;
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::{ Serialize, Deserialize };
 use raster;
 use regex::Regex;
-// use crate::repository;
-use crate::db::DBError;
-use crate::repository::{
-    rendition::{
-        Rendition, RenditionRepository, encoding::Encoding, get_rendition_repository
+use crate::{
+    db::DBError,
+    repository::{
+        rendition::{
+            RenditionRepository, get_rendition_repository
+        },
+        image::{ ImageRepository, get_image_repository },
     },
-    image::{ Image, ImageRepository, get_image_repository },
+    model::rendition::Rendition,
 };
 
 #[derive(Serialize)]
 pub struct ImageJson {
     slug: String,
     id: u32,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct FileRequest {
-    filename: String
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ImageRequest {
-    img: String
 }
 
 #[post("/api/image")]
@@ -101,50 +92,79 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
     // Tells whether the requested image has extension
     let mut img_has_ext: bool = false;
 
-    //let repo = get_image_repository();
     let repo = get_rendition_repository();
+    let img_repo = get_image_repository();
 
     if path_list_len.clone() == 2 {
         img_has_ext = img_ext_pat.is_match(path_list[1]);
 
         if img_has_ext {
-            // TODO: add code for replacing other extensions here...
-            rendition_slug = path_list[1].replace(".jpg", "");
+            rendition_slug = String::from(
+                img_ext_pat.replace_all(path_list[1], "").as_ref()
+            );
         } else {
             rendition_slug = String::from(path_list[1]);
         }
 
-        // TODO: Get renditions here...
-        let rendition_result: Result<Rendition, DBError> = repo.get_from_project_rendition_slug(
-            String::from(path_list[0]),
-            rendition_slug
-        );
+        let rendition_result: Result<Rendition, DBError> = repo.
+            get_from_project_rendition_slug(
+                String::from(path_list[0]),
+                rendition_slug
+            );
 
         match rendition_result {
             Ok (rendition) => {
                 // TODO: Check if img_has_ext is true, if it is, check if it
                 //    has any renditions that match it's extention.");
 
-                // TODO: Get extensions from rendition
-                let dest_file_path = format!("image-rendition-cache/{}.jpg", rendition.id);
+                let dest_file_path = format!(
+                    "image-rendition-cache/{}{}",
+                    rendition.id,
+                    rendition.encoding.extension()
+                );
 
                 if !Path::new(dest_file_path.as_str()).exists() {
-                    let source_file_path = format!("image-uploads/{}.jpg", rendition.image_id);
+                    // Get source image element from the rendition
+                    // to get the source image extension
+                    match img_repo.get(rendition.image_id) {
+                        Ok (image_data) => {
+                            let source_file_path = format!(
+                                "image-uploads/{}{}",
+                                image_data.id,
+                                image_data.encoding.extension()
+                            );
 
-                    let mut raster_img = raster::open(source_file_path.as_str()).unwrap();
+                            println!("Getting source file: {}", source_file_path);
 
-                    // TODO: Get the new image size from rendition
-                    raster::editor::resize(
-                        &mut raster_img,
-                        rendition.width as i32,
-                        rendition.height as i32,
-                        raster::ResizeMode::Fit
-                    ).unwrap();
+                            let mut raster_img = raster::open(
+                                source_file_path.as_str()
+                            ).unwrap();
 
-                    raster::save(
-                        &raster_img,
-                        dest_file_path.as_str()
-                    ).unwrap();
+                            raster::editor::resize(
+                                &mut raster_img,
+                                rendition.width as i32,
+                                rendition.height as i32,
+                                raster::ResizeMode::Fit
+                            ).unwrap();
+
+                            raster::save(
+                                &raster_img,
+                                dest_file_path.as_str()
+                            ).unwrap();
+                        }
+
+                        Err (e) => {
+                            if e == DBError::NOT_FOUND {
+                                return HttpResponse::NotFound()
+                                    .body("Not Found");
+                            }
+
+                            if e == DBError::OtherError {
+                                return HttpResponse::InternalServerError()
+                                    .body("Internal Server Error");
+                            }
+                        }
+                    }
                 }
                 
                 let image_file = web::block(
@@ -152,7 +172,7 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                 ).await.unwrap().expect("Error whie downloading!");
 
                 return HttpResponse::Ok()
-                    .content_type("image/jpeg")
+                    .content_type(rendition.encoding.mime_type())
                     .body(image_file);
             }
 
@@ -161,10 +181,10 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                     return HttpResponse::NotFound().body("Not Found!!!!");
                 }
 
-                return HttpResponse::InternalServerError().body("Some error occured");
+                return HttpResponse::InternalServerError()
+                    .body("Some error occured");
             }
         }
-        return HttpResponse::Ok().body("Image is direct child of a project");
     }
 
     if path_list_len > 2 {
@@ -174,13 +194,23 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().body("Not Found")
 }
 
-#[get("/api/imagedata")]
-pub async fn imagedata() -> web::Json<Image> {
-    let repo = get_image_repository();
+#[get("/api/imagedata/{image_id}")]
+pub async fn imagedata(req: HttpRequest) -> HttpResponse {
+    let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
+        .unwrap();
 
-    println!("got id: {}, name: {}", repo.get(0).id, repo.get(0).name);
+    match get_image_repository().get(image_id) {
+        Ok (image) => {
+            println!("got id: {}, name: {}", image.id, image.name);
+            HttpResponse::Ok().json(image)
+        }
 
-    let image = repo.get(0);
+        Err (e) => {
+            if e == DBError::NOT_FOUND {
+                return HttpResponse::NotFound().body("Not Found");
+            }
 
-    web::Json(image)
+            HttpResponse::InternalServerError().body("Internal Server Error")
+        }
+    }
 }

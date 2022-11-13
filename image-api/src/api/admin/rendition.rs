@@ -1,17 +1,9 @@
-use actix_web::{ web::{ Json, Query }, HttpResponse, HttpRequest, cookie::Cookie, post, get };
-use serde::{ Serialize, Deserialize };
-use crate::db::DBError;
-use crate::repository::{
-    image::{
-        Image, ImageRepository, get_image_repository
-    },
-    project::{
-        Project, ProjectRepository, get_project_repository, validate_project
-    },
-    rendition::{
-        Rendition, RenditionRepository, get_rendition_repository
-    },
-    user::{ get_user_repository, User, UserRepository }
+use actix_web::{ HttpResponse, HttpRequest, get };
+use serde::Serialize;
+use crate::{
+    db::DBError,
+    repository::rendition::{ RenditionRepository, get_rendition_repository },
+    model::rendition::Rendition,
 };
 
 #[derive(Serialize)]

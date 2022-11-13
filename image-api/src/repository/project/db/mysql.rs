@@ -2,32 +2,90 @@ use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
 use std::result::Result;
-use crate::db::{ DBError, get_db_connection };
+use crate::db::{
+    utils::mysql::{ get_row_from_query, get_rows_from_query },
+    DBError, get_db_connection,
+};
 use crate::repository::project::{ Project, ProjectRepository };
 
 pub struct MySQLProjectRepository {}
 
-fn get_project_from_row(row_wrapped: Option<&Row>)
+fn get_project_from_row(row_wrapped: Result<Option<Row>, Error>)
     -> std::result::Result<Project, DBError> {
-
     match row_wrapped {
-        Some(row_ref) => {
-            let mut row = row_ref.clone();
+        Ok(row_option) => {
+            match row_option {
+                Some(row_ref) => {
+                    let mut row: Row = row_ref.clone();
+                    let restrict_users: bool;
 
-            Ok(Project {
-                id: row.take("ID").unwrap(),
-                name: row.take("NAME").unwrap(),
-                slug: row.take("SLUG").unwrap(),
-                description: row.take("DESCRIPTION").unwrap(),
-                restrict_users: row.take("RESTRICT_USERS").unwrap(),
-                created_by: row.take("CREATED_BY").unwrap(),
-                modified_by: row.take("MODIFIED_BY").unwrap(),
-                created_on: Utc::now(),
-                modified_on: Utc::now(),
-            })
+                    match row.take("RESTRICT_USERS") {
+                        Some(ru) => { restrict_users = ru; }
+                        None => { restrict_users = false; }
+                    }
+
+                    Ok(Project {
+                        id: row.take("ID").unwrap(),
+                        name: row.take("NAME").unwrap(),
+                        slug: row.take("SLUG").unwrap(),
+                        description: row.take("DESCRIPTION").unwrap(),
+                        restrict_users,
+                        created_by: row.take("CREATED_BY").unwrap(),
+                        modified_by: row.take("MODIFIED_BY").unwrap(),
+                        created_on: Utc::now(),
+                        modified_on: Utc::now(),
+                    })
+                }
+
+                None => {
+                    Err(DBError::NOT_FOUND)
+                }
+            }
         }
 
-        None => {
+        Err (e) => {
+            eprintln!("Error while getting rendition from query: {}", e);
+
+            Err(DBError::OtherError)
+        }
+    }
+}
+
+fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
+    -> std::result::Result<Vec<Project>, DBError> {
+    match row_wrapped {
+        Ok (rows) => {
+            let mut projects: Vec<Project> = vec![];
+
+            for row_ in rows.iter() {
+                let mut row = row_.clone();
+
+                let restrict_users: bool;
+
+                match row.take("RESTRICT_USERS") {
+                    Some(ru) => { restrict_users = ru; }
+                    None => { restrict_users = false; }
+                }
+
+                projects.push(Project {
+                    id: row.take("ID").unwrap(),
+                    name: row.take("NAME").unwrap(),
+                    slug: row.take("SLUG").unwrap(),
+                    description: row.take("DESCRIPTION").unwrap(),
+                    restrict_users,
+                    created_by: row.take("CREATED_BY").unwrap(),
+                    modified_by: row.take("MODIFIED_BY").unwrap(),
+                    created_on: Utc::now(),
+                    modified_on: Utc::now(),
+                });
+            }
+
+            Ok (projects)
+        }
+
+        Err(e) => {
+            eprintln!("Error while getting images from query: {}", e);
+
             Err(DBError::NOT_FOUND)
         }
     }
@@ -38,175 +96,83 @@ impl ProjectRepository for MySQLProjectRepository {
      * Gets a project based on it's ID.
      */
     fn get(&self, id: u32) -> Result<Project, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let statement = conn.prep(r"
-            SELECT ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
-            MODIFIED_ON, SLUG, RESTRICT_USERS
-            WHERE ID = :id
-        ").unwrap();
-
-        let rows: Vec<Row> = conn.exec(statement, params! {"id" => id}).unwrap();
-        get_project_from_row(rows.get(0))
+        get_project_from_row(get_row_from_query(
+            r"SELECT
+                ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                MODIFIED_ON, SLUG, RESTRICT_USERS WHERE ID = :id",
+            params! { "id" => id },
+        ))
     }
     
     /**
      * Gets a project from it's slug.
      */
     fn get_from_slug(&self, slug: String) -> Result<Project, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let statement = conn.prep(r"
-            SELECT ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
-            MODIFIED_ON, SLUG, RESTRICT_USERS
-            WHERE SLUG = :slug
-        ").unwrap();
-
-        let rows: Vec<Row> = conn.exec(statement, params! {"slug" => slug}).unwrap();
-        get_project_from_row(rows.get(0))
+        get_project_from_row(get_row_from_query(
+            r"SELECT
+                ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                MODIFIED_ON, SLUG, RESTRICT_USERS WHERE SLUG = :slug",
+            params! {"slug" => slug},
+        ))
     }
 
     /**
      * Gets all the projects in the table.
      */
     fn get_all(&self) -> Result<Vec::<Project>, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let projects_wrapped: Result<Vec<Project>, Error> = conn.query_map(
-            r"
-                SELECT
+        get_projects_from_row(get_rows_from_query(
+            r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, SLUG
-                FROM PROJECT
-            ",
-            |(
-                id, name, description, created_by, modified_by, slug,
-                // restrict_users
-            )| {
-                Project {
-                    id, name, slug, description, restrict_users: false, created_by,
-                    modified_by, created_on: Utc::now(), modified_on: Utc::now(),
-                }
-            }
-        );
-
-        match projects_wrapped {
-            Ok (projects) => {
-                if projects.len() > 0 {
-                    return Ok (projects);
-                }
-
-                Err (DBError::NOT_FOUND)
-            }
-
-            Err (e) => {
-                eprintln!("Error while retrieving all projects: {}", e);
-                Err (DBError::OtherError)
-            }
-        }
+            FROM PROJECT",
+            Params::Empty
+        ))
     }
 
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<Project> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let projects: Vec<Project> = conn.query_map(
-            format!(r"
-                SELECT
+    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Project>, DBError> {
+        get_projects_from_row(get_rows_from_query(
+            r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, RESTRICT_USERS
-                FROM PROJECT LIMIT {},{}
-            ", page*page_length, page),
-            |(
-                id, name, description, created_by, modified_by, slug,
-                restrict_users
-            )| {
-                Project {
-                    id, name, slug, description, restrict_users, created_by,
-                    modified_by, created_on: Utc::now(), modified_on: Utc::now(),
-                }
-            }
-        ).unwrap();
-
-        projects
+                FROM PROJECT LIMIT :page1, :page2",
+            params! { "page1" => page*page_length, "page2" => page }
+        ))
     }
 
     /**
      * Gets the list of projects that a user has access to.
      */
     fn get_user_projects(&self, user_id: u32) -> Result<Vec::<Project>, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let statement = conn.prep(r"
-            SELECT
+        get_projects_from_row(get_rows_from_query(
+            r"SELECT
                 P.ID, P.NAME, P.DESCRIPTION, P.CREATED_BY, P.MODIFIED_BY,
                 P.SLUG
             FROM PROJECT P, USER_PROJECT UP
             WHERE P.RESTRICT_USERS = FALSE OR (
-                P.ID = UP.PROJECT_ID AND UP.USER_ID = :user_id)
-        ").unwrap();
-
-        let rows_wrapped: Result<Vec::<Row>, Error> = conn.exec(statement, params! { "user_id" => user_id });
-
-        match rows_wrapped {
-            Ok (rows) => {
-                let mut projects: Vec<Project> = vec![];
-
-                for row in rows.iter() {
-                    let mut r = row.clone();
-
-                    let restrict_users_wrapped = r.take("RESTRICT_USERS");
-                    let restrict_users: bool;
-
-                    match restrict_users_wrapped {
-                        Some(ru) => {
-                            restrict_users = ru;
-                        }
-
-                        None => {
-                            restrict_users = false;
-                        }
-                    }
-
-                    projects.push(Project {
-                        id: r.take("ID").unwrap(),
-                        name: r.take("NAME").unwrap(),
-                        slug: r.take("SLUG").unwrap(),
-                        description: r.take("DESCRIPTION").unwrap(),
-                        restrict_users,
-                        created_by: r.take("CREATED_BY").unwrap(),
-                        modified_by: 0,
-                        created_on: Utc::now(),
-                        modified_on: Utc::now(),
-                    });
-                }
-
-                Ok (projects)
-            }
-
-            Err(_e) => {
-                Err(DBError::NOT_FOUND)
-            }
-        }
+                P.ID = UP.PROJECT_ID AND UP.USER_ID = :user_id)",
+            params! { "user_id" => user_id }
+        ))
     }
 
     fn add(&self, project: Project) {
         let mut conn: PooledConn = get_db_connection();
 
-        conn.exec_drop(r"
-            INSERT INTO PROJECT (
+        conn.exec_drop(
+            r"INSERT INTO PROJECT (
                 ID, NAME, DESCRIPTION, SLUG, RESTRICT_USERS, CREATED_BY,
                 MODIFIED_BY, CREATED_ON, MODIFIED_ON
             ) VALUES (
                 :id, :name, :description, :slug, :restrict_users, :created_by,
                 NULL, CURRENT_TIMESTAMP(), NULL
-            )
-        ", params! {
-            "id" => &project.id,
-            "name" => &project.name,
-            "description" => &project.description,
-            "slug" => &project.slug,
-            "restrict_users" => &project.restrict_users,
-            "created_by" => &project.created_by,
-        }).expect("Error while creating project");
+            )",
+            params! {
+                "id" => &project.id,
+                "name" => &project.name,
+                "description" => &project.description,
+                "slug" => &project.slug,
+                "restrict_users" => &project.restrict_users,
+                "created_by" => &project.created_by,
+            }
+        ).expect("Error while creating project");
     }
     
     /**

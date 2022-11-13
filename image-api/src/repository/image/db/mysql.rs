@@ -1,10 +1,16 @@
 use std::result::Result;
-use crate::repository::image::{ Image, Encoding, ImageRepository };
-use crate::db::dbcontext::DBContext;
-use crate::db::{ DBError, get_db_connection, get_db_context };
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
+
+use crate::{
+    repository::image::{ Encoding, ImageRepository },
+    db::{
+        utils::mysql::{ get_rows_from_query, get_row_from_query },
+        DBError, get_db_connection
+    },
+    model::image::Image,
+};
 
 fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image, DBError> {
     match row_wrapped {
@@ -112,129 +118,59 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
 pub struct MySQLImageRepository {}
 
 impl ImageRepository for MySQLImageRepository {
-    fn get(&self, id: u32) -> Image {
-        let dbc:DBContext = get_db_context();
+    fn get(&self, id: u32) -> Result<Image, DBError> {
+        get_image_from_row(get_row_from_query(
+            r"SELECT
+                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                MODIFIED_ON
+            FROM IMAGE WHERE ID = :id",
+            params! { "id" => id },
+        ))
+    }
 
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        let images = conn.query_map(
+    fn get_all(&self) -> Result<Vec<Image>, DBError> {
+        get_images_from_row(get_rows_from_query(
             r"SELECT
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             FROM IMAGE",
-            |mut row: Row| {
-                Image {
-                    id: row.take("ID").unwrap(),
-                    name: row.take("ORIGINAL_FILENAME").unwrap(),
-                    title: row.take("TITLE").unwrap(),
-                    height: row.take("HEIGHT").unwrap(),
-                    width: row.take("WIDTH").unwrap(),
-                    is_published: true,
-                    // is_published: row.take("is_published").unwrap() == true,
-                    project_id: 0,
-                    // project_id: row.take("PROJECT_ID").unwrap_or_default(),
-                    folder_id: 0,
-                    // folder_id: row.take("FOLDER_ID").unwrap_or_default(),
-                    created_by: row.take("CREATED_BY").unwrap(),
-                    modified_by: row.take("MODIFIED_BY").unwrap(),
-                    created_on: Utc::now(),
-                    // created_on: row.take("created_on").unwrap(),
-                    modified_on: Utc::now(),
-                    // modified_on: row.take("modified_on").unwrap(),
-                    encoding: Encoding::JPG,
-                    //metadata_id: 0,
-                }
-        }).unwrap();
-
-
-        let img: &Image = images.get(0).unwrap();
-
-        // TODO: implement Copy trait on Image so that this line won't be required
-        Image {
-            id: img.id,
-            name: img.name.clone(),
-            title: img.title.clone(),
-            height: img.height,
-            width: img.width,
-            is_published: true,
-            // is_published: row.take("is_published").unwrap() == true,
-            project_id: img.project_id,
-            folder_id: img.folder_id,
-            created_by: img.created_by,
-            modified_by: img.modified_by,
-            created_on: Utc::now(),
-            // created_on: row.take("created_on").unwrap(),
-            modified_on: Utc::now(),
-            // modified_on: row.take("modified_on").unwrap(),
-            encoding: Encoding::JPG,
-            //metadata_id: 0,
-        }
+            Params::Empty,
+        ))
     }
 
-    fn get_all(&self) -> Vec::<Image> {
-        let image = self.get(0);
-
-        let mut images = Vec::new();
-        images.push(image);
-
-        images
-    }
-
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<Image> {
+    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Image>, DBError> {
         self.get_all()
     }
 
     fn get_all_from_project(&self, project_id: u32) -> Result<Vec::<Image>, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let statement = conn.prep(
+        get_images_from_row(get_rows_from_query(
             r"SELECT
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
-            FROM IMAGE WHERE PROJECT_ID = :project_id
-        ").unwrap();
-
-        let rows_wrapped: Result<Vec::<Row>, Error> = conn.exec(
-            statement,
+            FROM IMAGE WHERE PROJECT_ID = :project_id",
             params! { "project_id" => project_id }
-        );
-
-        get_images_from_row(rows_wrapped)
+        ))
     }
 
     fn get_all_from_project_slug(&self, project_slug: String) -> Result<Vec::<Image>, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-
-        let statement = conn.prep(
+        get_images_from_row(get_rows_from_query(
             r"SELECT
                 I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
                 I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
                 I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
             FROM IMAGE I, PROJECT P
-            WHERE I.PROJECT_ID = P.ID AND P.SLUG = :project_slug
-        ").unwrap();
-
-        let rows_wrapped: Result<Vec::<Row>, Error> = conn.exec(
-            statement,
+            WHERE I.PROJECT_ID = P.ID AND P.SLUG = :project_slug",
             params! { "project_slug" => project_slug }
-        );
-
-        get_images_from_row(rows_wrapped)
+        ))
     }
 
     fn add(&self, image: Image) {
         println!("adding an image");
 
-        let dbc:DBContext = get_db_context();
-
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
+        let mut conn = get_db_connection();
         conn.exec_drop(
             r"INSERT INTO IMAGE (
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
