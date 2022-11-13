@@ -19,20 +19,14 @@ pub struct Image {
     pub is_published: bool,
     pub project_id: u32,
     pub folder_id: u32,
-    // pub metadata_id: u32,
-    pub slug: String,
     pub created_on: DateTime<Utc>,
     pub created_by: u16,
     pub modified_on: DateTime<Utc>,
-    pub modified_by: u16
+    pub modified_by: u16,
 }
 
 pub trait ImageRepository {
     fn get(&self, id: u32) -> Image;
-    fn get_from_project_image_slug(&self, p_slug: String, i_slug: String)
-        -> Result<Image, DBError>;
-    fn get_from_folder_image_slug(&self, f_slug: String, i_slug: String)
-        -> Result<Image, DBError>;
     fn get_all(&self) -> Vec::<Image>;
     fn get_all_from_project(&self, project_id: u32)
         -> Result<Vec::<Image>, DBError>;

@@ -31,8 +31,6 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
                         // created_on: row.take("created_on").unwrap(),
                         modified_on: Utc::now(),
                         // modified_on: row.take("modified_on").unwrap(),
-                        slug: String::from(""),
-                        //slug: row.take("SLUG").unwrap_or_default(),
                         encoding: Encoding::JPG,
                         //metadata_id: 0,
                     })
@@ -93,7 +91,6 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     // folder_id: row.take("FOLDER_ID").unwrap(),
                     folder_id: folder_id,
                     //metadata_id: 0,
-                    slug: row.take("SLUG").unwrap(),
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_by: 0,
                     created_on: Utc::now(),
@@ -126,7 +123,7 @@ impl ImageRepository for MySQLImageRepository {
             r"SELECT
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON, SLUG
+                MODIFIED_ON
             FROM IMAGE",
             |mut row: Row| {
                 Image {
@@ -147,8 +144,6 @@ impl ImageRepository for MySQLImageRepository {
                     // created_on: row.take("created_on").unwrap(),
                     modified_on: Utc::now(),
                     // modified_on: row.take("modified_on").unwrap(),
-                    slug: String::from(""),
-                    //slug: row.take("SLUG").unwrap_or_default(),
                     encoding: Encoding::JPG,
                     //metadata_id: 0,
                 }
@@ -174,58 +169,9 @@ impl ImageRepository for MySQLImageRepository {
             // created_on: row.take("created_on").unwrap(),
             modified_on: Utc::now(),
             // modified_on: row.take("modified_on").unwrap(),
-            slug: img.slug.clone(),
             encoding: Encoding::JPG,
             //metadata_id: 0,
         }
-    }
-
-    fn get_from_project_image_slug(&self, p_slug: String, i_slug: String)
-        -> Result<Image, DBError> {
-        let dbc:DBContext = get_db_context();
-
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        let row: Result<Option<Row>, Error> = conn.exec_first(
-            r"SELECT
-                I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
-                I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
-                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON, I.SLUG
-            FROM IMAGE I, PROJECT P
-            WHERE P.SLUG = :p_slug AND I.SLUG = :i_slug
-                AND I.PROJECT_ID = P.ID",
-            params! {
-                "i_slug" => i_slug,
-                "p_slug" => p_slug,
-            });
-
-        get_image_from_row(row)
-    }
-
-    fn get_from_folder_image_slug(&self, f_slug: String, i_slug: String)
-        -> Result<Image, DBError> {
-        let dbc:DBContext = get_db_context();
-
-        let pool = Pool::new(String::as_str(&dbc.connection_string));
-
-        let mut conn = pool.unwrap().get_conn().unwrap();
-
-        let row: Result<Option<Row>, Error> = conn.exec_first(
-            r"SELECT
-                I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
-                I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
-                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON, I.SLUG
-            FROM IMAGE I, FOLDER F
-            WHERE F.SLUG = :p_slug AND I.SLUG = :i_slug
-                AND I.FOLDER_ID = F.ID",
-            params! {
-                "i_slug" => i_slug,
-                "f_slug" => f_slug,
-            });
-
-        get_image_from_row(row)
     }
 
     fn get_all(&self) -> Vec::<Image> {
@@ -248,7 +194,7 @@ impl ImageRepository for MySQLImageRepository {
             r"SELECT
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON, SLUG
+                MODIFIED_ON
             FROM IMAGE WHERE PROJECT_ID = :project_id
         ").unwrap();
 
@@ -267,7 +213,7 @@ impl ImageRepository for MySQLImageRepository {
             r"SELECT
                 I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
                 I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
-                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON, I.SLUG
+                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
             FROM IMAGE I, PROJECT P
             WHERE I.PROJECT_ID = P.ID AND P.SLUG = :project_slug
         ").unwrap();
@@ -293,11 +239,11 @@ impl ImageRepository for MySQLImageRepository {
             r"INSERT INTO IMAGE (
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON, SLUG
+                MODIFIED_ON
             ) VALUES (
                 :id, :original_filename, :title, :height, :width, :published,
                 :project_id, :folder_id, :created_by, :modified_by,
-                current_timestamp(), current_timestamp(), :slug
+                current_timestamp(), current_timestamp()
             )",
             params! {
                 "id" => &image.id,
@@ -310,7 +256,6 @@ impl ImageRepository for MySQLImageRepository {
                 "folder_id" => &image.folder_id,
                 "created_by" => &image.created_by,
                 "modified_by" => &image.modified_by,
-                "slug" => &image.slug
             }
         ).expect("Whatever");
     }

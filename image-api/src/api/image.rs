@@ -41,10 +41,6 @@ pub struct ImageRequest {
 pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
     // iterate over multipart stream
     while let Ok(Some(mut field)) = payload.try_next().await {
-        // let content_type = field.content_disposition().unwrap();
-        //let filename = content_type.get_filename().unwrap();
-        // let filepath = format!(".{}", file_path);
-
         let filename = format!("image-uploads/{}.jpg", Uuid::new_v4());
 
         let path = Path::new(String::as_str(&filename));
@@ -100,7 +96,7 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
 
     let img_ext_pat = Regex::new(r"\.(jpg|jpeg|gif|png|bmp)$").unwrap();
 
-    let mut img_slug: String = String::new();
+    let mut rendition_slug: String = String::new();
 
     // Tells whether the requested image has extension
     let mut img_has_ext: bool = false;
@@ -113,15 +109,15 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
 
         if img_has_ext {
             // TODO: add code for replacing other extensions here...
-            img_slug = path_list[1].replace(".jpg", "");
+            rendition_slug = path_list[1].replace(".jpg", "");
         } else {
-            img_slug = String::from(path_list[1]);
+            rendition_slug = String::from(path_list[1]);
         }
 
         // TODO: Get renditions here...
         let rendition_result: Result<Rendition, DBError> = repo.get_from_project_rendition_slug(
             String::from(path_list[0]),
-            img_slug
+            rendition_slug
         );
 
         match rendition_result {
@@ -178,38 +174,6 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().body("Not Found")
 }
 
-//#[get("/api/image")]
-//pub async fn download(file_req: web::Query<FileRequest>) -> HttpResponse {
-//    let tmp = Vec::from_iter(file_req.filename.split(".").map(String::from));
-//
-//    let source_file_path = format!("image-uploads/{}.{}", tmp[0], tmp[1]);
-//
-//    // Here `-mobile` describes the name of the rendition (not meant to be in final code).
-//    let dest_file_name = format!(
-//        "image-rendition-cache/{}-mobile.{}",
-//        tmp[0],
-//        tmp[1]
-//    );
-//
-//    let mut image = raster::open(source_file_path.as_str()).unwrap();
-//
-//    // Assuming this rendition to be intended for mobile with width 480,
-//    // calculate height (ofcourse with final product, this will be
-//    // fully configurable).
-//    let new_height: i32 = 480*&image.height/&image.width;
-//
-//    raster::editor::resize(&mut image, 480, new_height, raster::ResizeMode::Fit).unwrap();
-//    raster::save(&image, dest_file_name.as_str()).unwrap();
-//
-//    let image_file = web::block(
-//        move || read(String::from(dest_file_name))
-//        ).await.unwrap().expect("Error whie downloading!");
-//
-//    HttpResponse::build(StatusCode::OK)
-//        .content_type("image/jpeg")
-//        .body(image_file)
-//}
-
 #[get("/api/imagedata")]
 pub async fn imagedata() -> web::Json<Image> {
     let repo = get_image_repository();
@@ -219,73 +183,4 @@ pub async fn imagedata() -> web::Json<Image> {
     let image = repo.get(0);
 
     web::Json(image)
-}
-
-#[get("/images/{img}")]
-pub async fn getimage(req: HttpRequest) -> HttpResponse {
-    let req_path: String = req.match_info().get("img").unwrap().parse().unwrap();
-
-    // let path_vec = Vec::from_iter(req_path.split(".").map(String::from));
-
-    let repo = get_image_repository();
-    
-    // TODO: Replace below code to get image object from slug and get the
-    // requested image rendition.
-    println!("Getting image object from db with id: {}", 0);
-    let db_time_start = Instant::now();
-    let image = repo.get(0);
-    let db_duration = db_time_start.elapsed();
-
-    println!(" -> Took {} milliseconds to get image data from DB.", db_duration.as_millis());
-
-    // TODO: Check if the image exists in the cache folder. If it does, send
-    // the image from cache directly.
-    
-    // TODO: Get the rendition id from image query or build a complex query
-    // that fetches the rendition object.
-
-    let test_rendition: Rendition = Rendition {
-        id: 0,
-        image_id: 0,
-        height: 240,
-        width: 480,
-        target_device: String::from("mobile"),
-        name: String::from("mobile"),
-        slug: String::from("cute-doggo"),
-        is_published: true,
-        encoding: Encoding::JPG,
-        mime_type: String::from("image/jpeg"),
-        created_on: Utc::now(),
-        created_by: 0,
-        modified_on: Utc::now(),
-        modified_by: 0,
-    };
-
-    let image_source_path = format!("image-uploads/{}.jpg", image.id);
-    let rendition_file_path = format!("image-rendition-cache/{}.jpg", test_rendition.id);
-
-    let image_time_start = Instant::now();
-
-    let mut image_raster = raster::open(image_source_path.as_str()).unwrap();
-
-    raster::editor::resize(
-        &mut image_raster,
-        test_rendition.width as i32,
-        test_rendition.height as i32,
-        raster::ResizeMode::Fit
-    ).unwrap();
-
-    raster::save(&image_raster, rendition_file_path.as_str()).unwrap();
-
-    let image_file = web::block(
-        move || read(String::from(rendition_file_path))
-    ).await.unwrap().expect("Error whie downloading!");
-
-    let image_time_duration = image_time_start.elapsed();
-
-    println!(" -> Took {} milliseconds to resize image.", image_time_duration.as_millis());
-
-    return HttpResponse::build(StatusCode::OK)
-        .content_type("image/jpeg")
-        .body(image_file);
 }

@@ -23,11 +23,9 @@ fn get_rendition_from_row(row_wrapped: Result<Option<Row>, Error>) -> Result<Ren
                         height: row.take("HEIGHT").unwrap(),
                         width: row.take("WIDTH").unwrap(),
                         target_device: row.take("TARGET_DEVICE").unwrap(),
-                        name: row.take("NAME").unwrap(),
                         slug: row.take("SLUG").unwrap(),
                         is_published: true,
                         encoding: Encoding::JPG,
-                        mime_type: row.take("MIME_TYPE").unwrap(),
                         created_on: Utc::now(),
                         created_by: row.take("CREATED_BY").unwrap(),
                         modified_on: Utc::now(),
@@ -65,11 +63,9 @@ fn get_renditions_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     height: row.take("HEIGHT").unwrap(),
                     width: row.take("WIDTH").unwrap(),
                     target_device: row.take("TARGET_DEVICE").unwrap(),
-                    name: row.take("NAME").unwrap(),
                     slug: row.take("SLUG").unwrap(),
                     is_published: true,
                     encoding: Encoding::JPG,
-                    mime_type: row.take("MIME_TYPE").unwrap(),
                     created_on: Utc::now(),
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_on: Utc::now(),
@@ -94,8 +90,8 @@ impl RenditionRepository for MySQLRenditionRepository {
     fn get(&self, id: u32) -> Result<Rendition, DBError> {
         get_rendition_from_row(get_row_from_query(
             r"SELECT
-                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, NAME, SLUG,
-                PUBLISHED, MIME_TYPE, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
+                PUBLISHED, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             FROM IMAGE_RENDITION WHERE ID = :id",
             params! { "id" => id }
@@ -106,8 +102,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         -> Result<Rendition, DBError> {
         get_rendition_from_row(get_row_from_query(
             r"SELECT
-                R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE, R.NAME,
-                R.SLUG, R.PUBLISHED, R.MIME_TYPE, R.CREATED_BY, R.MODIFIED_BY,
+                R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE,
+                R.SLUG, R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
                 R.CREATED_ON, R.MODIFIED_ON
             FROM IMAGE I, IMAGE_RENDITION R, PROJECT P
             WHERE P.SLUG = :p_slug AND R.SLUG = :r_slug AND I.ID = R.IMAGE_ID
@@ -121,7 +117,7 @@ impl RenditionRepository for MySQLRenditionRepository {
         get_rendition_from_row(get_row_from_query(
             r"SELECT
                 IR.ID, IR.IMAGE_ID, IR.HEIGHT, IR.WIDTH, IR.TARGET_DEVICE,
-                IR.NAME, IR.SLUG, IR.PUBLISHED, IR.MIME_TYPE, IR.CREATED_BY,
+                IR.SLUG, IR.PUBLISHED, IR.CREATED_BY,
                 IR.MODIFIED_BY, IR.CREATED_ON, IR.MODIFIED_ON, 
             FROM IMAGE_RENDITION IR, FOLDER F, IMAGE I
             WHERE F.SLUG = :p_slug AND I.SLUG = :r_slug AND I.ID = IR.IMAGE_ID
@@ -148,8 +144,8 @@ impl RenditionRepository for MySQLRenditionRepository {
     fn get_all_from_image(&self, image_id: u32) -> Result<Vec<Rendition>, DBError> {
         get_renditions_from_row(get_rows_from_query(
             r"SELECT
-                R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE, R.NAME,
-                R.SLUG, R.PUBLISHED, R.MIME_TYPE, R.CREATED_BY, R.MODIFIED_BY,
+                R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE,
+                R.SLUG, R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
                 R.CREATED_ON, R.MODIFIED_ON 
             FROM IMAGE I, IMAGE_RENDITION R
             WHERE R.IMAGE_ID = I.ID AND I.ID = :image_id",
@@ -164,10 +160,11 @@ impl RenditionRepository for MySQLRenditionRepository {
     fn get_all_from_project(&self, project_id: u32) -> Result<Vec::<Rendition>, DBError> {
         get_renditions_from_row(get_rows_from_query(
             r"SELECT
-                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, NAME, SLUG,
-                PUBLISHED, MIME_TYPE, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON
-            FROM IMAGE WHERE PROJECT_ID = :project_id",
+                R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE, R.SLUG,
+                R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
+                R.CREATED_ON, R.MODIFIED_ON
+            FROM IMAGE_RENDITION R, IMAGE I
+            WHERE I.PROJECT_ID = :project_id AND R.IMAGE_ID = I.ID",
             params! { "project_id" => project_id }
         ))
     }
@@ -175,11 +172,12 @@ impl RenditionRepository for MySQLRenditionRepository {
     fn get_all_from_project_slug(&self, project_slug: String) -> Result<Vec::<Rendition>, DBError> {
         get_renditions_from_row(get_rows_from_query(
             r"SELECT
-                I.ID, I.IMAGE_ID, I.HEIGHT, I.WIDTH, I.TARGET_DEVICE, I.NAME,
-                I.SLUG, I.PUBLISHED, I.MIME_TYPE, I.CREATED_BY, I.MODIFIED_BY,
-                I.CREATED_ON, I.MODIFIED_ON, 
-            FROM IMAGE I, PROJECT P
-            WHERE I.PROJECT_ID = P.ID AND P.SLUG = :project_slug",
+                R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE, R.SLUG,
+                R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
+                R.CREATED_ON, R.MODIFIED_ON
+            FROM IMAGE_RENDITION R, IMAGE I, PROJECT P
+            WHERE I.PROJECT_ID = P.ID AND R.IMAGE_ID = I.ID
+                AND P.SLUG = :project_slug",
             params! { "project_slug" => project_slug }
         ))
     }
@@ -190,12 +188,12 @@ impl RenditionRepository for MySQLRenditionRepository {
 
         conn.exec_drop(
             r"INSERT INTO IMAGE_RENDITION (
-                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, NAME, SLUG,
-                PUBLISHED, MIME_TYPE, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
+                PUBLISHED, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             ) VALUES (
-                :id, :image_id, :height, :width, :target_device, :name, :slug,
-                :published, :mime_type, :created_by, :modified_by,
+                :id, :image_id, :height, :width, :target_device, :slug,
+                :published, :created_by, :modified_by,
                 current_timestamp(), current_timestamp()
             )",
             params! {
@@ -204,10 +202,8 @@ impl RenditionRepository for MySQLRenditionRepository {
                 "height" => &rendition.height,
                 "width" => &rendition.width,
                 "target_device" => &rendition.target_device,
-                "name" => &rendition.name,
                 "slug" => &rendition.slug,
                 "published" => &rendition.is_published,
-                "mime_type" => &rendition.mime_type,
                 "created_by" => &rendition.created_by,
                 "modified_by" => &rendition.modified_by,
             }

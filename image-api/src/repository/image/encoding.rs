@@ -38,3 +38,45 @@ impl Serialize for Encoding {
         serializer.serialize_u8(t as u8)
     }
 }
+
+impl Encoding {
+    fn extension(&self) -> String {
+        use Encoding::*;
+
+        match *self {
+            TIF => String::from(".tif"),
+            BMP => String::from(".bmp"),
+            RAW => String::from(".raw"),
+            CR2 => String::from(".cr2"),
+            NEF => String::from(".nef"),
+            ORF => String::from(".orf"),
+            SR2 => String::from(".sr2"),
+            PNG => String::from(".png"),
+            GIF => String::from(".gif"),
+            JPG => String::from(".jpg"),
+            WEBP => String::from(".webp"),
+            EPS => String::from(".eps"),
+            SVG => String::from(".svg"),
+        }
+    }
+
+    fn mime_type(&self) -> String {
+        use Encoding::*;
+
+        match *self {
+            TIF => String::from("image/tif"),
+            BMP => String::from("image/bmp"),
+            RAW => String::from("image/raw"),
+            CR2 => String::from("image/cr2"),
+            NEF => String::from("image/nef"),
+            ORF => String::from("image/orf"),
+            SR2 => String::from("image/sr2"),
+            PNG => String::from("image/png"),
+            GIF => String::from("image/gif"),
+            JPG => String::from("image/jpeg"),
+            WEBP => String::from("image/webp"),
+            EPS => String::from("image/eps"),
+            SVG => String::from("image/svg"),
+        }
+    }
+}

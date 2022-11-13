@@ -34,13 +34,13 @@ pub async fn get_renditions_for_image(req: HttpRequest) -> HttpResponse {
         Err (e) => {
             if e == DBError::NOT_FOUND {
                 return HttpResponse::NotFound()
-                    .json(RenditionResponse { renditions : vec![] });
+                    .json(RenditionResponse { renditions: vec![] });
             }
 
             eprintln!("Some internal error occured while fetching project images.");
 
             HttpResponse::InternalServerError()
-                .json(RenditionResponse { renditions : vec![] })
+                .json(RenditionResponse { renditions: vec![] })
         }
     }
 }

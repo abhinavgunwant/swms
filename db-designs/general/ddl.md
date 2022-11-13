@@ -110,7 +110,7 @@ Here are some high-level data definitions for the image api.
     | TITLE       | VARCHAR(256)      |      |          |
     | HEIGHT      | SMALLINT UNSIGNED |      |          | DEFAULT 0
     | WIDTH       | SMALLINT UNSIGNED |      |          | DEFAULT 0
-    | ENCODING    | SMALLINT UNSIGNED |      |          |
+    | ENCODING    | SMALLINT UNSIGNED |      |          | DEFAULT 40
     | PUBLISHED   | BOOLEAN           | YES  |          |
     | PROJECT_ID  | SMALLINT UNSIGNED |      |          |
     | FOLDER_ID   | SMALLINT UNSIGNED | YES  |          |
@@ -126,7 +126,8 @@ Here are some high-level data definitions for the image api.
     | HEIGHT        | SMALLINT UNSIGNED |      |          | DEFAULT 0
     | WIDTH         | SMALLINT UNSIGNED |      |          | DEFAULT 0
     | TARGET_DEVICE | VARCHAR(16)       | YES  |          |
-    | NAME          | VARCHAR(24)       | YES  |          |
+    | ENCODING      | SMALLINT UNSIGNED |      |          | DEFAULT 40
+    | SLUG          | VARCHAR(256)      |      |          |
     | PUBLISHED     | BOOLEAN           |      |          | DEFAULT FALSE
     | CREATED_BY    | SMALLINT UNSIGNED |      |          | DEFAULT 0
     | MODIFIED_BY   | SMALLINT UNSIGNED |      |          | DEFAULT 0
