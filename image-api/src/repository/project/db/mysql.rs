@@ -61,10 +61,21 @@ fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
                 let mut row = row_.clone();
 
                 let restrict_users: bool;
+                let modified_by: u32;
 
                 match row.take("RESTRICT_USERS") {
                     Some(ru) => { restrict_users = ru; }
                     None => { restrict_users = false; }
+                }
+
+                match row.take_opt("MODIFIED_BY") {
+                    Some(mb_result) => {
+                        match mb_result {
+                            Ok (mb) => { modified_by = mb; }
+                            Err (_e) => { modified_by = 0; }
+                        }
+                    }
+                    None => { modified_by = 0; }
                 }
 
                 projects.push(Project {
@@ -74,7 +85,7 @@ fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
                     description: row.take("DESCRIPTION").unwrap(),
                     restrict_users,
                     created_by: row.take("CREATED_BY").unwrap(),
-                    modified_by: row.take("MODIFIED_BY").unwrap(),
+                    modified_by,
                     created_on: Utc::now(),
                     modified_on: Utc::now(),
                 });
