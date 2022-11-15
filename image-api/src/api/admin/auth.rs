@@ -1,10 +1,13 @@
-use actix_web::{ web::{ Json }, HttpResponse, cookie::Cookie, post };
+use actix_web::{
+    web::{ Json }, HttpRequest, HttpResponse, cookie::Cookie, get, post
+};
 use serde::{ Serialize, Deserialize };
 use crate::{
     repository::user::{ get_user_repository, UserRepository },
     auth::{
         pwd_hash::{ verify_password },
         token::{ create_session_token, create_refresh_token },
+        utils::validate_session_token,
     },
 };
 
@@ -74,6 +77,29 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
                 r: String::from(""),
                 message: String::from("Username/Password combination is invalid")
             })
+        }
+    }
+}
+
+#[get("/api/admin/auth/permissions")]
+pub async fn get_user_permissions(req_obj: HttpRequest) -> HttpResponse {
+    match validate_session_token(req_obj) {
+        Ok (login_id) => {
+            let repo = get_user_repository();
+
+            match repo.get_permissions(login_id) {
+                Ok (perms) => {
+                    HttpResponse::Ok().json(perms)
+                }
+
+                Err (e) => {
+                    HttpResponse::Forbidden().body(e)
+                }
+            }
+        }
+
+        Err (e) => {
+            HttpResponse::Forbidden().body(e)
         }
     }
 }

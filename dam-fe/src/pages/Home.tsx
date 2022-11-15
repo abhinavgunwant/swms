@@ -82,6 +82,22 @@ const Home = (): React.ReactElement => {
             if (responseJson.success) {
                 userStore.setSession(responseJson.s, 0);
 
+                // Get the permissions
+                const permResponse = await fetch('http://localhost:8080/api/admin/auth/permissions', {
+                    headers: {
+                        'Authorization': 'Bearer ' + userStore.sessionToken,
+                    },
+                });
+
+                if (permResponse.status === 200) {
+                    const responseJson = await permResponse.json();
+
+                    if (responseJson) {
+                        console.log('response: ', responseJson);
+                        userStore.setPermissions(responseJson);
+                    }
+                }
+
                 navigate('/workspace');
 
                 return;

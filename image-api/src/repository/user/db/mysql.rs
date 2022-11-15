@@ -2,6 +2,7 @@ use std::result::Result;
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
+use crate::model::user_permissions::UserPermissions;
 use crate::repository::user::{ User, UserRepository };
 use crate::db::{
     utils::mysql::{ get_row_from_query, get_rows_from_query },
@@ -132,6 +133,65 @@ impl UserRepository for MySQLUserRepository {
             }
 
             None => Err(DBError::NOT_FOUND),
+        }
+    }
+
+    fn get_permissions(&self, login_id: String) -> Result<UserPermissions, String> {
+        let row_result = get_row_from_query(
+            r"SELECT
+                R.CREATE_IMAGE, R.READ_IMAGE, R.MODIFY_IMAGE, R.DELETE_IMAGE,
+                R.READ_RENDITIONS, R.CREATE_RENDITIONS, R.MODIFY_RENDITIONS,
+                R.DELETE_RENDITIONS, R.READ_PROJECT, R.CREATE_PROJECT,
+                R.MODIFY_PROJECT, R.DELETE_PROJECT, R.READ_USER, R.CREATE_USER,
+                R.MODIFY_USER, R.DELETE_USER, R.PUBLISH, R.PUBLISH_ALL,
+                R.ACCESS_ALL_PROJECTS
+            FROM USER_ROLE R, USER U
+            WHERE U.LOGIN_ID = :login_id AND U.USER_ROLE = R.ID",
+            params! { "login_id" => login_id },
+        );
+
+        match row_result {
+            Ok (row_option) => {
+                match row_option {
+                    Some (row_ref) => {
+                        let mut row = row_ref.clone();
+
+                        Ok(UserPermissions {
+                            create_image: row.take("CREATE_IMAGE").unwrap(),
+                            read_image: row.take("READ_IMAGE").unwrap(),
+                            modify_image: row.take("MODIFY_IMAGE").unwrap(),
+                            delete_image: row.take("DELETE_IMAGE").unwrap(),
+                            read_renditions: row.take("READ_RENDITIONS").unwrap(),
+                            create_renditions: row.take("CREATE_RENDITIONS").unwrap(),
+                            modify_renditions: row.take("MODIFY_RENDITIONS").unwrap(),
+                            delete_renditions: row.take("DELETE_RENDITIONS").unwrap(),
+                            read_project: row.take("READ_PROJECT").unwrap(),
+                            create_project: row.take("CREATE_PROJECT").unwrap(),
+                            modify_project: row.take("MODIFY_PROJECT").unwrap(),
+                            delete_project: row.take("DELETE_PROJECT").unwrap(),
+                            read_user: row.take("READ_USER").unwrap(),
+                            create_user: row.take("CREATE_USER").unwrap(),
+                            modify_user: row.take("MODIFY_USER").unwrap(),
+                            delete_user: row.take("DELETE_USER").unwrap(),
+                            publish: row.take("PUBLISH").unwrap(),
+                            publish_all: row.take("PUBLISH_ALL").unwrap(),
+                            access_all_projects: row.take("ACCESS_ALL_PROJECTS").unwrap(),
+                        })
+                    }
+
+                    None => {
+                        Err(String::from(
+                            "User permissions not found, does the user exist?"
+                        ))
+                    }
+                }
+            }
+
+            Err (_e) => {
+                Err(String::from(
+                    "There was some error retrieving user permissions"
+                ))
+            }
         }
     }
 

@@ -13,7 +13,7 @@ const useAPI = () => {
             const response = await fetch('http://localhost:8080/api/admin/projects-for-user', {
                 headers: {
                     //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer admin',
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
                 }
             });
 
@@ -30,7 +30,7 @@ const useAPI = () => {
             const response = await fetch(
                 `http://localhost:8080/api/admin/get-children?type=${type}&slug=${slug}`, {
                 headers: {
-                    'Authorization': 'Bearer admin',
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
                 }
             });
 

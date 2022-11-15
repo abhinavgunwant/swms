@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::echo)
             .service(api::admin::get_children)
             .service(api::admin::auth::auth)
+            .service(api::admin::auth::get_user_permissions)
             .service(api::admin::user::create_user)
             .service(api::admin::user::get_user)
             .service(api::admin::project::get_projects)
