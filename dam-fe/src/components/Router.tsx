@@ -24,6 +24,7 @@ const Router = ():React.ReactElement => {
             <Route path={`/workspace/tree/:projectSlug/${ imagePath + (imagePath ? '/' : '') }:imageSlug`} element={ <Workspace /> } />
             <Route path="/workspace/new-image" element={ <NewImage /> } />
             <Route path="/workspace/new-folder" element={ <NewFolder /> } />
+            <Route path="/workspace/new-project" element={ <NewFolder /> } />
         </Routes>
     </BrowserRouter>;
 }

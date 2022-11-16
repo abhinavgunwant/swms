@@ -14,6 +14,7 @@ import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 import ImageListItem from '../../components/ImageListItem';
 import LinkModel from '../../models/LinkModel';
 import useAPI from '../../hooks/useAPI';
+import useUserStore from '../../store/workspace/UserStore';
 
 export const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 9.25rem);
@@ -23,6 +24,7 @@ export const WorkspaceGrid = styled(Grid)`
 
 const Workspace = ():React.ReactElement => {
     const store = useWorkspaceStore();
+    const userStore = useUserStore();
 
     const navigate = useNavigate();
     /* eslint-disable @typescript-eslint/no-unused-vars */

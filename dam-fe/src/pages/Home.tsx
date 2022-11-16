@@ -85,7 +85,7 @@ const Home = (): React.ReactElement => {
                 // Get the permissions
                 const permResponse = await fetch('http://localhost:8080/api/admin/auth/permissions', {
                     headers: {
-                        'Authorization': 'Bearer ' + userStore.sessionToken,
+                        'Authorization': 'Bearer ' + responseJson.s,
                     },
                 });
 
@@ -93,7 +93,6 @@ const Home = (): React.ReactElement => {
                     const responseJson = await permResponse.json();
 
                     if (responseJson) {
-                        console.log('response: ', responseJson);
                         userStore.setPermissions(responseJson);
                     }
                 }

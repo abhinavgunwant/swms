@@ -1,20 +1,22 @@
-import { Fragment, useState, useRef, useTransition } from 'react';
+import { Fragment, useState, useTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import Fab from '@mui/material/Fab';
-import AddIcon from '@mui/icons-material/Add';
-import ImageIcon from '@mui/icons-material/Image';
-import FolderIcon from '@mui/icons-material/Folder';
-import SelectAllIcon from '@mui/icons-material/SelectAll';
-import DeselectIcon from '@mui/icons-material/Deselect';
-import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { styled as muiStyled } from '@mui/material/styles';
+import {
+    Fab, Dialog, DialogTitle, List, ListItem, ListItemIcon, ListItemText,
+    DialogContent
+} from '@mui/material';
+
+import {
+    Add as AddIcon, Image as ImageIcon, Folder as FolderIcon,
+    SelectAll as SelectAllIcon, Deselect as DeselectIcon, Delete as DeleteIcon,
+    DriveFileMove as DriveFileMoveIcon
+} from '@mui/icons-material';
 
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 
 import styled from '@emotion/styled';
 import { css } from '@emotion/react';
-import { useNavigate } from 'react-router-dom';
+import { styled as muiStyled } from '@mui/material/styles';
 
 const commonStyle = css`
     display: flex;
@@ -34,34 +36,20 @@ const WorkspaceFabWrapper = styled.div`
 
 const AddFabWrapper = styled.div`${ commonStyle }margin-left: 1rem;`;
 
-const AddFabMenu = styled.div`
-    ${ commonStyle }
-    background: linear-gradient(to bottom right, #00000033, #00000000);
-    padding: 1rem 1rem 3.5rem 1rem;
-    border-radius: 1.5rem;
-    position: relative;
-    bottom: -3rem;
-    z-index: 1050;
-`;
-
-const ImageFab = muiStyled(Fab)`margin-bottom: 0.5rem`;
-
 const StyledFab = muiStyled(Fab)`margin-left: 1rem`;
 
 const FabText = styled.div`
     margin-left: 0.5rem;
 `;
 
-const WorkspaceFab = () => {
+const WorkspaceFab = (props: { inWorkspaceHome?: boolean } | undefined) => {
     const store = useWorkspaceStore();
+
     const navigate = useNavigate();
 
-    const [ addExpanded, setAddExpanded ] = useState(false);
+    const [ openNewDialog, setOpenNewDialog ] = useState(false);
 
-    const [ pending, startTransition ] = useTransition();
-
-    const addFabRef: React.MutableRefObject<HTMLElement|undefined> = useRef();
-    const addFabMenuRef: React.MutableRefObject<HTMLElement|undefined> = useRef();
+    const [ _pending, startTransition ] = useTransition();
 
     const onDeselectAllClicked = () => {
         startTransition(() => {
@@ -81,42 +69,23 @@ const WorkspaceFab = () => {
         })
     }
 
-    const onAddClicked = () => {
-        startTransition(() => {
-            setAddExpanded(!addExpanded);
-        });
+    const onNewDialogClosed = () => setOpenNewDialog(false);
 
-        if (addExpanded) {
-            document.removeEventListener('click', onOutsideClicked);
-        } else {
-            document.addEventListener('click', onOutsideClicked);
+    const onNewClicked = () => {
+        if (props?.inWorkspaceHome) {
+            startTransition(() => navigate('/workspace/new-project'));
+            return;
         }
+
+        startTransition(() => setOpenNewDialog(!openNewDialog));
     }
 
-    const onNewImageClicked = () => {
-        startTransition(() => {
-            navigate('/workspace/new-image');
-        })
-    }
+    const onNewImageClicked = () => 
+        startTransition(() => navigate('/workspace/new-image'));
 
-    const onNewFolderClicked = () => {
-        startTransition(() => {
-            navigate('/workspace/new-folder');
-        })
-    }
+    const onNewFolderClicked = () =>
+        startTransition(() => navigate('/workspace/new-folder'));
 
-    const onOutsideClicked = (e: any) => {
-        if (
-            !addFabRef.current?.contains(e?.target)
-            && !addFabMenuRef.current?.contains(e?.target)
-            ) {
-            startTransition(() => {
-                setAddExpanded(false);
-            });
-            document.removeEventListener('click', onOutsideClicked);
-        }
-    };
-    
     return <WorkspaceFabWrapper>
         {
             store.imageList.length !== store.selectedImages.size &&
@@ -129,7 +98,9 @@ const WorkspaceFab = () => {
         {
             store.selecting ?
                 <Fragment>
-                    <StyledFab variant="extended" onClick={ onDeselectAllClicked }>
+                    <StyledFab
+                        variant="extended"
+                        onClick={ onDeselectAllClicked }>
                         <DeselectIcon />
                         <FabText>Deselect All</FabText>
                     </StyledFab>
@@ -142,47 +113,36 @@ const WorkspaceFab = () => {
                         <FabText>Delete</FabText>
                     </StyledFab>
                 </Fragment>
-
             :
                 <AddFabWrapper>
-                    {
-                        addExpanded &&
-                        <AddFabMenu ref={ (r) => {
-                            if (r) {
-                                addFabMenuRef.current = r
-                            }}}>
-                            <ImageFab
-                                color="secondary"
-                                variant="extended"
-                                onClick={ onNewImageClicked }>
-                                <ImageIcon />
-                                <FabText>Image</FabText>
-                            </ImageFab>
-
-                            <Fab
-                                color="secondary"
-                                variant="extended"
-                                onClick={ onNewFolderClicked }>
-                                <FolderIcon />
-                                <FabText>Folder</FabText>
-                            </Fab>
-                        </AddFabMenu>
-                    }
                     <Fab
-                        color={ addExpanded ? 'default' : 'secondary'}
+                        color="secondary"
                         variant="extended"
-                        onClick={onAddClicked}
-                        ref={ (r) => {
-                            if (r)  {
-                                addFabRef.current = r;
-                            }
-                        }}>
+                        onClick={ onNewClicked }>
                         <AddIcon />
                         <FabText>New</FabText>
                     </Fab>
                 </AddFabWrapper>
         }
-    </WorkspaceFabWrapper>
+
+        <Dialog onClose={ onNewDialogClosed } open={ openNewDialog }>
+            <DialogTitle>New</DialogTitle>
+
+            <DialogContent>
+                <List sx={{ width: 240 }}>
+                    <ListItem button onClick={ onNewImageClicked }>
+                        <ListItemIcon><ImageIcon /></ListItemIcon>
+                        <ListItemText>Image</ListItemText>
+                    </ListItem>
+
+                    <ListItem button onClick={ onNewFolderClicked }>
+                        <ListItemIcon><FolderIcon /></ListItemIcon>
+                        <ListItemText>Folder</ListItemText>
+                    </ListItem>
+                </List>
+            </DialogContent>
+        </Dialog>
+    </WorkspaceFabWrapper>;
 }
 
 export default WorkspaceFab;

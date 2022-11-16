@@ -8,10 +8,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 
 import WorkspaceTopRow from '../WorkspaceTopRow';
+import WorkspaceFab from '../WorkspaceFab';
 import Thumbnail from '../../../components/Thumbnail';
 import ImageListItem from '../../../components/ImageListItem';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+import useUserStore from '../../../store/workspace/UserStore';
 import useAPI from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
@@ -41,6 +43,7 @@ const Project = () => {
     const [ loading, setLoading ] = useState(true);
 
     const store = useWorkspaceStore();
+    const userStore = useUserStore();
     const { getProjects } = useAPI();
     const navigate = useNavigate();
 
@@ -104,6 +107,14 @@ const Project = () => {
                             )
                         }
                     </List>
+        }
+
+        {
+            /**
+             * Only show new button if user has required permission
+             */
+            userStore.permissions.createProject &&
+            <WorkspaceFab inWorkspaceHome={ true } />
         }
     </div>
 }
