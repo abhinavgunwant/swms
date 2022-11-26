@@ -13,6 +13,7 @@ import Workspace from "../pages/workspace/Workspace";
 import Admin from "../pages/admin/Admin";
 
 import { getImagePathFromURL } from '../utils/PathUtils';
+import SelectUsers from "./SelectUsers";
 
 const Router = ():React.ReactElement => {
     const imagePath = getImagePathFromURL();
@@ -26,6 +27,7 @@ const Router = ():React.ReactElement => {
             <Route path="/workspace/new-image" element={ <NewImage /> } />
             <Route path="/workspace/new-folder" element={ <NewFolder /> } />
             <Route path="/workspace/new-project" element={ <NewProject /> } />
+            <Route path="/test" element={ <SelectUsers /> } />
         </Routes>
     </BrowserRouter>;
 }

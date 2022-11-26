@@ -1,5 +1,6 @@
 import useUserStore from '../store/workspace/UserStore';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
+import Project from '../models/Project';
 
 const useAPI = () => {
     const userStore = useUserStore();
@@ -38,6 +39,32 @@ const useAPI = () => {
                 const json = await response.json();
                 wsStore.setImageList(json.images);
             }
+        },
+
+        /**
+         * Adds a new project.
+         * 
+         * TODO: Add a project model
+         */
+        addProject: async (project: Project) => {
+            const response = await fetch(
+                `http://localhost:8080/api/admin/project`, {
+                method: 'POST',
+                body: JSON.stringify(project),
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.status === 200) {
+                const json = await response.json();
+                wsStore.setImageList(json.images);
+
+                return true;
+            }
+
+            return await response.text();
         }
     }
 };
