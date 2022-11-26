@@ -1,7 +1,10 @@
-import { useEffect, useState, useRef, useTransition } from 'react';
+import { useEffect, useState, useRef, useTransition, ChangeEvent, useCallback } from 'react';
 import {
     Box, TextField, List, ListItem
 } from '@mui/material';
+
+// import debounce from 'lodash.debounce';
+import { throttle } from 'lodash';
 
 import { styled } from '@mui/material/styles';
 
@@ -9,7 +12,7 @@ interface TypeaheadProps {
     placeholder?: string,
     dataSource?: "fetch" | "static", // default: "static"
     list?: any[],
-    dataSourceUrl?: string,
+    fetcherFunction?: Function,
 }
 
 const TextFieldFullWidth = styled(TextField)`
@@ -25,14 +28,30 @@ const OverlayList = styled(Box)`
 `;
 
 const Typeahead = (props: TypeaheadProps) => {
-    const [ _, startTransition ] = useTransition();
+    const [ _pending, startTransition ] = useTransition();
 
+    const [ text, setText ] = useState<string>('');
     const [ list, setList ] = useState<any[]>();
     const [ showOverlayList, setShowOverlayList ] = useState<boolean>(false);
     const [ width, setWidth ] = useState<number>(100);
     const textFieldRef = useRef<HTMLDivElement>(null);
     const parentRef = useRef<HTMLDivElement>(null);
     const overlayListRef = useRef<HTMLUListElement>(null);
+
+    const queryAPI = (queryText: string) => {
+        console.log('Querying fetcher function with query text: ' + queryText);
+
+        if (props.fetcherFunction) {
+            const newList = props.fetcherFunction();
+            startTransition(() => setList(newList));
+        }
+    }
+
+    const throttledQueryAPI = useCallback(throttle(
+        (q: string) => queryAPI(q),
+        800,
+        { trailing: true, leading: false }
+    ), []);
 
     const onFocus = () => {
         startTransition(() => {
@@ -45,6 +64,14 @@ const Typeahead = (props: TypeaheadProps) => {
             setShowOverlayList(false);
         }
     };
+
+    const onTextChanged = (event: ChangeEvent<HTMLInputElement>) => {
+        setText(event.target.value);
+
+        if (event.target.value) {
+            throttledQueryAPI(event.target.value);
+        }
+    }
 
     useEffect(() => {
         if (textFieldRef) {
@@ -67,16 +94,17 @@ const Typeahead = (props: TypeaheadProps) => {
             onFocus={ onFocus }
             onBlur={
                 () => startTransition(() => setShowOverlayList(false))
-            } />
-
-            {
-                showOverlayList &&
-                <OverlayList ref={ overlayListRef } sx={{ width }}>
-                    <List>
-                        <ListItem>Item 1</ListItem>
-                    </List>
-                </OverlayList>
             }
+            onChange={ onTextChanged } />
+
+        {
+            showOverlayList &&
+            <OverlayList ref={ overlayListRef } sx={{ width }}>
+                <List>
+                    <ListItem>Item 1</ListItem>
+                </List>
+            </OverlayList>
+        }
     </Box>
 }
 
