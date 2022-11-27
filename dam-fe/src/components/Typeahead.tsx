@@ -1,12 +1,18 @@
-import { useEffect, useState, useRef, useTransition, ChangeEvent, useCallback } from 'react';
+import {
+    useEffect, useState, useRef, useTransition, ChangeEvent, useCallback,
+    KeyboardEvent
+} from 'react';
 import {
     Box, TextField, List, ListItem
 } from '@mui/material';
 
-// import debounce from 'lodash.debounce';
 import { throttle } from 'lodash';
 
 import { styled } from '@mui/material/styles';
+
+const SelectedListItem = styled(ListItem)`
+    background: #dddddd;
+`;
 
 interface TypeaheadProps {
     placeholder?: string,
@@ -22,7 +28,7 @@ const TextFieldFullWidth = styled(TextField)`
 const OverlayList = styled(Box)`
     background: #ffffff;
     position: fixed;
-    z-index: 50;
+    z-index: 1;
     box-shadow: 0 0 5px #aaaaaa;
     border-radius: 5px;
 `;
@@ -31,18 +37,23 @@ const Typeahead = (props: TypeaheadProps) => {
     const [ _pending, startTransition ] = useTransition();
 
     const [ text, setText ] = useState<string>('');
-    const [ list, setList ] = useState<any[]>();
+    const [ list, setList ] = useState<any[]>([]);
+    const [ selectionIndex, setSelectionIndex ] = useState<number>(0);
     const [ showOverlayList, setShowOverlayList ] = useState<boolean>(false);
     const [ width, setWidth ] = useState<number>(100);
     const textFieldRef = useRef<HTMLDivElement>(null);
     const parentRef = useRef<HTMLDivElement>(null);
     const overlayListRef = useRef<HTMLUListElement>(null);
 
+    const hideOverlayList = useCallback(
+        () => startTransition(() => setShowOverlayList(false)
+    ), []);
+
     const queryAPI = (queryText: string) => {
         console.log('Querying fetcher function with query text: ' + queryText);
 
         if (props.fetcherFunction) {
-            const newList = props.fetcherFunction();
+            const newList = props.fetcherFunction(queryText);
             startTransition(() => setList(newList));
         }
     }
@@ -61,7 +72,7 @@ const Typeahead = (props: TypeaheadProps) => {
 
     const onOutsideClicked = (event: MouseEvent) => {
         if (!parentRef.current?.contains(event.target as HTMLDivElement)) {
-            setShowOverlayList(false);
+            hideOverlayList();
         }
     };
 
@@ -73,17 +84,67 @@ const Typeahead = (props: TypeaheadProps) => {
         }
     }
 
-    useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        switch(event.key) {
+            case 'ArrowUp':
+                event.preventDefault();
+
+                if (list?.length) {
+                    if (selectionIndex > 0) {
+                        startTransition(
+                            () => setSelectionIndex(selectionIndex - 1)
+                        );
+                    } else {
+                        startTransition(
+                            () => setSelectionIndex(list.length - 1)
+                        );
+                    }
+                } else {
+                    startTransition(() => setSelectionIndex(-1));
+                }
+                break;
+            case 'ArrowDown':
+                event.preventDefault();
+
+                if (list?.length) {
+                    if (selectionIndex < list.length - 1) {
+                        startTransition(
+                            () => setSelectionIndex(selectionIndex + 1)
+                        );
+                    } else {
+                        startTransition(() => setSelectionIndex(0));
+                    }
+                } else {
+                    startTransition(() => setSelectionIndex(-1));
+                }
+                break;
+        }
+    }
+
+    const onResize = () => {
+        console.log('resize!');
         if (textFieldRef) {
             startTransition(() =>
                 setWidth(textFieldRef.current?.offsetWidth || 100)
             );
         }
+    };
+
+    const throttledResize = useCallback(throttle(
+        () => onResize(),
+        500,
+        { trailing: true, leading: false }
+    ), []);
+
+    useEffect(() => {
+        throttledResize();
 
         document.addEventListener('click', onOutsideClicked);
+        window.addEventListener('resize', throttledResize);
 
         return () => {
             document.removeEventListener('click', onOutsideClicked);
+            window.removeEventListener('resize', throttledResize);
         }
     }, []);
 
@@ -92,16 +153,26 @@ const Typeahead = (props: TypeaheadProps) => {
             placeholder={ props.placeholder || '' }
             ref={ textFieldRef }
             onFocus={ onFocus }
-            onBlur={
-                () => startTransition(() => setShowOverlayList(false))
-            }
-            onChange={ onTextChanged } />
+            onBlur={ hideOverlayList }
+            onChange={ onTextChanged }
+            onKeyDown={ onKeyDown }
+            autoComplete="off" />
 
         {
             showOverlayList &&
             <OverlayList ref={ overlayListRef } sx={{ width }}>
                 <List>
-                    <ListItem>Item 1</ListItem>
+                    {
+                        list?.map((item, i) =>
+                            i === selectionIndex ? <SelectedListItem  key={ item.id }>
+                                { item.name }
+                            </SelectedListItem>
+                            :
+                            <ListItem key={ item.id }>
+                                { item.name }
+                            </ListItem>
+                        )
+                    }
                 </List>
             </OverlayList>
         }
@@ -109,3 +180,4 @@ const Typeahead = (props: TypeaheadProps) => {
 }
 
 export default Typeahead;
+

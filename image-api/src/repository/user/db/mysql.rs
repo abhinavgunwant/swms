@@ -2,7 +2,9 @@ use std::result::Result;
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
-use crate::model::user_permissions::UserPermissions;
+use crate::model::{
+    user_permissions::UserPermissions, user_search::UserSearch
+};
 use crate::repository::user::{ User, UserRepository };
 use crate::db::{
     utils::mysql::{ get_row_from_query, get_rows_from_query },
@@ -46,7 +48,7 @@ fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
     }
 }
 
-fn get_users_from_row(row_wrapped: Result<Vec<Row>, Error>)
+fn get_users_from_rows(row_wrapped: Result<Vec<Row>, Error>)
     -> Result<Vec<User>, DBError> {
     match row_wrapped {
         Ok (rows) => {
@@ -196,7 +198,7 @@ impl UserRepository for MySQLUserRepository {
     }
 
     fn get_all(&self) -> Result<Vec<User>, DBError> {
-        get_users_from_row(get_rows_from_query(
+        get_users_from_rows(get_rows_from_query(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
                 CREATED_ON, MODIFIED_ON, NAME, PASSWORD
@@ -206,13 +208,86 @@ impl UserRepository for MySQLUserRepository {
     }
 
     fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<User>, DBError> {
-        get_users_from_row(get_rows_from_query(
+        get_users_from_rows(get_rows_from_query(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
                 CREATED_ON, MODIFIED_ON, NAME
             FROM USER LIMIT :page1, :page2",
             params! { "page1" => page*page_length, "page2" => page }
         ))
+    }
+
+    fn search_from_name(&self, name_query: String, page_length: u32)
+        -> Result<Vec<UserSearch>, DBError> {
+        let nq: String = format!("%{}%", name_query.to_uppercase());
+        let rows_result = get_rows_from_query(
+            r"SELECT ID, NAME FROM USER
+            WHERE UPPER(NAME) LIKE :nq LIMIT :page_length",
+            params! { "page_length" => page_length, "nq" => nq }
+        );
+
+        match rows_result  {
+            Ok (rows) => {
+                let mut users: Vec<UserSearch> = vec![];
+
+                for row_ref in rows.iter() {
+                    let mut row = row_ref.clone();
+                    let mut add: bool = true;
+                    let mut id: u32 = 0;
+                    let mut name: String = String::from("");
+
+                    match row.take_opt("ID") {
+                        Some(id_res) => {
+                            match id_res {
+                                Ok (user_search_id) => {
+                                    id = user_search_id;
+                                    add = true;
+                                }
+
+                                Err (_e) => {
+                                    add = false;
+                                }
+                            }
+                        }
+
+                        None => {
+                            add = false;
+                        }
+                    }
+
+                    match row.take_opt("NAME") {
+                        Some(name_res) => {
+                            match name_res {
+                                Ok (user_search_name) => {
+                                    name = user_search_name;
+                                    add = true;
+                                }
+
+                                Err (_e) => {
+                                    add = false;
+                                }
+                            }
+                        }
+
+                        None => {
+                            add = false;
+                        }
+                    }
+
+                    if add {
+                        users.push(UserSearch { id, name });
+                    }
+                }
+
+                Ok (users)
+            }
+
+            Err (e) => {
+                eprintln!("Error while getting rendition from query: {}", e);
+
+                Err(DBError::OtherError)
+            }
+        }
     }
 
     fn add(&self, user: User) {

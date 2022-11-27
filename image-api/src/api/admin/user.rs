@@ -1,6 +1,7 @@
 use actix_web::{ get, post, web::{ Json }, HttpRequest, HttpResponse };
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
+use qstring::QString;
 
 use crate::{
     repository::user::{ get_user_repository, UserRepository },
@@ -103,3 +104,27 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
         }
     }
 }
+
+#[get("/api/admin/search/user/")]
+pub async fn search_user(req: HttpRequest) -> HttpResponse {
+    let qs = QString::from(req.query_string());
+
+    let user_query = qs.get("name").unwrap();
+    let repo = get_user_repository();
+    let su_result = repo.search_from_name(String::from(user_query), 10);
+
+    match su_result {
+        Ok (su) => {
+            HttpResponse::Ok().json(su)
+        }
+
+        Err(e) => {
+            if e == DBError::NOT_FOUND {
+                return HttpResponse::NotFound().body("Not Found");
+            }
+
+            HttpResponse::InternalServerError().body("Internal Server Error")
+        }
+    }
+}
+

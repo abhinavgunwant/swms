@@ -9,6 +9,7 @@ import Remove from '@mui/icons-material/Remove';
 import Typeahead from './Typeahead';
 
 import SelectUserModel from '../models/SelectUserModel';
+import useAPI from '../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
 
@@ -63,6 +64,8 @@ const SelectUsers = () => {
         },
     ]);
 
+    const { userTypeahead } = useAPI();
+
     const removeUser = (user: SelectUserModel) => () => {
         let arr = [...userList];
         let itemRemoved: boolean = false;
@@ -82,7 +85,10 @@ const SelectUsers = () => {
     };
 
     return <Card>
-        <Typeahead placeholder="Type names to add users" />
+        <Typeahead
+            placeholder="Type names to add users"
+            fetcherFunction={ userTypeahead } />
+
         <ContentBox>
             <List>
                 {
@@ -102,3 +108,4 @@ const SelectUsers = () => {
 }
 
 export default SelectUsers;
+
