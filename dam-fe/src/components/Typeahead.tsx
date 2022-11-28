@@ -19,6 +19,7 @@ interface TypeaheadProps {
     dataSource?: "fetch" | "static", // default: "static"
     list?: any[],
     fetcherFunction?: Function,
+    onItemSelected: (item: any) => void,
 }
 
 const TextFieldFullWidth = styled(TextField)`
@@ -49,11 +50,12 @@ const Typeahead = (props: TypeaheadProps) => {
         () => startTransition(() => setShowOverlayList(false)
     ), []);
 
-    const queryAPI = (queryText: string) => {
+    const queryAPI = async (queryText: string) => {
         console.log('Querying fetcher function with query text: ' + queryText);
 
         if (props.fetcherFunction) {
-            const newList = props.fetcherFunction(queryText);
+            const newList = await props.fetcherFunction(queryText);
+            console.log('got new list: ' + newList);
             startTransition(() => setList(newList));
         }
     }
@@ -69,6 +71,8 @@ const Typeahead = (props: TypeaheadProps) => {
             setShowOverlayList(true);
         })
     };
+
+    const onHoverOverItem = (i: number) => setSelectionIndex(i);
 
     const onOutsideClicked = (event: MouseEvent) => {
         if (!parentRef.current?.contains(event.target as HTMLDivElement)) {
@@ -118,11 +122,20 @@ const Typeahead = (props: TypeaheadProps) => {
                     startTransition(() => setSelectionIndex(-1));
                 }
                 break;
+            case 'Enter':
+                event.preventDefault();
+                props.onItemSelected(list[selectionIndex]);
+                setShowOverlayList(false);
+                break;
+
+            default:
+                if (!showOverlayList) {
+                    setShowOverlayList(true);
+                }
         }
     }
 
     const onResize = () => {
-        console.log('resize!');
         if (textFieldRef) {
             startTransition(() =>
                 setWidth(textFieldRef.current?.offsetWidth || 100)
@@ -163,14 +176,25 @@ const Typeahead = (props: TypeaheadProps) => {
             <OverlayList ref={ overlayListRef } sx={{ width }}>
                 <List>
                     {
-                        list?.map((item, i) =>
-                            i === selectionIndex ? <SelectedListItem  key={ item.id }>
-                                { item.name }
-                            </SelectedListItem>
+                        Array.isArray(list) && list.map((item, i) =>
+                            i === selectionIndex ?
+                                <SelectedListItem
+                                    onClick={
+                                        () => props.onItemSelected(item)
+                                    }
+                                    onMouseEnter={ () => onHoverOverItem(i) }
+                                    key={ item.id }>
+                                    { item.name }
+                                </SelectedListItem>
                             :
-                            <ListItem key={ item.id }>
-                                { item.name }
-                            </ListItem>
+                                <ListItem
+                                    onClick={
+                                        () => props.onItemSelected(item)
+                                    }
+                                    onMouseEnter={ () => onHoverOverItem(i) }
+                                    key={ item.id }>
+                                    { item.name }
+                                </ListItem>
                         )
                     }
                 </List>

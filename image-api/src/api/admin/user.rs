@@ -105,13 +105,17 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
     }
 }
 
-#[get("/api/admin/search/user/")]
+#[get("/api/admin/search/user")]
 pub async fn search_user(req: HttpRequest) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
-    let user_query = qs.get("name").unwrap();
+    let user_query = qs.get("name").unwrap().trim();
     let repo = get_user_repository();
     let su_result = repo.search_from_name(String::from(user_query), 10);
+
+    if user_query.is_empty() {
+        return HttpResponse::NotFound().body("Not Found");
+    }
 
     match su_result {
         Ok (su) => {

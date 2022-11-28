@@ -33,36 +33,37 @@ const ContentBox = styled(Box)`
 `;
 
 const SelectUsers = () => {
-    const [ userList, setUserList ] = useState<SelectUserModel[]>([
-        {
-            name: 'Abhinav Gunwant',
-            id: 1,
-        },
-        {
-            name: 'Someone Else',
-            id: 2,
-        },
-        {
-            name: 'Some one',
-            id: 3,
-        },
-        {
-            name: 'Person #2',
-            id: 4,
-        },
-        {
-            name: 'Person #3',
-            id: 5,
-        },
-        {
-            name: 'Person #4',
-            id: 6,
-        },
-        {
-            name: 'Person #5',
-            id: 7,
-        },
-    ]);
+    const [ userList, setUserList ] = useState<SelectUserModel[]>([]);
+//        [
+//        {
+//            name: 'Abhinav Gunwant',
+//            id: 1,
+//        },
+//        {
+//            name: 'Someone Else',
+//            id: 2,
+//        },
+//        {
+//            name: 'Some one',
+//            id: 3,
+//        },
+//        {
+//            name: 'Person #2',
+//            id: 4,
+//        },
+//        {
+//            name: 'Person #3',
+//            id: 5,
+//        },
+//        {
+//            name: 'Person #4',
+//            id: 6,
+//        },
+//        {
+//            name: 'Person #5',
+//            id: 7,
+//        },
+//    ]);
 
     const { userTypeahead } = useAPI();
 
@@ -84,10 +85,26 @@ const SelectUsers = () => {
         }
     };
 
+    const addUser = (user: SelectUserModel) => {
+        let add = true;
+
+        for (let i=0; i<userList.length; ++i) {
+            if (userList[i].id === user.id) {
+                add = false;
+                break;
+            }
+        }
+
+        if (add) {
+            startTransition(() => setUserList([...userList, user]));
+        }
+    }
+
     return <Card>
         <Typeahead
             placeholder="Type names to add users"
-            fetcherFunction={ userTypeahead } />
+            fetcherFunction={ userTypeahead }
+            onItemSelected={ addUser } />
 
         <ContentBox>
             <List>
@@ -99,7 +116,7 @@ const SelectUsers = () => {
                             </IconButton>
                         }
                         key={ user.id }>
-                        <ListItemText>{ user.name } </ListItemText>
+                        <ListItemText>{ user.name }</ListItemText>
                     </ListItem>)
                 }
             </List>
