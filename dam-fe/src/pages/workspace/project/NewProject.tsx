@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
+import SelectUsers from '../../../components/SelectUsers';
 
 import useAPI from '../../../hooks/useAPI';
 
@@ -195,8 +196,10 @@ const NewProject = () => {
 
             {
                 restrictAccess &&
-                <Grid item xs={12}>
-                    TODO: Implement Restrict access!!
+                <Grid item xs={12} md={6}>
+                    <SelectUsers
+                        placeholder="Type names to add to the access list for this project"
+                        title="Restrict access for:" />
                 </Grid>
             }
 

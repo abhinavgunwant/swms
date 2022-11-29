@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useTransition, startTransition } from 'react';
 
 import {
-    Card, TextField, Box, List, ListItem, ListItemText, IconButton
+    Card, TextField, Box, List, ListItem, ListItemText, IconButton, Typography
 } from '@mui/material';
 
 import Remove from '@mui/icons-material/Remove';
@@ -17,6 +17,7 @@ const ContentBox = styled(Box)`
     min-height: 200px;
     max-height: 300px;
     overflow-y: auto;
+    background: #eeeeee;
 
     &::-webkit-scrollbar {
         width: 10px;
@@ -32,38 +33,33 @@ const ContentBox = styled(Box)`
     }
 `;
 
-const SelectUsers = () => {
+
+const NothingBox = styled(Box)`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: calc(100% - 4rem);
+    height: 200px;
+    text-align: center;
+    padding: 2rem;
+`;
+
+const NameList = styled(List)`
+    padding: 0;
+`;
+
+const NameItem = styled(ListItem)`
+    background: #ffffff;
+    border-bottom: 1px solid #dddddd;
+`;
+
+interface SelectedUserProps {
+    placeholder?: string,
+    title?: string,
+}
+
+const SelectUsers = (props: SelectedUserProps) => {
     const [ userList, setUserList ] = useState<SelectUserModel[]>([]);
-//        [
-//        {
-//            name: 'Abhinav Gunwant',
-//            id: 1,
-//        },
-//        {
-//            name: 'Someone Else',
-//            id: 2,
-//        },
-//        {
-//            name: 'Some one',
-//            id: 3,
-//        },
-//        {
-//            name: 'Person #2',
-//            id: 4,
-//        },
-//        {
-//            name: 'Person #3',
-//            id: 5,
-//        },
-//        {
-//            name: 'Person #4',
-//            id: 6,
-//        },
-//        {
-//            name: 'Person #5',
-//            id: 7,
-//        },
-//    ]);
 
     const { userTypeahead } = useAPI();
 
@@ -101,15 +97,33 @@ const SelectUsers = () => {
     }
 
     return <Card>
+        {
+            props?.title &&
+            <Typography
+                variant="subtitle2"
+                sx={{
+                    marginLeft: '1rem',
+                    marginTop: '0.25rem',
+                }}>
+                { props.title }
+            </Typography>
+        }
         <Typeahead
-            placeholder="Type names to add users"
+            placeholder={ props?.placeholder || "Type names to add users"}
             fetcherFunction={ userTypeahead }
             onItemSelected={ addUser } />
 
         <ContentBox>
-            <List>
+            {
+                userList.length === 0 &&
+                <NothingBox>
+                    Nothing selected! Start typing names
+                    in the search bar above to add users.
+                </NothingBox>
+            }
+            <NameList>
                 {
-                    userList.map(user => <ListItem
+                    userList.map(user => <NameItem
                         secondaryAction={
                             <IconButton onClick={ removeUser(user) }>
                                 <Remove color='action' />
@@ -117,9 +131,9 @@ const SelectUsers = () => {
                         }
                         key={ user.id }>
                         <ListItemText>{ user.name }</ListItemText>
-                    </ListItem>)
+                    </NameItem>)
                 }
-            </List>
+            </NameList>
         </ContentBox>
     </Card>
 }

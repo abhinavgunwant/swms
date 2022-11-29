@@ -3,16 +3,14 @@ import {
     KeyboardEvent
 } from 'react';
 import {
-    Box, TextField, List, ListItem
+    Box, TextField, List, ListItem, ListItemButton, IconButton
 } from '@mui/material';
+
+import Close from '@mui/icons-material/Close';
 
 import { throttle } from 'lodash';
 
 import { styled } from '@mui/material/styles';
-
-const SelectedListItem = styled(ListItem)`
-    background: #dddddd;
-`;
 
 interface TypeaheadProps {
     placeholder?: string,
@@ -23,15 +21,29 @@ interface TypeaheadProps {
 }
 
 const TextFieldFullWidth = styled(TextField)`
-    width: 100%;
+    width: calc(100% - 2rem);
+    margin: 1rem;
+
+    & input {
+        padding-right: 3rem;
+    }
 `;
 
 const OverlayList = styled(Box)`
+    position: absolute;
     background: #ffffff;
-    position: fixed;
+    margin-top: -1rem;
+    margin-left: 1rem;
+    padding: 0;
     z-index: 1;
     box-shadow: 0 0 5px #aaaaaa;
     border-radius: 5px;
+`;
+
+const ClearButton = styled(IconButton)`
+    position: absolute;
+    margin-left: -64px;
+    margin-top: 24px;
 `;
 
 const Typeahead = (props: TypeaheadProps) => {
@@ -51,11 +63,8 @@ const Typeahead = (props: TypeaheadProps) => {
     ), []);
 
     const queryAPI = async (queryText: string) => {
-        console.log('Querying fetcher function with query text: ' + queryText);
-
         if (props.fetcherFunction) {
             const newList = await props.fetcherFunction(queryText);
-            console.log('got new list: ' + newList);
             startTransition(() => setList(newList));
         }
     }
@@ -127,12 +136,33 @@ const Typeahead = (props: TypeaheadProps) => {
                 props.onItemSelected(list[selectionIndex]);
                 setShowOverlayList(false);
                 break;
+            case 'Escape':
+                event.preventDefault();
+                hideOverlayList();
+                break;
 
             default:
                 if (!showOverlayList) {
                     setShowOverlayList(true);
                 }
         }
+    }
+
+    const onItemClicked = (item: any) => {
+        hideOverlayList();
+        props.onItemSelected(item);
+    }
+
+    const onTextClearClicked = () => {
+        startTransition(() => setText(''));
+        hideOverlayList();
+        setTimeout(() => {
+            const input = textFieldRef?.current?.querySelector('input');
+
+            if (input) {
+                input.focus();
+            }
+        }, 100);
     }
 
     const onResize = () => {
@@ -166,35 +196,30 @@ const Typeahead = (props: TypeaheadProps) => {
             placeholder={ props.placeholder || '' }
             ref={ textFieldRef }
             onFocus={ onFocus }
-            onBlur={ hideOverlayList }
+            value={ text }
             onChange={ onTextChanged }
             onKeyDown={ onKeyDown }
             autoComplete="off" />
 
         {
+            text &&
+            <ClearButton onClick={ onTextClearClicked }><Close /></ClearButton>
+        }
+
+        {
             showOverlayList &&
             <OverlayList ref={ overlayListRef } sx={{ width }}>
-                <List>
+                <List sx={{ padding: 0 }}>
                     {
                         Array.isArray(list) && list.map((item, i) =>
-                            i === selectionIndex ?
-                                <SelectedListItem
-                                    onClick={
-                                        () => props.onItemSelected(item)
-                                    }
+                            <ListItem key={ item.id } disablePadding>
+                                <ListItemButton
                                     onMouseEnter={ () => onHoverOverItem(i) }
-                                    key={ item.id }>
+                                    onClick={ () => onItemClicked(item) }
+                                    selected={ i === selectionIndex }>
                                     { item.name }
-                                </SelectedListItem>
-                            :
-                                <ListItem
-                                    onClick={
-                                        () => props.onItemSelected(item)
-                                    }
-                                    onMouseEnter={ () => onHoverOverItem(i) }
-                                    key={ item.id }>
-                                    { item.name }
-                                </ListItem>
+                                </ListItemButton>
+                            </ListItem>
                         )
                     }
                 </List>
