@@ -205,6 +205,45 @@ impl ProjectRepository for MySQLProjectRepository {
         })).expect("Error while adding users to project");
     }
 
+    /**
+     * Used for providing real-time validation while the admin is typing the
+     * project name (or project slug) in "New Project" screen.
+     *
+     * `slug`: The slug provided (should be `lowercase`).
+     *
+     * Returns true if a project with the supplied slug doesn't exist.
+     */
+    fn validate_project_slug(&self, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+            r"SELECT NOT EXISTS (
+                SELECT ID FROM PROJECT WHERE SLUG = :slug
+            ) AS VALID",
+            params! { "slug" => slug }
+        );
+
+        match row_result {
+            Ok (row_option) => {
+                match row_option {
+                    Some (r) => {
+                        let mut row = r;
+
+                        let valid: bool = row.take("VALID").unwrap();
+
+                        Ok (valid)
+                    }
+
+                    None => {
+                        Ok (true)
+                    }
+                }
+            }
+
+            Err (_e) => {
+                Err (DBError::OtherError)
+            }
+        }
+    }
+
     fn update(&self, project: Project) {
         println!("Updating an project");
     }

@@ -12,6 +12,13 @@ pub trait ProjectRepository {
     fn get_user_projects(&self, user_id: u32) -> Result<Vec::<Project>, DBError>;
     fn add(&self, project: Project);
     fn add_users_to_project(&self, project_id: u32, users: &Vec<u32>);
+
+    /**
+     * Validates slug for new project.
+     *
+     * Checks if any project exists with supplied slug, if not, returns true.
+     */
+    fn validate_project_slug(&self, slug: String) -> Result<bool, DBError>;
     fn update(&self, project: Project);
     fn remove(&self, id: Project);
     fn remove_item(&self, id: u32);

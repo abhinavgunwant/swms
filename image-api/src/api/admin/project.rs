@@ -1,5 +1,6 @@
 use actix_web::{ web::{ Json }, HttpResponse, HttpRequest, post, get };
 use serde::{ Serialize, Deserialize };
+use qstring::QString;
 use crate::{
     db::DBError,
     repository::{
@@ -166,3 +167,27 @@ pub async fn add_users_to_project(req_obj: Json<AddUserToProjectRequest>) -> Htt
         projects: vec![],
     })
 }
+
+#[get("/api/admin/project/validate-slug")]
+pub async fn validate_slug(req: HttpRequest) -> HttpResponse {
+    let qs = QString::from(req.query_string());
+
+    match qs.get("slug") {
+        Some (slug_qs) => {
+            let slug = String::from(slug_qs).to_lowercase();
+
+            let repo = get_project_repository();
+
+            match repo.validate_project_slug(slug) {
+                Ok (valid) => HttpResponse::Ok().json(valid),
+                Err (_e) => HttpResponse::InternalServerError()
+                    .body("Internal Server Error")
+            }
+        }
+
+        None => {
+            HttpResponse::BadRequest().body("Bad Request")
+        }
+    }
+}
+

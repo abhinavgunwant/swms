@@ -16,3 +16,4 @@ pub fn get_row_from_query(query: &str, params: Params) -> Result<Option<Row>> {
 
     conn.exec_first(statement, params)
 }
+
