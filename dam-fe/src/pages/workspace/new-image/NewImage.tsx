@@ -1,17 +1,15 @@
-import { useState } from 'react';
+import { ChangeEvent, Fragment, useState, useTransition } from 'react';
 
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import {
+    Box, Typography, Grid, TextField, Button, IconButton, Tooltip
+} from '@mui/material';
+import { UploadFile, Edit, Undo } from '@mui/icons-material';
+// import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 import { styled } from '@mui/material/styles';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
-import { IconButton } from '@mui/material';
+// import { IconButton } from '@mui/material';
 
 const StyledTextField = styled(TextField)`
     width: 100%;
@@ -33,18 +31,45 @@ const ImagePreview = styled(Box)`
     border-radius: 1rem;
 `
 
-const NewImage = () => {
-    const [ slug, setSlug ] = useState();
+const CenterGrid = styled(Grid)`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+`;
 
-    const onTitleChanged = (e: any) => {
+const NewImage = () => {
+    const [ folderPath, setFolderPath ] = useState<string>('');
+    const [ title, setTitle ] = useState<string>('');
+    const [ details, setDetails ] = useState<string>('');
+    const [ imageUploaded, setImageUploaded ] = useState<boolean>(false);
+    const [ showEditFolderField, setShowEditFolderField ] = useState<boolean>(false);
+//    const [ slug, setSlug ] = useState();
+
+    const [ _, startTransition ] = useTransition();
+
+    const onTitleChanged = (e: ChangeEvent<HTMLInputElement>) => {
         let slg = e.target.value;
 
-        if (typeof slg === 'string' && slg.trim()) {
-            slg = slg.trim().replaceAll(' ', '-');
+//        if (typeof slg === 'string' && slg.trim()) {
+//            slg = slg.trim().replaceAll(' ', '-');
+//
+//            if (slg) {
+//                setSlug(slg.toLowerCase());
+//            }
+//        }
 
-            if (slg) {
-                setSlug(slg.toLowerCase());
-            }
+        setTitle(slg);
+    }
+
+    const onDetailsChanged = (e: ChangeEvent<HTMLInputElement>) => {
+        setDetails(e.target.value);
+    }
+
+    const onEditFolderButtonClicked = () => {
+        if (showEditFolderField) {
+            startTransition(() => setShowEditFolderField(false));
+        } else {
+            startTransition(() => setShowEditFolderField(true));
         }
     }
 
@@ -61,21 +86,51 @@ const NewImage = () => {
 
         <StyledGrid container>
             <Grid item xs={12} lg={6}>
-                <StyledTextField label="Folder Path" defaultValue="/" required />
-                <StyledTextField label="Image Title" onChange={ onTitleChanged } required />
-                <StyledTextField label="Image Details" rows={3} multiline />
-                
+                <Grid container>
+                    <Grid item xs={11}>
+                        <StyledTextField
+                            label="Folder Path"
+                            defaultValue="/"
+                            disabled={ !showEditFolderField }
+                            required />
+                    </Grid>
+                    <CenterGrid item xs={1}>
+                        <Tooltip title={
+                            (showEditFolderField ? 'Undo ' : '')
+                            + 'Edit Folder Path'
+                            }>
+                            <IconButton
+                                color="secondary"
+                                onClick={ onEditFolderButtonClicked }>
+                                { showEditFolderField ? <Undo /> : <Edit /> }
+                            </IconButton>
+                        </Tooltip>
+                    </CenterGrid>
+                </Grid>
+
+                <StyledTextField
+                    label="Image Title"
+                    onChange={ onTitleChanged }
+                    value={ title }
+                    required />
+
+                <StyledTextField
+                    label="Image Details"
+                    rows={3}
+                    value={ details }
+                    onChange={ onDetailsChanged }
+                    multiline />
             </Grid>
 
             <Grid item xs={12} lg={6} style={{padding: '0.5rem 1rem'}}>
                 <ImagePreview>
-                    <Button startIcon={ <UploadFileIcon /> } color="secondary">
+                    <Button startIcon={ <UploadFile /> } color="secondary">
                         Upload Image
                     </Button>
                 </ImagePreview>
             </Grid>
 
-            <Grid container xs={6}>
+            {/* <Grid container xs={6}>
                 <Grid item xs={11}>
                     <StyledTextField
                         label="Slug"
@@ -112,7 +167,7 @@ const NewImage = () => {
                         <ContentCopyIcon />
                     </IconButton>
                 </Grid>
-            </Grid>
+            </Grid> */}
 
         </StyledGrid>
 
@@ -122,3 +177,4 @@ const NewImage = () => {
 }
 
 export default NewImage;
+

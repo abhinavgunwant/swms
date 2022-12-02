@@ -1,13 +1,16 @@
-import { useState, ChangeEvent, useTransition } from 'react';
+import { useEffect, useState, useCallback, ChangeEvent, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
     Checkbox, Typography, Grid, TextField, Button, Box, FormGroup,
-    FormControlLabel, Alert
+    FormControlLabel
 } from '@mui/material';
+
+import { throttle } from 'lodash';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
 import SelectUsers from '../../../components/SelectUsers';
+import Error from '../../../components/Error';
 
 import useAPI from '../../../hooks/useAPI';
 
@@ -38,11 +41,17 @@ const NewProject = () => {
     const [ description, setDescription ] = useState<string>('');
     const [ autoGenerateSlug, setAutoGenerateSlug ] = useState<boolean>(true);
     const [ restrictAccess, setRestrictAccess ] = useState<boolean>(false);
-    const [ enableSave, setEnableSave ] = useState<boolean>(false);
-    const [ showError, setShowError ] = useState<boolean>(false);
-    const [ error, setError ] = useState<string>('');
+    const [ showUnknownError, setShowUnknownError ] = useState<boolean>(false);
+    const [ showSlugError, setShowSlugError ] = useState<boolean>(false);
+    const [ showSlugValidError, setShowSlugValidError ]
+        = useState<boolean>(false);
+    const [ showValidatingSlugMessage, setValidatingSlugMessage]
+        = useState<boolean>(false);
+    const [ showTitleError, setShowTitleError ] = useState<boolean>(false);
+    const [ titleEdited, setTitleEdited ] = useState<boolean>(false);
+    const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
 
-    const { addProject } = useAPI();
+    const { addProject, validateProjectSlug } = useAPI();
     const navigate = useNavigate();
 
     const generateSlug = (slg: string) => {
@@ -50,7 +59,18 @@ const NewProject = () => {
             slg = slg.trim().replaceAll(' ', '-');
 
             if (slg) {
-                startTransition(() => setSlug(slg.toLowerCase()));
+                startTransition(() => {
+                    setSlug(slg.toLowerCase());
+
+                    if (!slugEdited) {
+                        setSlugEdited(true);
+                    }
+
+                    if (slg) {
+                        setShowSlugError(false);
+                        validateSlug(slg);
+                    }
+                });
             }
         }
     }
@@ -62,6 +82,7 @@ const NewProject = () => {
      * TODO: implement it!
      */
     const validate = () => {
+    
         return true;
     }
 
@@ -73,11 +94,19 @@ const NewProject = () => {
             generateSlug(slg);
         }
 
-        startTransition(() => {
-            if (validate()) {
-                setEnableSave(true);
-            }
-        });
+        if (!titleEdited) {
+            startTransition(() => setTitleEdited(true));
+        }
+
+        if (slg) {
+            startTransition(() => setShowTitleError(false));
+        }
+    };
+
+    const onTitleBlurred = () => {
+        if (autoGenerateSlug) {
+            generateSlug(title);
+        }
     };
 
     const onRestrictAccessCheckboxChecked = (event: ChangeEvent<HTMLInputElement>) =>
@@ -90,19 +119,38 @@ const NewProject = () => {
         });
     }
 
-    const onSlugChanged = (event: ChangeEvent<HTMLInputElement>) =>
+    const onSlugChanged = (event: ChangeEvent<HTMLInputElement>) => {
         setSlug(event.target.value);
+        validateSlug(event.target.value);
+    }
 
     const onDescriptionChanged = (event: ChangeEvent<HTMLInputElement>) =>
         setDescription(event.target.value);
 
+    const validateSlug = useCallback(throttle(
+        async (s: string) => {
+            console.log('Validating for: ', s);
+            const response = await validateProjectSlug(s);
+
+            if (response?.valid) {
+                setShowSlugValidError(false);
+            } else {
+                setShowSlugValidError(true);
+            }
+        },
+        1000,
+        { trailing: true, leading: false }
+    ), []);
+
     /**
      * Hits the add project API.
+     *
+     * TODO: Show a notification that a new project has been created.
      */
     const onSave = async () => {
         const today: string = (new Date()).toISOString();
 
-        const errors: boolean|string = await addProject({
+        const response: boolean|string = await addProject({
             id: 0,
             name: title,
             slug,
@@ -114,24 +162,32 @@ const NewProject = () => {
             modifiedOn: today,
         });
 
-        if (errors === true) {
-            navigate("/workspace")
+        if (typeof response === 'boolean' && response === true) {
+            navigate("/workspace");
+
+            return;
         }
-
+        
         startTransition(() => {
-            if (typeof errors === 'string') {
-                setError(errors);
-            } else {
-                setError('Some Error Occured!');
-            }
-
-            setShowError(true);
+            setShowUnknownError(true);
         });
     }
+
+    const getSlug = () => slug;
 
     const onCancel = () => {
         navigate("/workspace")
     }
+
+    useEffect(() => {
+        if (titleEdited && title === '') {
+            startTransition(() => setShowTitleError(true));
+        }
+
+        if (slugEdited && slug === '') {
+            startTransition(() => setShowSlugError(true));
+        }
+    }, [ title, slug ]);
 
     return <div className="page page--new-image">
         <Breadcrumbs
@@ -154,7 +210,19 @@ const NewProject = () => {
                     value={ slug }
                     onChange={ onSlugChanged }
                     label="Project Slug"
-                    defaultValue="/" />
+                    color={
+                        slugEdited && showSlugValidError ?
+                            'warning' : undefined
+                    }
+                    focused={ slugEdited && showSlugValidError }
+                    sx={slugEdited && showSlugValidError ?
+                        {
+                        "& .MuiInputBase-root.Mui-disabled": {
+                            "& > fieldset": {
+                                borderColor: "#ed6c02"
+                            }
+                        }
+                    }: undefined}/>
             </Grid>
 
             <Grid item xs={2}>
@@ -169,11 +237,24 @@ const NewProject = () => {
                 </AutoGenerateFormGroup>
             </Grid>
 
+            <Error on={ slugEdited && showSlugError }>
+                Slug cannot be empty
+            </Error>
+
+            <Error on={ slugEdited && showSlugValidError }>
+                Slug is invalid or already taken.
+            </Error>
+
             <StyledTextField
                 required
                 label="Project Name"
                 value={ title }
-                onChange={ onTitleChanged } />
+                onChange={ onTitleChanged }
+                onBlur={ onTitleBlurred  } />
+
+            <Error on={ titleEdited && showTitleError }>
+                Project name cannot be empty
+            </Error>
 
             <StyledTextField
                 multiline
@@ -203,13 +284,17 @@ const NewProject = () => {
                 </Grid>
             }
 
-            { showError && <Alert severity="error">{ error }</Alert> }
+            <Error on={ showUnknownError }>
+                Some unknown error occured, please try again.
+            </Error>
         </StyledGrid>
 
         <Button
             variant="contained"
             style={{ marginRight: '0.5rem' }}
-            disabled={ !enableSave }
+            disabled={
+                showTitleError || showSlugValidError || showSlugError
+            }
             onClick={ onSave }>
             Save
         </Button>
@@ -219,3 +304,4 @@ const NewProject = () => {
 }
 
 export default NewProject;
+

@@ -46,8 +46,6 @@ const useAPI = () => {
 
         /**
          * Adds a new project.
-         * 
-         * TODO: Add a project model
          */
         addProject: async (project: Project) => {
             const response = await fetch(
@@ -91,6 +89,28 @@ const useAPI = () => {
 
             return [];
         },
+
+        /**
+         * Validates slug for new project.
+         */
+        validateProjectSlug: async (slug: string) => {
+            const response = await fetch (
+                `${ HOST }/api/admin/project/validate-slug?slug=${ slug }`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.status === 200) {
+                const valid = await response.json();
+
+                return { valid, error: false };
+            }
+
+            return { error: true };
+        }
     };
 };
 
