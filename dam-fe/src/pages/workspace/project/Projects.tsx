@@ -13,6 +13,7 @@ import Thumbnail from '../../../components/Thumbnail';
 import ImageListItem from '../../../components/ImageListItem';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+import ProjectModel from '../../../models/Project';
 import useUserStore from '../../../store/workspace/UserStore';
 import useAPI from '../../../hooks/useAPI';
 
@@ -47,10 +48,13 @@ const Project = () => {
     const { getProjects } = useAPI();
     const navigate = useNavigate();
 
-    const onThumbnailClicked = (slug: string) => {
+    const onThumbnailClicked = (p: ProjectModel) => {
         return () => {
             store.setImageList([]);
-            navigate('/workspace/tree/' + slug);
+            store.setCurrentProject(p);
+            store.setCurrentFolder({ id: 0, slug: '/' });
+
+            navigate('/workspace/tree/' + p.slug);
         };
     }
 
@@ -90,7 +94,7 @@ const Project = () => {
                                     thumbnailLocation=""
                                     key={ t.id }
                                     isImage={false}
-                                    onClick={ onThumbnailClicked( t.slug ) } />
+                                    onClick={ onThumbnailClicked( t) } />
                             )
                         }
                     </WorkspaceGrid>

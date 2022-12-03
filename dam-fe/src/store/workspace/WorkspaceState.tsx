@@ -14,7 +14,7 @@ export default interface WorkspaceState {
     /**
      * Array holding imageID of the thumbnail selected
      */
-    selectedImages: Set<number> ,
+    selectedImages: Set<number>,
 
     /**
      * Whether to display list or grid.
@@ -23,6 +23,8 @@ export default interface WorkspaceState {
     imageList: Image[],
     projectList: Project[],
     folderList: Folder[],
+    currentFolder: Folder,
+    currentProject: Project,
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
@@ -31,9 +33,12 @@ export default interface WorkspaceState {
     setProjectList: (projectList: Project[]) => void;
     setImageList: (imageList: Image[]) => void;
     setFolderList: (folderList: Folder[]) => void;
+    setCurrentFolder: (currentFolder: Folder) => void;
+    setCurrentProject: (currentProject: Project) => void;
 
     /**
      * Whether the passed imageID matches the selected images.
      */
     isSelected: (imageID: number) => boolean;
 }
+

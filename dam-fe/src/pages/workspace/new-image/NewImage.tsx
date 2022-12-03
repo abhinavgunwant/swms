@@ -1,15 +1,15 @@
-import { ChangeEvent, Fragment, useState, useTransition } from 'react';
+import { ChangeEvent, useState, useEffect, useTransition } from 'react';
 
 import {
     Box, Typography, Grid, TextField, Button, IconButton, Tooltip
 } from '@mui/material';
 import { UploadFile, Edit, Undo } from '@mui/icons-material';
-// import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-
-import { styled } from '@mui/material/styles';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
-// import { IconButton } from '@mui/material';
+
+import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+
+import { styled } from '@mui/material/styles';
 
 const StyledTextField = styled(TextField)`
     width: 100%;
@@ -38,25 +38,18 @@ const CenterGrid = styled(Grid)`
 `;
 
 const NewImage = () => {
-    const [ folderPath, setFolderPath ] = useState<string>('');
+    const [ folderPath, setFolderPath ] = useState<string>('/');
     const [ title, setTitle ] = useState<string>('');
     const [ details, setDetails ] = useState<string>('');
     const [ imageUploaded, setImageUploaded ] = useState<boolean>(false);
     const [ showEditFolderField, setShowEditFolderField ] = useState<boolean>(false);
-//    const [ slug, setSlug ] = useState();
 
     const [ _, startTransition ] = useTransition();
 
+    const store = useWorkspaceStore();
+
     const onTitleChanged = (e: ChangeEvent<HTMLInputElement>) => {
         let slg = e.target.value;
-
-//        if (typeof slg === 'string' && slg.trim()) {
-//            slg = slg.trim().replaceAll(' ', '-');
-//
-//            if (slg) {
-//                setSlug(slg.toLowerCase());
-//            }
-//        }
 
         setTitle(slg);
     }
@@ -72,6 +65,19 @@ const NewImage = () => {
             startTransition(() => setShowEditFolderField(true));
         }
     }
+
+    const onFolderPathChanged = (e: ChangeEvent<HTMLInputElement>) => {
+        setFolderPath(e.target.value);
+    }
+
+    useEffect(() => {
+        let path = store.currentProject.slug
+            + '/' + store.currentFolder.slug;
+
+        path = path.replaceAll('//', '/');
+
+        setFolderPath(path);
+    }, []);
 
     return <div className="page page--new-image">
         <Breadcrumbs links={[{ text: 'Workspace', to: '/workspace' }, 'New Image']} />
@@ -89,11 +95,14 @@ const NewImage = () => {
                 <Grid container>
                     <Grid item xs={11}>
                         <StyledTextField
-                            label="Folder Path"
+                            label="Path"
                             defaultValue="/"
                             disabled={ !showEditFolderField }
+                            onChange={ onFolderPathChanged }
+                            value={ folderPath }
                             required />
                     </Grid>
+
                     <CenterGrid item xs={1}>
                         <Tooltip title={
                             (showEditFolderField ? 'Undo ' : '')
@@ -122,56 +131,22 @@ const NewImage = () => {
                     multiline />
             </Grid>
 
-            <Grid item xs={12} lg={6} style={{padding: '0.5rem 1rem'}}>
+            <Grid item xs={12} lg={6} style={{ padding: '0.5rem 1rem' }}>
                 <ImagePreview>
                     <Button startIcon={ <UploadFile /> } color="secondary">
                         Upload Image
                     </Button>
                 </ImagePreview>
             </Grid>
-
-            {/* <Grid container xs={6}>
-                <Grid item xs={11}>
-                    <StyledTextField
-                        label="Slug"
-                        value={ slug }
-                        InputLabelProps={{ shrink: true }}
-                        helperText={
-                            'The slug should be a globally unique sequence of'
-                            + ' characters. Must be upto 128 characters long.'
-                        }
-                        required />
-                </Grid>
-                <Grid item xs={1}>
-                    <IconButton color="primary" style={{
-                            marginTop: '1rem',
-                            marginLeft: '1rem',
-                        }}>
-                        <ContentCopyIcon />
-                    </IconButton>
-                </Grid>
-            </Grid>
-
-            <Grid container xs={6}>
-                <Grid item xs={11}>
-                    <StyledTextField
-                        label="Image UUID"
-                        InputLabelProps={{ shrink: true }}
-                        disabled />
-                </Grid>
-                <Grid item xs={1}>
-                    <IconButton color="primary" style={{
-                            marginTop: '1rem',
-                            marginLeft: '1rem',
-                        }}>
-                        <ContentCopyIcon />
-                    </IconButton>
-                </Grid>
-            </Grid> */}
-
         </StyledGrid>
 
-        <Button variant="contained" style={{marginRight: '0.5rem'}} disabled>Save</Button>
+        <Button
+            variant="contained"
+            style={{ marginRight: '0.5rem' }}
+            disabled={ folderPath == '' || title == '' }>
+            Save
+        </Button>
+
         <Button variant="outlined">Cancel</Button>
     </div>
 }

@@ -2,6 +2,8 @@ import create from 'zustand';
 // import { devtools, persist } from 'zustand/middleware';
 
 import WorkspaceState from './WorkspaceState';
+import Folder from '../../models/Folder';
+import Project from '../../models/Project';
 
 const useWorkspaceStore = create<WorkspaceState>()(
     // devtools(
@@ -13,6 +15,18 @@ const useWorkspaceStore = create<WorkspaceState>()(
             imageList: [],
             folderList: [],
             projectList: [],
+            currentFolder: { id: 0, slug: ''},
+            currentProject: {
+                id: 0,
+                name: '',
+                slug: '',
+                description: '',
+                restrictUsers: false,
+                createdBy: 0,
+                modifiedBy: 0,
+                createdOn: '',
+                modifiedOn: '',
+            },
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(
@@ -53,7 +67,14 @@ const useWorkspaceStore = create<WorkspaceState>()(
             setFolderList: (folderList) => set(
                 (state) => ({ ...state, folderList: folderList })
             ),
+            setCurrentFolder: (currentFolder: Folder) => set(
+                (state) => ({ ...state, currentFolder: currentFolder })
+            ),
+            setCurrentProject: (currentProject: Project) => set(
+                (state) => ({ ...state, currentProject: currentProject })
+            ),
         })
 );
 
 export default useWorkspaceStore;
+
