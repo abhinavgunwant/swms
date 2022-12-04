@@ -5,15 +5,36 @@ interface Image {
     encoding: string,
     height: number,
     width: number,
-    is_published: boolean,
-    project_id: number,
-    folder_id: number,
-    metadata_id: number,
+    isPublished: boolean,
+    projectId: number,
+    folderId: number,
+    metadataId: number,
     slug: string,
-    created_on: string,
-    created_by: number,
-    modified_on: string,
-    modified_by: number,
+    createdOn: string,
+    createdBy: number,
+    modifiedOn: string,
+    modifiedBy: number,
+}
+
+export const default_image: (() => Image) = () => {
+    return {
+        id: 0,
+        name: '',
+        title: '',
+        encoding: 'JPG',
+        height: 0,
+        width: 0,
+        isPublished: false,
+        projectId: 0,
+        folderId: 0,
+        metadataId: 0,
+        slug: '',
+        createdOn: '',
+        createdBy: 0,
+        modifiedOn: '',
+        modifiedBy: 0,
+    };
 }
 
 export default Image;
+

@@ -14,7 +14,7 @@ pub trait ImageRepository {
     fn get_all_from_project_slug(&self, project_slug: String)
         -> Result<Vec::<Image>, DBError>;
     fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Image>, DBError>;
-    fn add(&self, image: Image);
+    fn add(&self, image: Image) -> bool;
     fn update(&self, image: Image);
     fn remove(&self, id: Image);
     fn remove_item(&self, id: u32);

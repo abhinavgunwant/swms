@@ -167,11 +167,11 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn add(&self, image: Image) {
+    fn add(&self, image: Image) -> bool {
         println!("adding an image");
 
         let mut conn = get_db_connection();
-        conn.exec_drop(
+        let res = conn.exec_drop(
             r"INSERT INTO IMAGE (
                 ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
@@ -193,7 +193,12 @@ impl ImageRepository for MySQLImageRepository {
                 "created_by" => &image.created_by,
                 "modified_by" => &image.modified_by,
             }
-        ).expect("Whatever");
+        );
+
+        match res {
+            Ok (_) => true,
+            Err (_) => false,
+        }
     }
 
     fn update(&self, image: Image) {

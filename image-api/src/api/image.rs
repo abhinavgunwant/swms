@@ -1,16 +1,20 @@
 // use std::path::PathBuf;
 use std::io::Write;
-use std::fs::{ File, create_dir_all, read };
+use std::fs::{ File, create_dir_all, read, rename, remove_file };
 use std::path::Path;
-use std::time::{ Duration, Instant };
-use actix_multipart::Multipart;
-use actix_web::{ get, post, web, HttpResponse, HttpRequest };
+//use std::time::{ Duration, Instant };
+use actix_multipart::{ Multipart, Field };
+use actix_web::{
+    get, post, web::{ Bytes, block }, HttpResponse, HttpRequest,
+    http::header::ContentType
+};
 // use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::{ Serialize, Deserialize };
 use raster;
 use regex::Regex;
+use chrono::Utc;
 use crate::{
     db::DBError,
     repository::{
@@ -19,7 +23,7 @@ use crate::{
         },
         image::{ ImageRepository, get_image_repository },
     },
-    model::rendition::Rendition,
+    model::{ image::Image, rendition::Rendition, encoding::Encoding },
 };
 
 #[derive(Serialize)]
@@ -29,36 +33,195 @@ pub struct ImageJson {
 }
 
 #[post("/api/image")]
-pub async fn upload(mut payload: Multipart, file_path: String) -> HttpResponse {
+pub async fn upload(mut payload: Multipart) -> HttpResponse {
+    let mut name: String = String::from("");
+    let mut title: String = String::from("");
+    let mut details: String = String::from("");
+    let mut project_id: u32 = 0;
+    let mut folder_id: u32 = 0;
+    let mut filename: String = String::from("");
+    //let mut original_filename: String = String::from("");
+    let mut file_exists: bool = false;
+    // let mut file_data: Vec::<Bytes>;
+    //let mut file_data: Vec::<u8> = vec![];
+    
+    let mut save_image: bool = true;
+
     // iterate over multipart stream
     while let Ok(Some(mut field)) = payload.try_next().await {
-        let filename = format!("image-uploads/{}.jpg", Uuid::new_v4());
+        let cd = field.content_disposition();
+        let cd_name = cd.get_name().unwrap();
 
-        let path = Path::new(String::as_str(&filename));
-        let parents = path.parent().unwrap();
+        println!("Currently in: {}", cd_name);
 
-        create_dir_all(parents).unwrap();
+        match cd_name {
+            "name" => {
+                match cd.get_unknown("name") {
+                    Some(n) => {
+                        name = String::from(n);
+                        println!("Found name in multipart request");
+                    },
+                    None => {
+                        println!("Error in name in multipart request");
+                    },
+                }
+            },
 
-        println!("Created file: {}", filename);
+            "title" => {
+                match cd.get_unknown("title") {
+                    Some (t) => {
+                        title = String::from(t);
+                        println!("Found tile in multipart request");
+                    },
+                    None => {
+                        println!("Error in title in multipart request");
+                    },
+                }
+            },
 
-        // File::create is blocking operation, use threadpool
-        let mut file = web::block(move || File::create(filename))
-            .await
-            .unwrap()
-            .expect("error");
+            "details" => {
+                match cd.get_unknown("details") {
+                    Some (d) => {
+                        details = String::from(d);
+                        println!("Found tile in multipart request");
+                    },
+                    None => {
+                        println!("Error in details in multipart request");
+                    },
+                }
+            },
 
-        // Field in turn is stream of *Bytes* object
-        while let Some(chunk) = field.next().await {
-            let data = chunk.unwrap();
-            // filesystem operations are blocking, we have to use threadpool
-            file = web::block(move || file.write_all(&data).map(|_| file))
-                .await
-                .unwrap()
-                .expect("error");
+            "project_id" => {
+                match cd.get_unknown("project_id") {
+                    Some (pid) => {
+                        match pid.parse::<u32>() {
+                            Ok (pid_u32) => {
+                                project_id = pid_u32;
+                                println!("Found project_id in multipart requrest");
+                            },
+                            Err(_e) => {
+                                println!("Error in project_id in multipart request");
+                            },
+                        }
+                    },
+                    None => {},
+                }
+            },
+
+            "folder_id" => {
+                match cd.get_unknown("folder_id") {
+                    Some (fid) => {
+                        match fid.parse::<u32>() {
+                            Ok (fid_u32) => {
+                                folder_id = fid_u32;
+                                println!("Found folder_id in multipart requrest");
+                            },
+                            Err (_e) => {
+                                println!("Error in folder_id in multipart request");
+                            },
+                        }
+                    },
+                    None => {},
+                }
+            },
+
+            "payload" => {
+                file_exists = true;
+
+//                match cd.get_filename() {
+//                    Some (fname) => original_filename = String::from(fname),
+//                    None => {},
+//                }
+                println!("Found payload in multipart requrest");
+
+                let fname: String = format!("temp/{}.jpg", Uuid::new_v4());
+                filename = fname.clone();
+                println!("Created file: {}", filename);
+                let mut file = block(move || File::create(fname)).await
+                    .unwrap()
+                    .expect("error");
+
+                while let Some(chunk) = field.next().await {
+                    let data = chunk.unwrap();
+                    file = block(move || file.write_all(&data).map(|_| file)).await
+                        .unwrap()
+                        .expect("error");
+                }
+            },
+
+            &_ => {
+                println!("Kuch bhi...");
+            },
         }
     }
 
-    return HttpResponse::Ok().body("!!");
+    println!("Condition: {}",
+        !name.is_empty() && !title.is_empty() && !details.is_empty()
+        && project_id != 0 && folder_id != 0);
+
+    if !name.is_empty() && !title.is_empty() && !details.is_empty()
+        && project_id != 0 && folder_id != 0 {
+        let repo = get_image_repository();
+
+        let img = raster::open(filename.as_str()).unwrap();
+
+        let image: Image = Image {
+            id: 0,
+            name,
+            title,
+            created_by: 0,
+            modified_by: 0,
+            created_on: Utc::now(),
+            modified_on: Utc::now(),
+            project_id,
+            folder_id,
+            encoding: Encoding::JPG,
+            height: img.height as u16,
+            width: img.width as u16,
+            is_published: false,
+        };
+
+        let res = repo.add(image);
+
+        if res {
+            println!("Image successfully added!");
+        } else {
+            println!("Image could not be added due to an error!");
+        }
+    }
+
+    // TODO: assign `false` to save_image when something is not right!
+    if save_image && !filename.clone().is_empty() {
+        let new_filename = format!("image-uploads/{}.jpg", Uuid::new_v4());
+
+        println!("Renaming from: {} to: {}", filename, new_filename);
+        match rename(filename, new_filename) {
+            Ok (_) => {
+                return HttpResponse::Ok().content_type(ContentType::json())
+                    .body("true");
+            }
+
+            Err(_) => {
+                return HttpResponse::Ok().content_type(ContentType::json())
+                    .body("false");
+            }
+        }
+    } else if !filename.clone().is_empty() {
+        // Remove the temp file.
+        match remove_file(filename) {
+            Ok (_) => {
+                return HttpResponse::Ok().content_type(ContentType::json())
+                    .body("true");
+            }
+
+            Err(_) => {
+                return HttpResponse::Ok().content_type(ContentType::json())
+                    .body("false");
+            }
+        }
+    }
+
+    return HttpResponse::Ok().content_type(ContentType::json()).body("true");
 }
 
 /**
@@ -167,7 +330,7 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                     }
                 }
                 
-                let image_file = web::block(
+                let image_file = block(
                     move || read(String::from(dest_file_path))
                 ).await.unwrap().expect("Error whie downloading!");
 

@@ -1,13 +1,19 @@
-import { ChangeEvent, useState, useEffect, useTransition } from 'react';
+import {
+    ChangeEvent, useState, useEffect, useRef, useTransition
+} from 'react';
+
+import { useNavigate } from 'react-router-dom';
 
 import {
-    Box, Typography, Grid, TextField, Button, IconButton, Tooltip
+    Typography, Grid, TextField, Button, IconButton, Tooltip
 } from '@mui/material';
 import { UploadFile, Edit, Undo } from '@mui/icons-material';
 
-import Breadcrumbs from "../../../components/Breadcrumbs";
-
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+import ImageModel, { default_image } from '../../../models/Image';
+import useAPI from '../../../hooks/useAPI';
+
+import Breadcrumbs from "../../../components/Breadcrumbs";
 
 import { styled } from '@mui/material/styles';
 
@@ -21,16 +27,6 @@ const StyledGrid = styled(Grid)`
     margin-top: 1rem;
 `;
 
-const ImagePreview = styled(Box)`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #dddddd;
-    width: 100%;
-    min-height: 240px;
-    border-radius: 1rem;
-`
-
 const CenterGrid = styled(Grid)`
     display: flex;
     justify-content: center;
@@ -41,22 +37,25 @@ const NewImage = () => {
     const [ folderPath, setFolderPath ] = useState<string>('/');
     const [ title, setTitle ] = useState<string>('');
     const [ details, setDetails ] = useState<string>('');
-    const [ imageUploaded, setImageUploaded ] = useState<boolean>(false);
     const [ showEditFolderField, setShowEditFolderField ] = useState<boolean>(false);
+    const [ file, setFile ] = useState<File>();
+    const [ saving, setSaving ] = useState<boolean>(false);
 
     const [ _, startTransition ] = useTransition();
 
+    const { addImage } = useAPI();
+
+    const navigate = useNavigate();
+
+    const fileUploadRef = useRef<HTMLInputElement>(null);
+
     const store = useWorkspaceStore();
 
-    const onTitleChanged = (e: ChangeEvent<HTMLInputElement>) => {
-        let slg = e.target.value;
+    const onTitleChanged = (e: ChangeEvent<HTMLInputElement>) =>
+        setTitle(e.target.value);
 
-        setTitle(slg);
-    }
-
-    const onDetailsChanged = (e: ChangeEvent<HTMLInputElement>) => {
+    const onDetailsChanged = (e: ChangeEvent<HTMLInputElement>) =>
         setDetails(e.target.value);
-    }
 
     const onEditFolderButtonClicked = () => {
         if (showEditFolderField) {
@@ -70,6 +69,29 @@ const NewImage = () => {
         setFolderPath(e.target.value);
     }
 
+    const onFileChanged = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e && e.target && e.target.files && e.target.files.length) {
+            const f = e.target.files[0];
+
+            if (f) {
+                startTransition(() => setFile(f));
+            }
+        }
+    }
+
+    const onSave = async () => {
+        if (file) {
+            const image = default_image();
+
+            const resp = await addImage(image, file);
+            console.log(resp);
+
+            if (resp.success) {
+                navigate(-1);
+            }
+        }
+    }
+
     useEffect(() => {
         let path = store.currentProject.slug
             + '/' + store.currentFolder.slug;
@@ -80,7 +102,9 @@ const NewImage = () => {
     }, []);
 
     return <div className="page page--new-image">
-        <Breadcrumbs links={[{ text: 'Workspace', to: '/workspace' }, 'New Image']} />
+        <Breadcrumbs links={[
+            { text: 'Workspace', to: '/workspace' }, 'New Image'
+        ]} />
 
         <Typography variant="h5">
             New Image
@@ -96,7 +120,6 @@ const NewImage = () => {
                     <Grid item xs={11}>
                         <StyledTextField
                             label="Path"
-                            defaultValue="/"
                             disabled={ !showEditFolderField }
                             onChange={ onFolderPathChanged }
                             value={ folderPath }
@@ -117,6 +140,34 @@ const NewImage = () => {
                     </CenterGrid>
                 </Grid>
 
+                <Grid container>
+                    <Button
+                        variant="outlined"
+                        startIcon={ <UploadFile /> }
+                        color="secondary"
+                        component="label">
+
+                        Upload Image
+                        <input
+                            accept="image/*"
+                            type="file"
+                            ref={ fileUploadRef }
+                            onChange={ onFileChanged }
+                            hidden />
+                    </Button>
+
+                    {
+                        file &&
+                        <Typography sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            paddingLeft: '1rem',
+                        }}>
+                            { file && file.name }
+                        </Typography>
+                    }
+                </Grid>
+
                 <StyledTextField
                     label="Image Title"
                     onChange={ onTitleChanged }
@@ -130,21 +181,14 @@ const NewImage = () => {
                     onChange={ onDetailsChanged }
                     multiline />
             </Grid>
-
-            <Grid item xs={12} lg={6} style={{ padding: '0.5rem 1rem' }}>
-                <ImagePreview>
-                    <Button startIcon={ <UploadFile /> } color="secondary">
-                        Upload Image
-                    </Button>
-                </ImagePreview>
-            </Grid>
         </StyledGrid>
 
         <Button
             variant="contained"
             style={{ marginRight: '0.5rem' }}
-            disabled={ folderPath == '' || title == '' }>
-            Save
+            disabled={ folderPath == '' || title == '' || !file }
+            onClick={ onSave }>
+            { saving ? 'Saving' : 'Save' }
         </Button>
 
         <Button variant="outlined">Cancel</Button>

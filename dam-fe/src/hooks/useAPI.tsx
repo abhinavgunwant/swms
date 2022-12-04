@@ -2,6 +2,7 @@ import useUserStore from '../store/workspace/UserStore';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 import Project from '../models/Project';
 import SelectUserModel from '../models/SelectUserModel';
+import Image from '../models/Image';
 
 const HOST = 'http://localhost:8080'
 
@@ -66,6 +67,32 @@ const useAPI = () => {
             }
 
             return await response.text();
+        },
+
+        addImage: async (image: Image, payload: File) => {
+            const formData = new FormData();
+
+            formData.set('name', image.name);
+            formData.set('title', image.title);
+            formData.set('project_id', image.projectId.toString());
+            formData.set('folder_id', image.folderId.toString());
+            formData.set('payload', payload);
+
+            const response = await fetch(
+                `${HOST}/api/image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    //'Content-Type': 'multipart/form-data',
+                },
+                body: formData,
+            });
+
+            if (response.status === 200) {
+                return { success: true, message: '' };
+            }
+
+            return { success: false, message: await response.text() };
         },
 
         /**

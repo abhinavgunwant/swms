@@ -25,6 +25,7 @@ export default interface WorkspaceState {
     folderList: Folder[],
     currentFolder: Folder,
     currentProject: Project,
+    currentPath: string,
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
@@ -35,6 +36,7 @@ export default interface WorkspaceState {
     setFolderList: (folderList: Folder[]) => void;
     setCurrentFolder: (currentFolder: Folder) => void;
     setCurrentProject: (currentProject: Project) => void;
+    setCurrentPath: (currentPath: string) => void;
 
     /**
      * Whether the passed imageID matches the selected images.

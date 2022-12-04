@@ -27,6 +27,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
                 createdOn: '',
                 modifiedOn: '',
             },
+            currentPath: '',
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(
@@ -72,6 +73,9 @@ const useWorkspaceStore = create<WorkspaceState>()(
             ),
             setCurrentProject: (currentProject: Project) => set(
                 (state) => ({ ...state, currentProject: currentProject })
+            ),
+            setCurrentPath: (currentPath: string) => set(
+                (state) => ({ ...state, currentPath: currentPath })
             ),
         })
 );
