@@ -72,10 +72,6 @@ const useAPI = () => {
         addImage: async (image: Image, payload: File) => {
             const formData = new FormData();
 
-            formData.set('name', image.name);
-            formData.set('title', image.title);
-            formData.set('project_id', image.projectId.toString());
-            formData.set('folder_id', image.folderId.toString());
             formData.set('payload', payload);
 
             const response = await fetch(
@@ -83,16 +79,26 @@ const useAPI = () => {
                 method: 'POST',
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,
-                    //'Content-Type': 'multipart/form-data',
                 },
                 body: formData,
             });
 
             if (response.status === 200) {
-                return { success: true, message: '' };
+                const uploadResp = await response.json();
+
+                // TODO: Second request with the data and the above ID
+
+                return uploadResp;
             }
 
-            return { success: false, message: await response.text() };
+            try {
+                return await response.json();
+            } catch (_e) {
+                return {
+                    success: false,
+                    message: 'Some unknown error occurred'
+                };
+            }
         },
 
         /**

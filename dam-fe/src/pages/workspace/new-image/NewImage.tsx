@@ -5,9 +5,12 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Typography, Grid, TextField, Button, IconButton, Tooltip
+    Typography, Grid, TextField, Button, IconButton, Tooltip, Box, Accordion,
+    AccordionSummary, AccordionDetails
 } from '@mui/material';
-import { UploadFile, Edit, Undo } from '@mui/icons-material';
+import {
+    UploadFile, Edit, Undo, Add, ExpandMore, ExpandLess
+} from '@mui/icons-material';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 import ImageModel, { default_image } from '../../../models/Image';
@@ -87,7 +90,7 @@ const NewImage = () => {
             console.log(resp);
 
             if (resp.success) {
-                navigate(-1);
+                //navigate(-1);
             }
         }
     }
@@ -180,18 +183,34 @@ const NewImage = () => {
                     value={ details }
                     onChange={ onDetailsChanged }
                     multiline />
+                
+                <Accordion>
+                    <AccordionSummary
+                        expandIcon={ <ExpandMore /> }
+                        aria-controls="panel1a-content"
+                        color="secondary">
+                        <Typography variant="h6">Renditions</Typography>
+                    </AccordionSummary>
+
+                    <AccordionDetails>
+                        <Typography>No Renditions</Typography>
+                        <IconButton color="secondary"><Add /></IconButton>
+                    </AccordionDetails>
+                </Accordion>
             </Grid>
         </StyledGrid>
 
-        <Button
-            variant="contained"
-            style={{ marginRight: '0.5rem' }}
-            disabled={ folderPath == '' || title == '' || !file }
-            onClick={ onSave }>
-            { saving ? 'Saving' : 'Save' }
-        </Button>
+        <Box sx={{ marginTop: '1rem' }}>
+            <Button
+                variant="contained"
+                style={{ marginRight: '0.5rem' }}
+                disabled={ folderPath == '' || title == '' || !file }
+                onClick={ onSave }>
+                { saving ? 'Saving' : 'Save' }
+            </Button>
 
-        <Button variant="outlined">Cancel</Button>
+            <Button variant="outlined">Cancel</Button>
+        </Box>
     </div>
 }
 
