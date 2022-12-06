@@ -1,8 +1,8 @@
-use serde::Serialize;
+use serde::{ Serialize, Deserialize};
 use chrono::{ DateTime, Utc };
 use crate::model::encoding::Encoding;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Image {
     pub id: u32,
     pub name: String, // Original Filename
@@ -18,3 +18,4 @@ pub struct Image {
     pub modified_on: DateTime<Utc>,
     pub modified_by: u16,
 }
+

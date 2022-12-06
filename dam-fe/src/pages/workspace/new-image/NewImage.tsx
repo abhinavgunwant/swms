@@ -13,7 +13,7 @@ import {
 } from '@mui/icons-material';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
-import ImageModel, { default_image } from '../../../models/Image';
+import UploadImage from '../../../models/UploadImage';
 import useAPI from '../../../hooks/useAPI';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
@@ -46,7 +46,7 @@ const NewImage = () => {
 
     const [ _, startTransition ] = useTransition();
 
-    const { addImage } = useAPI();
+    const { uploadImage } = useAPI();
 
     const navigate = useNavigate();
 
@@ -78,15 +78,23 @@ const NewImage = () => {
 
             if (f) {
                 startTransition(() => setFile(f));
+                console.log(f);
             }
         }
     }
 
     const onSave = async () => {
         if (file) {
-            const image = default_image();
+            const uploadImg: UploadImage = {
+                uploadId: '',
+                name: file.name || '',
+                title,
+                encoding: 'JPG',
+                projectId: 1,
+                folderId: 1,
+            };
 
-            const resp = await addImage(image, file);
+            const resp = await uploadImage(uploadImg, file);
             console.log(resp);
 
             if (resp.success) {
@@ -183,7 +191,7 @@ const NewImage = () => {
                     value={ details }
                     onChange={ onDetailsChanged }
                     multiline />
-                
+
                 <Accordion>
                     <AccordionSummary
                         expandIcon={ <ExpandMore /> }

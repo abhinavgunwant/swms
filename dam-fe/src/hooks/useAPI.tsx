@@ -2,9 +2,14 @@ import useUserStore from '../store/workspace/UserStore';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 import Project from '../models/Project';
 import SelectUserModel from '../models/SelectUserModel';
-import Image from '../models/Image';
+import UploadImage from '../models/UploadImage';
 
-const HOST = 'http://localhost:8080'
+const HOST = 'http://localhost:8080';
+
+const DEFAULT_ERROR_RESPONSE = {
+    success: false,
+    message: 'Some unknown error occurred'
+};
 
 const useAPI = () => {
     const userStore = useUserStore();
@@ -69,7 +74,7 @@ const useAPI = () => {
             return await response.text();
         },
 
-        addImage: async (image: Image, payload: File) => {
+        uploadImage: async (uploadImg: UploadImage, payload: File) => {
             const formData = new FormData();
 
             formData.set('payload', payload);
@@ -86,9 +91,35 @@ const useAPI = () => {
             if (response.status === 200) {
                 const uploadResp = await response.json();
 
-                // TODO: Second request with the data and the above ID
+                console.log('initial response: ', uploadResp);
 
-                return uploadResp;
+                uploadImg.uploadId = uploadResp.uploadId;
+
+                // TODO: Second request with the data and the above ID
+                const resp2 = await fetch(
+                    `${ HOST }/api/admin/image-save`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer '
+                                + userStore.sessionToken,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(uploadImg),
+                    },
+                )
+
+                const resp2Json = await resp2.json();
+
+                console.log('response after upload: ', resp2Json);
+
+                if (resp2Json === true) {
+                    return { success: true };
+                }
+
+                return {
+                    success: false,
+                    message: 'Some unknown error occurred'
+                };
             }
 
             try {

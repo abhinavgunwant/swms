@@ -219,23 +219,3 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().body("Not Found")
 }
 
-#[get("/api/imagedata/{image_id}")]
-pub async fn imagedata(req: HttpRequest) -> HttpResponse {
-    let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
-        .unwrap();
-
-    match get_image_repository().get(image_id) {
-        Ok (image) => {
-            println!("got id: {}, name: {}", image.id, image.name);
-            HttpResponse::Ok().json(image)
-        }
-
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound().body("Not Found");
-            }
-
-            HttpResponse::InternalServerError().body("Internal Server Error")
-        }
-    }
-}

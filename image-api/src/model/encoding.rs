@@ -1,4 +1,4 @@
-use serde::ser::{ Serialize, Serializer };
+use serde::{ Serialize, Deserialize, Serializer };
 
 /**
  * The integer values associated with enum variants are categorized according
@@ -9,7 +9,7 @@ use serde::ser::{ Serialize, Serializer };
  * 60 - 79: Images that can have both lossy and lossless compression
  * 80+: Vector graphics images
  */
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Deserialize)]
 pub enum Encoding {
     TIF = 0,
     BMP = 1,
@@ -80,3 +80,4 @@ impl Encoding {
         }
     }
 }
+
