@@ -1,12 +1,12 @@
 import {
-    ChangeEvent, useState, useEffect, useRef, useTransition
+    ChangeEvent, useState, useEffect, useRef, useTransition, Fragment,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import {
     Typography, Grid, TextField, Button, IconButton, Tooltip, Box, Accordion,
-    AccordionSummary, AccordionDetails
+    AccordionSummary, AccordionDetails, CircularProgress
 } from '@mui/material';
 import {
     UploadFile, Edit, Undo, Add, ExpandMore, ExpandLess
@@ -84,6 +84,10 @@ const NewImage = () => {
     }
 
     const onSave = async () => {
+        if (saving) {
+            // TODO: Show error message here: "An image save is already in progress"
+            return;
+        }
         if (file) {
             const uploadImg: UploadImage = {
                 uploadId: '',
@@ -94,11 +98,14 @@ const NewImage = () => {
                 folderId: 1,
             };
 
+            setSaving(true);
+
             const resp = await uploadImage(uploadImg, file);
-            console.log(resp);
+
+            setTimeout(() => setSaving(false), 100);
 
             if (resp.success) {
-                //navigate(-1);
+                navigate(-1);
             }
         }
     }
@@ -214,7 +221,21 @@ const NewImage = () => {
                 style={{ marginRight: '0.5rem' }}
                 disabled={ folderPath == '' || title == '' || !file }
                 onClick={ onSave }>
-                { saving ? 'Saving' : 'Save' }
+                {
+                    saving ?
+                        <Fragment>
+                            <CircularProgress
+                                size={ 16 }
+                                color="secondary"
+                                sx={{
+                                    color: '#ffffff',
+                                    marginRight: '1rem',
+                                }} />
+                            Saving
+                        </Fragment>
+                    :
+                        'Save'
+                }
             </Button>
 
             <Button variant="outlined">Cancel</Button>

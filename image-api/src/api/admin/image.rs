@@ -1,6 +1,7 @@
 use actix_web::{
     web::Json, HttpResponse, HttpRequest, post, get, http::header::ContentType,
 };
+use std::fs::rename;
 use serde::Serialize;
 use chrono::Utc;
 use crate::{
@@ -67,7 +68,7 @@ pub async fn get_image(req: HttpRequest) -> HttpResponse {
 pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
     println!("Got request for upload id: {}", req_image.upload_id);
 
-    let image = Image {
+    let mut image = Image {
         id: 0,
         name: req_image.name.clone(),
         title: req_image.title.clone(),
@@ -83,10 +84,30 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
         modified_by: 0,
     };
 
-    // TODO: get image height and width
-    // TODO: change temp image path
+    // Get image height and width from file
+    let source_file_path: String = format!(
+        "temp/{}{}",
+        req_image.upload_id,
+        image.encoding.extension()
+    );
+    println!("source file path: {}", source_file_path);
 
-    if get_image_repository().add(image) {
+    let raster_img = raster::open(source_file_path.as_str()).unwrap();
+
+    image.height = raster_img.height as u16;
+    image.width = raster_img.width as u16;
+
+    // Add image to the db
+    if get_image_repository().add(image.clone()) {
+        // Finally, change temp image path
+        let dest_file_path = format!(
+            "image-uploads/{}{}",
+            image.id,
+            image.encoding.extension()
+        );
+
+        rename(source_file_path, dest_file_path);
+
         return HttpResponse::Ok().content_type(ContentType::json())
             .body("true");
     }
