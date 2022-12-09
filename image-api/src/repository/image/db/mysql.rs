@@ -167,37 +167,108 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn add(&self, image: Image) -> bool {
+    fn add(&self, image: Image) -> Result<u32, String> {
         println!("adding an image");
 
-        let mut conn = get_db_connection();
-        let res = conn.exec_drop(
-            r"INSERT INTO IMAGE (
-                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
-                PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON
-            ) VALUES (
-                :id, :original_filename, :title, :height, :width, :published,
-                :project_id, :folder_id, :created_by, :modified_by,
-                current_timestamp(), current_timestamp()
-            )",
-            params! {
-                "id" => &image.id,
-                "original_filename" => &image.name,
-                "title" => &image.title,
-                "height" => &image.height,
-                "width" => &image.width,
-                "published" => &image.is_published,
-                "project_id" => &image.project_id,
-                "folder_id" => &image.folder_id,
-                "created_by" => &image.created_by,
-                "modified_by" => &image.modified_by,
-            }
-        );
+        let error_msg: String = String::from("Error Inserting Data!");
 
-        match res {
-            Ok (_) => true,
-            Err (_) => false,
+        let mut conn = get_db_connection();
+        let transaction_result = conn.start_transaction(TxOpts::default());
+
+        match transaction_result {
+            Ok (mut tx) => {
+                let res = tx.exec_drop(
+                    r"INSERT INTO IMAGE (
+                        ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                        PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                        MODIFIED_ON
+                    ) VALUES (
+                        :id, :original_filename, :title, :height, :width, :published,
+                        :project_id, :folder_id, :created_by, :modified_by,
+                        current_timestamp(), current_timestamp()
+                    )",
+                    params! {
+                        "id" => &image.id,
+                        "original_filename" => &image.name,
+                        "title" => &image.title,
+                        "height" => &image.height,
+                        "width" => &image.width,
+                        "published" => &image.is_published,
+                        "project_id" => &image.project_id,
+                        "folder_id" => &image.folder_id,
+                        "created_by" => &image.created_by,
+                        "modified_by" => &image.modified_by,
+                    }
+                );
+
+                match res {
+                    Ok (_) => {
+                        println!("Data Inserted!");
+
+                        let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
+                            r"SELECT LAST_INSERT_ID() as LID;",
+                            Params::Empty,
+                        );
+
+                        match row_wrapped {
+                            Ok(row_option) => {
+                                match row_option {
+                                    Some (mut row) => {
+                                        match row.take("LID") {
+                                            Some (id) => {
+                                                let c_res = tx.commit();
+                                                
+                                                match c_res {
+                                                    Ok (_) => Ok(id),
+                                                    Err (_) => Err(error_msg)
+                                                }
+                                            }
+
+                                            None => {
+                                                let c_res = tx.rollback();
+                                                
+                                                match c_res {
+                                                    Ok (_) => Err(error_msg),
+                                                    Err (_) => Err(error_msg)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    None => {
+                                        let c_res = tx.rollback();
+                                        
+                                        match c_res {
+                                            Ok (_) => Err(error_msg),
+                                            Err (_) => Err(error_msg)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Err(_e) => {
+                                let c_res = tx.rollback();
+                                
+                                match c_res {
+                                    Ok (_) => Err(error_msg),
+                                    Err (_) => Err(error_msg)
+                                }
+                            }
+                        }
+                    }
+
+                    Err (_) => {
+                        let c_res = tx.rollback();
+                        
+                        match c_res {
+                            Ok (_) => Err(error_msg),
+                            Err (_) => Err(error_msg)
+                        }
+                    }
+                }
+            }
+
+            Err (_e) => Err(String::from("Error initializing transaction"))
         }
     }
 

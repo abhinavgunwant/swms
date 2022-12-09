@@ -98,21 +98,26 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
     image.width = raster_img.width as u16;
 
     // Add image to the db
-    if get_image_repository().add(image.clone()) {
-        // Finally, change temp image path
-        let dest_file_path = format!(
-            "image-uploads/{}{}",
-            image.id,
-            image.encoding.extension()
-        );
+    match get_image_repository().add(image.clone()) {
+        Ok (id) => {
+            // Finally, change temp image path
+            let dest_file_path = format!(
+                "image-uploads/{}{}",
+                id,                         // id of image after add transaction committed
+                image.encoding.extension()
+            );
 
-        rename(source_file_path, dest_file_path);
+            rename(source_file_path, dest_file_path);
 
-        return HttpResponse::Ok().content_type(ContentType::json())
-            .body("true");
+            HttpResponse::Ok().content_type(ContentType::json())
+                .body("true")
+        }
+
+        Err (s) => {
+            HttpResponse::InternalServerError()
+                .content_type(ContentType::json())
+                .body(s)
+        }
     }
-
-    HttpResponse::InternalServerError().content_type(ContentType::json())
-        .body("false")
 }
 
