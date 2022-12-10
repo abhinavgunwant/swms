@@ -5,6 +5,7 @@ use chrono::{ DateTime, Utc };
 use crate::model::encoding::Encoding;
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Rendition {
     pub id: u32,
     pub image_id: u32,

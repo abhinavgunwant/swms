@@ -1,24 +1,29 @@
 import {
     ChangeEvent, useState, useEffect, useRef, useTransition, Fragment,
+    MouseEvent,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import {
     Typography, Grid, TextField, Button, IconButton, Tooltip, Box, Accordion,
-    AccordionSummary, AccordionDetails, CircularProgress
+    AccordionSummary, AccordionDetails, CircularProgress, Checkbox, FormGroup,
+    FormControlLabel, List, ListItem, ListItemText, ListItemSecondaryAction
 } from '@mui/material';
 import {
-    UploadFile, Edit, Undo, Add, ExpandMore, ExpandLess
+    UploadFile, Edit, Undo, Add, ExpandMore,
 } from '@mui/icons-material';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 import UploadImage from '../../../models/UploadImage';
+import Rendition from '../../../models/Rendition';
 import useAPI from '../../../hooks/useAPI';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
+import RenditionDialog from "../../../components/RenditionDialog";
 
 import { styled } from '@mui/material/styles';
+import emoStyled from '@emotion/styled';
 
 const StyledTextField = styled(TextField)`
     width: 100%;
@@ -36,13 +41,22 @@ const CenterGrid = styled(Grid)`
     align-items: center;
 `;
 
+const SubText = emoStyled.span`
+    color: #888888;
+    margin-left: 1rem;
+`;
+
 const NewImage = () => {
     const [ folderPath, setFolderPath ] = useState<string>('/');
     const [ title, setTitle ] = useState<string>('');
     const [ details, setDetails ] = useState<string>('');
     const [ showEditFolderField, setShowEditFolderField ] = useState<boolean>(false);
     const [ file, setFile ] = useState<File>();
+    const [ renditionList, setRenditionList ] = useState<Rendition[]>([]);
     const [ saving, setSaving ] = useState<boolean>(false);
+    const [ eagerRendition, setEagerRendition ] = useState<boolean>(false);
+    const [ showRenditionDialog, setShowRenditionDialog ]
+        = useState<boolean>(false);
 
     const [ _, startTransition ] = useTransition();
 
@@ -107,6 +121,26 @@ const NewImage = () => {
             if (resp.success) {
                 navigate(-1);
             }
+        }
+    }
+
+    const onEagerRenditionChecked = (e: ChangeEvent<HTMLInputElement>) => {
+        startTransition(() => setEagerRendition(e.target.checked));
+    }
+
+    const onRenditionClicked = () => startTransition(
+            () => setShowRenditionDialog(true)
+        );
+
+    const onRenditionDialogClosed = (e: MouseEvent<HTMLButtonElement>) =>
+        startTransition(() => setShowRenditionDialog(false));
+
+    const onRenditionSaved = (rendition: Rendition) => {
+        if (rendition) {
+            startTransition(() => {
+                setRenditionList([...renditionList, rendition]);
+                setShowRenditionDialog(false);
+            });
         }
     }
 
@@ -203,13 +237,56 @@ const NewImage = () => {
                     <AccordionSummary
                         expandIcon={ <ExpandMore /> }
                         aria-controls="panel1a-content"
-                        color="secondary">
+                        sx={{ background: '#efefef' }}>
                         <Typography variant="h6">Renditions</Typography>
                     </AccordionSummary>
 
                     <AccordionDetails>
-                        <Typography>No Renditions</Typography>
-                        <IconButton color="secondary"><Add /></IconButton>
+                        {
+                            renditionList.length ?
+                                <List>
+                                {
+                                    renditionList.map(
+                                        (rendition: Rendition, i) => <ListItem
+                                            key={ i }>
+                                            <ListItemText>
+                                                <Typography>
+                                                    { rendition.targetDevice }
+                                                    <SubText>
+                                                        ({ rendition.slug },
+                                                        {' '}
+                                                        { rendition.width }x
+                                                        { rendition.height })
+                                                    </SubText>
+                                                </Typography>
+                                            </ListItemText>
+
+                                            <ListItemSecondaryAction>
+                                                <IconButton><Edit /></IconButton>
+                                            </ListItemSecondaryAction>
+                                        </ListItem>
+                                    )
+                                }
+                                </List>
+                                :
+                                <Typography>No Renditions</Typography>
+                        }
+
+                        <IconButton
+                            color="secondary"
+                            onClick={ onRenditionClicked }>
+                            <Add />
+                        </IconButton>
+
+                        <FormGroup>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={ eagerRendition }
+                                        onChange={ onEagerRenditionChecked } />
+                                }
+                                label="Eagerly create renditions" />
+                        </FormGroup>
                     </AccordionDetails>
                 </Accordion>
             </Grid>
@@ -240,6 +317,11 @@ const NewImage = () => {
 
             <Button variant="outlined">Cancel</Button>
         </Box>
+
+        <RenditionDialog
+            open={ showRenditionDialog }
+            onDialogClosed={ onRenditionDialogClosed }
+            onRenditionSaved={ onRenditionSaved } />
     </div>
 }
 
