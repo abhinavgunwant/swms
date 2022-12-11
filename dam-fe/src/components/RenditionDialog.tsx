@@ -13,9 +13,11 @@ import Rendition from '../models/Rendition';
 
 import { styled } from '@mui/material/styles';
 
+export type RenditionDialogMode = 'new' | 'edit';
+
 interface NewRenditionDialogProps {
     open: boolean,
-    mode?: 'new' | 'edit', // default mode to be considered `new`
+    mode?: RenditionDialogMode, // default mode to be considered `new`
     renditionToEdit?: Rendition,
     onDialogClosed: (e: MouseEvent<HTMLButtonElement>) => void,
     onRenditionSaved: (rendition: Rendition) => void,
@@ -42,27 +44,33 @@ const RenditionDialog = (props: NewRenditionDialogProps) => {
 
     const [ _, startTransition ] = useTransition();
 
+    const createRendition: () => Rendition = () => ({
+        id: 0,
+        image_id: 0,
+        height,
+        width,
+        targetDevice,
+        slug,
+        isPublished: false,
+        encoding,
+        createdOn: '',
+        createdBy: 0,
+        modifiedOn: '',
+        modifiedBy: 0,
+    });
+
     const onSaveClicked = () => {
         if (typeof width !== 'number' || typeof height !== 'number') {
             return;
         }
 
-        let rendition: Rendition = {
-            id: 0,
-            image_id: 0,
-            height,
-            width,
-            targetDevice,
-            slug,
-            isPublished: false,
-            encoding,
-            createdOn: '',
-            createdBy: 0,
-            modifiedOn: '',
-            modifiedBy: 0,
-        };
+        props.onRenditionSaved(createRendition());
+    }
 
-        props.onRenditionSaved(rendition);
+    const onEditClicked = () => {
+        if (props.onRenditionUpdated) {
+            props.onRenditionUpdated(createRendition());
+        }
     }
 
     const onTargetDeviceChanged = (e: ChangeEvent<HTMLInputElement>) =>
@@ -79,6 +87,18 @@ const RenditionDialog = (props: NewRenditionDialogProps) => {
     useEffect(() => {
         // Refresh the state every time the dialog is opened
         startTransition(() => {
+            if (props.mode === 'edit' && props.renditionToEdit) {
+                const rte = props.renditionToEdit;
+
+                setHeight(rte.height);
+                setWidth(rte.width);
+                setTargetDevice(rte.targetDevice);
+                setSlug(rte.slug);
+                setEncoding(rte.encoding);
+
+                return 
+            }
+
             setHeight(0);
             setWidth(0);
             setTargetDevice('');
@@ -152,11 +172,20 @@ const RenditionDialog = (props: NewRenditionDialogProps) => {
                 </Grid>
 
                 <Grid item sx={{ marginTop: '1rem' }}>
-                    <Button
-                        variant="contained"
-                        onClick={ onSaveClicked }>
-                        Save
-                    </Button>
+                    {
+                        props.mode === 'edit' ?
+                            <Button
+                                variant="contained"
+                                onClick={ onEditClicked }>
+                                Edit
+                            </Button>
+                        :
+                            <Button
+                                variant="contained"
+                                onClick={ onSaveClicked }>
+                                Save
+                            </Button>
+                    }
 
                     <Button
                         onClick={ props.onDialogClosed }

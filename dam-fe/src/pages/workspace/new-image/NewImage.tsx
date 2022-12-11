@@ -11,7 +11,7 @@ import {
     FormControlLabel, List, ListItem, ListItemText, ListItemSecondaryAction
 } from '@mui/material';
 import {
-    UploadFile, Edit, Undo, Add, ExpandMore,
+    UploadFile, Edit, Undo, Add, ExpandMore, Delete,
 } from '@mui/icons-material';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
@@ -20,7 +20,9 @@ import Rendition from '../../../models/Rendition';
 import useAPI from '../../../hooks/useAPI';
 
 import Breadcrumbs from "../../../components/Breadcrumbs";
-import RenditionDialog from "../../../components/RenditionDialog";
+import
+    RenditionDialog, { RenditionDialogMode }
+from "../../../components/RenditionDialog";
 
 import { styled } from '@mui/material/styles';
 import emoStyled from '@emotion/styled';
@@ -50,9 +52,15 @@ const NewImage = () => {
     const [ folderPath, setFolderPath ] = useState<string>('/');
     const [ title, setTitle ] = useState<string>('');
     const [ details, setDetails ] = useState<string>('');
-    const [ showEditFolderField, setShowEditFolderField ] = useState<boolean>(false);
+    const [ showEditFolderField, setShowEditFolderField ]
+        = useState<boolean>(false);
     const [ file, setFile ] = useState<File>();
     const [ renditionList, setRenditionList ] = useState<Rendition[]>([]);
+    // Rendition Selection Index
+    const [ renSelIndex, setRenSelIndex ] = useState<number>(-1);
+    // Rendition Dialog Mode
+    const [ renDiagMode, setRenDiagMode ]
+        = useState<RenditionDialogMode>('new');
     const [ saving, setSaving ] = useState<boolean>(false);
     const [ eagerRendition, setEagerRendition ] = useState<boolean>(false);
     const [ showRenditionDialog, setShowRenditionDialog ]
@@ -132,7 +140,7 @@ const NewImage = () => {
             () => setShowRenditionDialog(true)
         );
 
-    const onRenditionDialogClosed = (e: MouseEvent<HTMLButtonElement>) =>
+    const onRenditionDialogClosed = () =>
         startTransition(() => setShowRenditionDialog(false));
 
     const onRenditionSaved = (rendition: Rendition) => {
@@ -141,6 +149,45 @@ const NewImage = () => {
                 setRenditionList([...renditionList, rendition]);
                 setShowRenditionDialog(false);
             });
+        }
+    }
+
+    /**
+     * After the rendition has been edited using the dialog.
+     */
+    const onRenditionUpdated = (rendition: Rendition) => {
+        if (rendition) {
+            const list = [ ...renditionList ];
+
+            list.splice(renSelIndex, 1, rendition);
+
+            startTransition(() => {
+                setRenditionList(list);
+                setShowRenditionDialog(false);
+            });
+        }
+    }
+
+    /**
+     * When the edit button against a rendition is clicked.
+     */
+    const onEditRendition = (indx: number) => {
+        startTransition(() => {
+            setRenDiagMode('edit');
+            setRenSelIndex(indx);
+            setShowRenditionDialog(true);
+        });
+    }
+
+    /**
+     * When the delete button against a rendition is clicked.
+     */
+    const onDeleteRendition = (indx: number) => {
+        if (renditionList.length) {
+            const list = [ ...renditionList ];
+            list.splice(indx, 1);
+
+            startTransition(() => setRenditionList(list));
         }
     }
 
@@ -255,6 +302,8 @@ const NewImage = () => {
                                                     <SubText>
                                                         ({ rendition.slug },
                                                         {' '}
+                                                        {rendition.encoding },
+                                                        {' '}
                                                         { rendition.width }x
                                                         { rendition.height })
                                                     </SubText>
@@ -262,7 +311,20 @@ const NewImage = () => {
                                             </ListItemText>
 
                                             <ListItemSecondaryAction>
-                                                <IconButton><Edit /></IconButton>
+                                                <IconButton
+                                                    onClick={ () => {
+                                                        onEditRendition(i);
+                                                    }}>
+                                                    <Edit />
+                                                </IconButton>
+
+                                                <IconButton
+                                                    color="error"
+                                                    onClick={ () => {
+                                                        onDeleteRendition(i);
+                                                    }}>
+                                                    <Delete />
+                                                </IconButton>
                                             </ListItemSecondaryAction>
                                         </ListItem>
                                     )
@@ -321,7 +383,15 @@ const NewImage = () => {
         <RenditionDialog
             open={ showRenditionDialog }
             onDialogClosed={ onRenditionDialogClosed }
-            onRenditionSaved={ onRenditionSaved } />
+            onRenditionSaved={ onRenditionSaved }
+            onRenditionUpdated={ onRenditionUpdated }
+            mode={ renDiagMode }
+            renditionToEdit={
+                renSelIndex > -1 && renditionList.length ?
+                    renditionList[renSelIndex]
+                :
+                    undefined
+            } />
     </div>
 }
 
