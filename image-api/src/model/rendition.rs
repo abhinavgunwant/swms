@@ -1,10 +1,10 @@
-use serde::Serialize;
+use serde::{ Serialize, Deserialize };
 use serde_json;
 use chrono::{ DateTime, Utc };
 
 use crate::model::encoding::Encoding;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Rendition {
     pub id: u32,

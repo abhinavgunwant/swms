@@ -25,3 +25,4 @@ Here:
 ## Setting up
 1. Create `image-rendition-cache` and `image-uploads` folders.
 2. Run ddl and dml SQL scripts.
+

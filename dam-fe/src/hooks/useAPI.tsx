@@ -3,6 +3,7 @@ import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 import Project from '../models/Project';
 import SelectUserModel from '../models/SelectUserModel';
 import UploadImage from '../models/UploadImage';
+import Rendition from '../models/Rendition';
 
 const HOST = 'http://localhost:8080';
 
@@ -130,6 +131,25 @@ const useAPI = () => {
                     message: 'Some unknown error occurred'
                 };
             }
+        },
+
+        /**
+         * API to create renditions.
+         *
+         * TODO: Implement error handling.
+         */
+        addRenditions: async (renditions: Rendition[], eager: boolean) => {
+            const response = await fetch(
+                `${HOST}/api/admin/renditions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ renditions, eager }),
+            });
+
+            return await response.json();
         },
 
         /**

@@ -1,5 +1,5 @@
-use actix_web::{ HttpResponse, HttpRequest, get };
-use serde::Serialize;
+use actix_web::{ HttpResponse, HttpRequest, get, post, web::Json };
+use serde::{ Serialize, Deserialize };
 use crate::{
     db::DBError,
     repository::rendition::{ RenditionRepository, get_rendition_repository },
@@ -9,6 +9,12 @@ use crate::{
 #[derive(Serialize)]
 pub struct RenditionResponse {
     renditions: Vec<Rendition>
+}
+
+#[derive(Deserialize)]
+pub struct RenditionRequest {
+    renditions: Vec<Rendition>,
+    eager: bool,
 }
 
 #[get("/api/admin/renditions/{image_id}")]
@@ -60,3 +66,17 @@ pub async fn get_rendition(req: HttpRequest) -> HttpResponse {
         }
     }
 }
+
+#[post("/api/admin/renditions")]
+pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
+    let repo = get_rendition_repository();
+
+    for rendition in req.renditions.iter() {
+        repo.add(rendition);
+    }
+
+    // TODO: implement error handling
+
+    HttpResponse::Ok().body("Fix this")
+}
+

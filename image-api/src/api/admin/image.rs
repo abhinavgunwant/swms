@@ -15,6 +15,14 @@ pub struct ImageResponse {
     images: Vec<Image>
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageSaveResponse<'a> {
+    success: bool,
+    message: &'a str,
+    image_id: Option<u32>,
+}
+
 #[get("/api/admin/project/{project_id}/images")]
 pub async fn get_images_in_project(req: HttpRequest) -> HttpResponse {
     let project_id: String = req.match_info().get("project_id")
@@ -109,15 +117,18 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
 
             rename(source_file_path, dest_file_path);
 
-            HttpResponse::Ok().content_type(ContentType::json())
-                .body("true")
+            HttpResponse::Ok().json(ImageSaveResponse {
+                success: true,
+                message: "Image Saved",
+                image_id: Some(id)
+            })
         }
 
-        Err (s) => {
-            HttpResponse::InternalServerError()
-                .content_type(ContentType::json())
-                .body(s)
-        }
+        Err (s) => HttpResponse::InternalServerError().json(ImageSaveResponse {
+            success: false,
+            message: "There was some problem. Please try again.",
+            image_id: None
+        })
     }
 }
 
