@@ -113,8 +113,8 @@ const useAPI = () => {
 
                 console.log('response after upload: ', resp2Json);
 
-                if (resp2Json === true) {
-                    return { success: true };
+                if (resp2Json) {
+                    return resp2Json;
                 }
 
                 return {
@@ -149,7 +149,12 @@ const useAPI = () => {
                 body: JSON.stringify({ renditions, eager }),
             });
 
-            return await response.json();
+            if (response.status === 200) {
+                // return await response.json();
+                return { success: true, message: 'Success!' };
+            }
+
+            return { success: false, message: 'Some Unknown Error Occured' };
         },
 
         /**

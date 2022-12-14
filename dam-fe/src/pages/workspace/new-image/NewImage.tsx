@@ -68,7 +68,7 @@ const NewImage = () => {
 
     const [ _, startTransition ] = useTransition();
 
-    const { uploadImage } = useAPI();
+    const { uploadImage, addRenditions } = useAPI();
 
     const navigate = useNavigate();
 
@@ -124,11 +124,44 @@ const NewImage = () => {
 
             const resp = await uploadImage(uploadImg, file);
 
-            setTimeout(() => setSaving(false), 100);
+            console.log('Response: ', resp);
 
             if (resp.success) {
+                console.log('Saving image successful!');
+                if (renditionList.length) {
+                    console.log('Now creating renditions!');
+
+                    const isoTime = (new Date()).toISOString();
+
+                    let newRenList: Rendition[] = [];
+                    
+                    renditionList.forEach((rendition) => {
+                        newRenList.push({
+                            ...rendition,
+                            imageId: resp.imageId,
+                            createdOn: isoTime,
+                            modifiedOn: isoTime,
+                        });
+                    });
+
+                    const renditionResp = await addRenditions(
+                        newRenList, eagerRendition
+                    );
+
+                    if (renditionResp.success) {
+                        // TODO: What to do here?
+                        console.log('Renditions saved successfully!');
+                    } else {
+                        // TODO: What to do here?
+                        console.log('Saving rendition was not successful');
+                        return;
+                    }
+                }
+
                 navigate(-1);
             }
+            
+            setTimeout(() => setSaving(false), 100);
         }
     }
 

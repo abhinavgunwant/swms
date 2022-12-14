@@ -72,7 +72,12 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
     let repo = get_rendition_repository();
 
     for rendition in req.renditions.iter() {
-        repo.add(rendition);
+        repo.add(rendition.clone());
+    }
+
+    if req.eager {
+        // TODO: Create renditions eagerly.
+        println!("Creating renditions eagerly");
     }
 
     // TODO: implement error handling

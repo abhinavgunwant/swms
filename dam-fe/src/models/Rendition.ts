@@ -1,6 +1,6 @@
 export default interface Rendition {
     id: number,
-    image_id: number,
+    imageId: number,
     height: number,
     width: number,
     targetDevice: string,
