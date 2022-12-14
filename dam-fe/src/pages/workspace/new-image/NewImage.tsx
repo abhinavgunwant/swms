@@ -1,6 +1,5 @@
 import {
     ChangeEvent, useState, useEffect, useRef, useTransition, Fragment,
-    MouseEvent,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -66,6 +65,7 @@ const NewImage = () => {
     const [ showRenditionDialog, setShowRenditionDialog ]
         = useState<boolean>(false);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
     const { uploadImage, addRenditions } = useAPI();
@@ -231,7 +231,7 @@ const NewImage = () => {
         path = path.replaceAll('//', '/');
 
         setFolderPath(path);
-    }, []);
+    }, [ store.currentProject.slug, store.currentFolder.slug ]);
 
     return <div className="page page--new-image">
         <Breadcrumbs links={[
@@ -391,7 +391,7 @@ const NewImage = () => {
             <Button
                 variant="contained"
                 style={{ marginRight: '0.5rem' }}
-                disabled={ folderPath == '' || title == '' || !file }
+                disabled={ folderPath === '' || title === '' || !file }
                 onClick={ onSave }>
                 {
                     saving ?

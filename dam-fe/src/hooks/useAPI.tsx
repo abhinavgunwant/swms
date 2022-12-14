@@ -7,10 +7,10 @@ import Rendition from '../models/Rendition';
 
 const HOST = 'http://localhost:8080';
 
-const DEFAULT_ERROR_RESPONSE = {
-    success: false,
-    message: 'Some unknown error occurred'
-};
+// const DEFAULT_ERROR_RESPONSE = {
+//     success: false,
+//     message: 'Some unknown error occurred'
+// };
 
 const useAPI = () => {
     const userStore = useUserStore();

@@ -42,11 +42,12 @@ const RenditionDialog = (props: NewRenditionDialogProps) => {
     const [ slug, setSlug ] = useState<string>('');
     const [ encoding, setEncoding ] = useState<string>('');
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
     const createRendition: () => Rendition = () => ({
         id: 0,
-        image_id: 0,
+        imageId: 0,
         height,
         width,
         targetDevice,
@@ -105,7 +106,7 @@ const RenditionDialog = (props: NewRenditionDialogProps) => {
             setSlug('');
             setEncoding('');
         });
-    }, [ props.open ]);
+    }, [ props.open, props.renditionToEdit, props.mode ]);
 
     return <Dialog
         onClose={ props.onDialogClosed }
