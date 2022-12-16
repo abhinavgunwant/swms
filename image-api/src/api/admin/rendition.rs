@@ -2,8 +2,11 @@ use actix_web::{ HttpResponse, HttpRequest, get, post, web::Json };
 use serde::{ Serialize, Deserialize };
 use crate::{
     db::DBError,
-    repository::rendition::{ RenditionRepository, get_rendition_repository },
-    model::rendition::Rendition,
+    repository::{
+        rendition::{ RenditionRepository, get_rendition_repository },
+        image::{ ImageRepository, get_image_repository },
+    },
+    model::{ rendition::Rendition, image::Image },
 };
 
 #[derive(Serialize)]
@@ -70,15 +73,57 @@ pub async fn get_rendition(req: HttpRequest) -> HttpResponse {
 #[post("/api/admin/renditions")]
 pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
     let repo = get_rendition_repository();
+    let img_repo = get_image_repository();
+
+    let mut image: Option<Image> = None;
 
     for rendition in req.renditions.iter() {
+        if req.eager {
+            // TODO: Create renditions eagerly.
+            println!("Creating renditions eagerly");
+
+            if image.is_none() {
+                // TODO: Initialize Image
+                match img_repo.get(rendition.image_id) {
+                    Ok(img) => {
+                        image = Some(img);
+                    }
+
+                    Err (_e) => {
+                        // TODO: Push "Error Image not found" if image does not exist
+                    }
+                }
+            }
+
+            let source_file_path = format!(
+                "image-uploads/{}{}",
+                image.as_ref().unwrap().id,
+                image.as_ref().unwrap().encoding.extension()
+            );
+
+            let dest_file_path = format!(
+                "image-rendition-cache/{}{}",
+                rendition.id,
+                rendition.encoding.extension()
+            );
+
+            let mut raster_img = raster::open(
+                source_file_path.as_str()
+            ).unwrap();
+
+            raster::editor::resize(
+                &mut raster_img,
+                rendition.width as i32,
+                rendition.height as i32,
+                raster::ResizeMode::Fit
+            ).unwrap();
+
+            raster::save(&raster_img, dest_file_path.as_str()).unwrap();
+        }
+
         repo.add(rendition.clone());
     }
 
-    if req.eager {
-        // TODO: Create renditions eagerly.
-        println!("Creating renditions eagerly");
-    }
 
     // TODO: implement error handling
 
