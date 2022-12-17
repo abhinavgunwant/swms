@@ -177,32 +177,107 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn add(&self, rendition: Rendition) {
+    fn add(&self, rendition: Rendition) -> Result<u32, String> {
         println!("adding a rendition");
-        let mut conn = get_db_connection();
+        let error_msg: String = String::from("Error Inserting Data!");
 
-        conn.exec_drop(
-            r"INSERT INTO IMAGE_RENDITION (
-                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
-                PUBLISHED, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON
-            ) VALUES (
-                :id, :image_id, :height, :width, :target_device, :slug,
-                :published, :created_by, :modified_by,
-                current_timestamp(), current_timestamp()
-            )",
-            params! {
-                "id" => &rendition.id,
-                "image_id" => &rendition.image_id,
-                "height" => &rendition.height,
-                "width" => &rendition.width,
-                "target_device" => &rendition.target_device,
-                "slug" => &rendition.slug,
-                "published" => &rendition.is_published,
-                "created_by" => &rendition.created_by,
-                "modified_by" => &rendition.modified_by,
+        let mut conn = get_db_connection();
+        let transaction_result = conn.start_transaction(TxOpts::default());
+
+        match transaction_result {
+            Ok (mut tx) => {
+                let res = tx.exec_drop(
+                    r"INSERT INTO IMAGE_RENDITION (
+                        ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
+                        PUBLISHED, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                        MODIFIED_ON
+                    ) VALUES (
+                        :id, :image_id, :height, :width, :target_device, :slug,
+                        :published, :created_by, :modified_by,
+                        current_timestamp(), current_timestamp()
+                    )",
+                    params! {
+                        "id" => &rendition.id,
+                        "image_id" => &rendition.image_id,
+                        "height" => &rendition.height,
+                        "width" => &rendition.width,
+                        "target_device" => &rendition.target_device,
+                        "slug" => &rendition.slug,
+                        "published" => &rendition.is_published,
+                        "created_by" => &rendition.created_by,
+                        "modified_by" => &rendition.modified_by,
+                    }
+                );
+
+                match res {
+                    Ok (_) => {
+                        println!("Data Inserted!");
+
+                        let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
+                            r"SELECT LAST_INSERT_ID() as LID;",
+                            Params::Empty,
+                        );
+
+                        match row_wrapped {
+                            Ok(row_option) => {
+                                match row_option {
+                                    Some (mut row) => {
+                                        match row.take("LID") {
+                                            Some (id) => {
+                                                let c_res = tx.commit();
+                                                
+                                                match c_res {
+                                                    Ok (_) => Ok(id),
+                                                    Err (_) => Err(error_msg)
+                                                }
+                                            }
+
+                                            None => {
+                                                let c_res = tx.rollback();
+                                                
+                                                match c_res {
+                                                    Ok (_) => Err(error_msg),
+                                                    Err (_) => Err(error_msg)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    None => {
+                                        let c_res = tx.rollback();
+                                        
+                                        match c_res {
+                                            Ok (_) => Err(error_msg),
+                                            Err (_) => Err(error_msg)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Err(_e) => {
+                                let c_res = tx.rollback();
+                                
+                                match c_res {
+                                    Ok (_) => Err(error_msg),
+                                    Err (_) => Err(error_msg)
+                                }
+                            }
+                        }
+                    }
+
+                    Err (_) => {
+                        let c_res = tx.rollback();
+                        
+                        match c_res {
+                            Ok (_) => Err(error_msg),
+                            Err (_) => Err(error_msg)
+                        }
+                    }
+                }
             }
-        ).expect("Whatever");
+
+            Err (_e) => Err(String::from("Error initializing transaction"))
+        }
     }
 
     fn update(&self, rendition: Rendition) {

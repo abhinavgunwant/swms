@@ -19,7 +19,7 @@ pub trait RenditionRepository {
     fn get_all_from_project_slug(&self, project_slug: String)
         -> Result<Vec::<Rendition>, DBError>;
     fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Rendition>, DBError>;
-    fn add(&self, rendition: Rendition);
+    fn add(&self, rendition: Rendition) -> Result<u32, String>;
     fn update(&self, rendition: Rendition);
     fn remove(&self, id: Rendition);
     fn remove_item(&self, id: u32);
