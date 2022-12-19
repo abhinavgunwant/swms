@@ -12,13 +12,13 @@ const menu: MenuItem[] = [
         children: [
             {
                 title: 'View Users',
-                navigateTo: '/users',
+                navigateTo: '/admin/users',
                 icon: <PersonSearch />,
                 children: [],
             },
             {
                 title: 'Create Users',
-                navigateTo: '/users/create',
+                navigateTo: '/admin/users/create',
                 icon: <GroupAdd />,
                 children: [],
             },

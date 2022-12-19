@@ -11,6 +11,7 @@ import Project from "../pages/workspace/project/Projects";
 import NewProject from "../pages/workspace/project/NewProject";
 import Workspace from "../pages/workspace/Workspace";
 import Admin from "../pages/admin/Admin";
+import Users from "../pages/admin/users";
 
 import { getImagePathFromURL } from '../utils/PathUtils';
 import SelectUsers from "./SelectUsers";
@@ -22,6 +23,7 @@ const Router = ():React.ReactElement => {
             <Route path="/" element={ <Home /> } />
             <Route path="/workspace" element={ <Project /> } />
             <Route path="/admin" element={ <Admin /> } />
+            <Route path="/admin/users" element={ <Users /> } />
             <Route path="/workspace/tree/:projectSlug" element={ <Workspace /> } />
             <Route path={`/workspace/tree/:projectSlug/${ imagePath + (imagePath ? '/' : '') }:imageSlug`} element={ <Workspace /> } />
             <Route path="/workspace/new-image" element={ <NewImage /> } />

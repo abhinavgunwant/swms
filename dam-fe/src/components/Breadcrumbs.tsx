@@ -26,3 +26,4 @@ const Breadcrumbs = ({ links }: BreadcrumbProps) => {
 }
 
 export default Breadcrumbs;
+
