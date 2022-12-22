@@ -1,10 +1,16 @@
 import {
-    Group, Settings, PersonSearch, GroupAdd
+    Group, Settings, PersonSearch, GroupAdd, Workspaces
 } from '@mui/icons-material';
 
 import MenuItem from '../../models/MenuItem';
 
 const menu: MenuItem[] = [
+    {
+        title: "Workspace",
+        navigateTo: '/workspace',
+        icon: <Workspaces />,
+        children: [],
+    },
     {
         title: "Users",
         navigateTo: '',
