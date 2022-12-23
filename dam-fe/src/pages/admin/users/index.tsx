@@ -1,4 +1,5 @@
 import { useState, useEffect, ChangeEvent, useTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
     Box, Typography, FormControl, InputLabel, Select, MenuItem, List,
@@ -7,12 +8,12 @@ import {
     TablePagination,
 } from '@mui/material';
 
-import { SelectChangeEvent, } from '@mui/material/Select';
-
-import { Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete, Add, LockReset } from '@mui/icons-material';
 
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import Search from '../../../components/Search';
+import CustomFab from '../../../components/CustomFab';
+import CreateUserPage from './Create';
 
 import UserListing from '../../../models/UserListing';
 
@@ -26,13 +27,7 @@ const TopRow = styled.div`
 `;
 
 const ContentBox = matStyled(Box)`
-    margin: 1rem 0;
-`;
-
-const ContentBoxTopRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    margin: 1rem 0 4rem 0;
 `;
 
 const columns: string[] = [ 'Login ID', 'Name', 'Email' ];
@@ -45,7 +40,10 @@ const Users = () => {
     const [ selectionArr, setSelectionArr ] = useState<boolean[]>([]);
     const [ data, setData ] = useState<UserListing[]>([]);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
+
+    const navigate = useNavigate();
 
     const onPageSizeChanged = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         try {
@@ -81,7 +79,6 @@ const Users = () => {
             }
         }
 
-
         startTransition(() => setSelectionArr(arr))
     };
 
@@ -100,6 +97,9 @@ const Users = () => {
 
         return selectionArr.reduce((acc, curr) => acc && curr, true);
     }
+
+    const someSelected = () =>
+        selectionArr.reduce((acc, curr) => acc || curr, false);
 
     useEffect(() => {
         startTransition(() => setData([
@@ -206,8 +206,40 @@ const Users = () => {
                 page={ page }
                 onPageChange={ onPageChanged } />
         </ContentBox>
+
+        <CustomFab fabs={[
+            {
+                text: "New User",
+                preIcon: <Add />,
+                color: "secondary",
+                show: true,
+                onClick: () => {
+                    console.log('"New User" button clicked!');
+                    navigate('/admin/users/create');
+                },
+            },
+            {
+                text: "Reset Password",
+                preIcon: <LockReset />,
+                show: someSelected(),
+                onClick: () => {
+                    console.log('"Reset Password" button clicked!');
+                },
+            },
+            {
+                text: "Delete User(s)",
+                preIcon: <Delete />,
+                color: "error",
+                show: someSelected(),
+                onClick: () => {
+                    console.log('"Delete User(s)" button clicked!');
+                },
+            },
+            ]}/>
     </div>;
 }
+
+export { CreateUserPage as Create };
 
 export default Users;
 

@@ -243,7 +243,7 @@ const NewImage = () => {
         </Typography>
 
         <Typography variant="subtitle1">
-            Enter below details to create new image.
+            Enter below details to create a new image.
         </Typography>
 
         <StyledGrid container>

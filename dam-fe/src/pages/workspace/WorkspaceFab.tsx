@@ -49,6 +49,7 @@ const WorkspaceFab = (props: { inWorkspaceHome?: boolean } | undefined) => {
 
     const [ openNewDialog, setOpenNewDialog ] = useState(false);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _pending, startTransition ] = useTransition();
 
     const onDeselectAllClicked = () => {
