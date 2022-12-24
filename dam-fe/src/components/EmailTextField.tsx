@@ -16,10 +16,13 @@ interface EmailTextFieldProps {
     label?: string,
     value?: string,
     required?: boolean,
+    forceShowError?: boolean,
     onChange?: ChangeEventHandler<HTMLInputElement>,
+    onError?: Function,
+    onValid?: Function,
 }
 
-const EMAIL_PATTERN_ERROR = 'Not a valid email!';
+const EMAIL_PATTERN_ERROR = 'Must be a valid email';
 
 const EmailTextField = (props: EmailTextFieldProps) => {
     const [ error, setError ] = useState<boolean>(false);
@@ -44,15 +47,28 @@ const EmailTextField = (props: EmailTextFieldProps) => {
 
         if (!valid !== error) {
             startTransition(() => setError(!valid));
+
+            if (!valid) {
+                if (typeof props.onError !== 'undefined') {
+                    props.onError();
+                }
+            } else {
+                if (typeof props.onValid !== 'undefined') {
+                    props.onValid();
+                }
+            }
         }
     }, [ props.value ]);
 
     return <StyledTextField
+        error={ error || props.forceShowError }
         label={ props.label ? props.label : 'Email' }
         value={ props.value ? props.value : '' }
         onChange={ onChange }
         required={ props.required ? props.required : false }
-        helperText={ error ? EMAIL_PATTERN_ERROR : ''} />;
+        helperText={
+            error || props.forceShowError ? EMAIL_PATTERN_ERROR : ''
+        } />;
 }
 
 export default EmailTextField;
