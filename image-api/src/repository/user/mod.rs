@@ -20,7 +20,7 @@ pub trait UserRepository {
         -> Result<Vec<User>, DBError>;
     fn search_from_name(&self, name_query: String, page_length: u32)
         -> Result<Vec<UserSearch>, DBError>;
-    fn add(&self, user: User);
+    fn add(&self, user: User) -> Result<u32, String>;
     fn update(&self, user: User);
     fn remove(&self, id: User);
     fn remove_item(&self, id: u32);

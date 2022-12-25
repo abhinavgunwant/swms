@@ -290,27 +290,102 @@ impl UserRepository for MySQLUserRepository {
         }
     }
 
-    fn add(&self, user: User) {
-        let mut conn = get_db_connection();
+    fn add(&self, user: User) -> Result<u32, String> {
+        let error_msg: String = String::from("Error Inserting Data!");
 
-        conn.exec_drop(
-            r"INSERT INTO USER (
-                LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
-                CREATED_ON, MODIFIED_ON, NAME, PASSWORD
-            ) VALUES (
-                :login_id, :email, :user_role, NULL, :created_by, :modified_by,
-                CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), :name, :password
-            )",
-            params! {
-                "name" => &user.name,
-                "login_id" => &user.login_id,
-                "password" => generate_password_hash(user.password),
-                "email" => &user.email,
-                "user_role" => &user.user_role,
-                "created_by" => &user.created_by,
-                "modified_by" => &user.modified_by,
+        let mut conn = get_db_connection();
+        let transaction_result = conn.start_transaction(TxOpts::default());
+
+        match transaction_result {
+            Ok (mut tx) => {
+                let res = tx.exec_drop(
+                    r"INSERT INTO USER (
+                        LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
+                        CREATED_ON, MODIFIED_ON, NAME, PASSWORD
+                    ) VALUES (
+                        :login_id, :email, :user_role, NULL, :created_by, :modified_by,
+                        CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), :name, :password
+                    )",
+                    params! {
+                        "name" => &user.name,
+                        "login_id" => &user.login_id,
+                        "password" => generate_password_hash(user.password),
+                        "email" => &user.email,
+                        "user_role" => &user.user_role,
+                        "created_by" => &user.created_by,
+                        "modified_by" => &user.modified_by,
+                    }
+                );
+
+                match res {
+                    Ok (_) => {
+                        println!("Data Inserted!");
+
+                        let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
+                            r"SELECT LAST_INSERT_ID() as LID;",
+                            Params::Empty,
+                        );
+
+                        match row_wrapped {
+                            Ok(row_option) => {
+                                match row_option {
+                                    Some (mut row) => {
+                                        match row.take("LID") {
+                                            Some (id) => {
+                                                let c_res = tx.commit();
+                                                
+                                                match c_res {
+                                                    Ok (_) => Ok(id),
+                                                    Err (_) => Err(error_msg)
+                                                }
+                                            }
+
+                                            None => {
+                                                let c_res = tx.rollback();
+                                                
+                                                match c_res {
+                                                    Ok (_) => Err(error_msg),
+                                                    Err (_) => Err(error_msg)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    None => {
+                                        let c_res = tx.rollback();
+                                        
+                                        match c_res {
+                                            Ok (_) => Err(error_msg),
+                                            Err (_) => Err(error_msg)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Err(_e) => {
+                                let c_res = tx.rollback();
+                                
+                                match c_res {
+                                    Ok (_) => Err(error_msg),
+                                    Err (_) => Err(error_msg)
+                                }
+                            }
+                        }
+                    }
+
+                    Err (_) => {
+                        let c_res = tx.rollback();
+                        
+                        match c_res {
+                            Ok (_) => Err(error_msg),
+                            Err (_) => Err(error_msg)
+                        }
+                    }
+                }
             }
-        ).expect("Error while creating user");
+
+            Err (_e) => Err(String::from("Error initializing transaction"))
+        }
     }
 
     fn update(&self, user: User) {

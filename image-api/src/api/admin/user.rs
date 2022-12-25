@@ -1,4 +1,4 @@
-use actix_web::{ get, post, web::{ Json }, HttpRequest, HttpResponse };
+use actix_web::{ get, post, web::Json, HttpRequest, HttpResponse };
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
 use qstring::QString;
@@ -18,13 +18,15 @@ pub struct CreateUserRequest {
 }
 
 #[derive(Serialize)]
-pub struct Message {
+#[serde(rename_all = "camelCase")]
+pub struct UserResponseMessage {
     success: bool,
-    message: String
+    message: String,
+    user_id: Option<u32>,
 }
 
 #[post("/api/admin/user")]
-pub async fn create_user(req_obj: Json<CreateUserRequest>) -> Json<Message> {
+pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
     let repo = get_user_repository();
 
     let user = User {
@@ -41,9 +43,24 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>) -> Json<Message> {
         last_login_on: Utc::now(),
     };
 
-    repo.add(user);
+    match get_user_repository().add(user) {
+        Ok (id) => {
+            HttpResponse::Ok().json(UserResponseMessage{
+                success: true,
+                message: String::from("User Created!"),
+                user_id: Some(id),
+            })
+        }
 
-    Json(Message{ success: true, message: String::from("User Created!") })
+        Err (_e) => {
+            eprintln!("{}", _e);
+            HttpResponse::Ok().json(UserResponseMessage{
+                success: false,
+                message: String::from("User Created!"),
+                user_id: None,
+            })
+        }
+    }
 }
 
 #[get("/api/admin/user/{login_id}")]
@@ -65,21 +82,23 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
                 Err(e) => {
                     if e == DBError::NOT_FOUND {
                         return HttpResponse::NotFound()
-                            .json(Message {
+                            .json(UserResponseMessage {
                                 success: false,
-                                message: String::from("404 - Not found")
+                                message: String::from("404 - Not found"),
+                                user_id: None,
                             });
                     }
 
                     return HttpResponse::InternalServerError()
-                        .json(Message {
+                        .json(UserResponseMessage {
                             success: false,
-                            message: String::from("500 - Internal Server Error")
+                            message: String::from("500 - Internal Server Error"),
+                            user_id: None,
                         })
                 }
             }
         }
-        Err(e) => {
+        Err(_e) => {
             match repo.get_from_login_id(req_path) {
                 Ok(user) => {
                     HttpResponse::Ok().json(user)
@@ -88,16 +107,18 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
                 Err(e) => {
                     if e == DBError::NOT_FOUND {
                         return HttpResponse::NotFound()
-                            .json(Message {
+                            .json(UserResponseMessage {
                                 success: false,
-                                message: String::from("404 - Not found")
+                                message: String::from("404 - Not found"),
+                                user_id: None,
                             });
                     }
 
                     HttpResponse::InternalServerError()
-                        .json(Message {
+                        .json(UserResponseMessage {
                             success: false,
-                            message: String::from("500 - Internal Server Error")
+                            message: String::from("500 - Internal Server Error"),
+                            user_id: None,
                         })
                 }
             }

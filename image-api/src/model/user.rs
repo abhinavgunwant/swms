@@ -2,6 +2,7 @@ use serde::Serialize;
 use chrono::{ DateTime, Utc };
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: u32,
     pub name: String,
