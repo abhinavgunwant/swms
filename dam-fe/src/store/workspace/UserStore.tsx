@@ -1,5 +1,5 @@
 import create from 'zustand';
-import UserPermissions from '../../models/UserPermissions';
+import UserRole from '../../models/UserRole';
 
 import UserState from './UserState';
 
@@ -10,7 +10,9 @@ const useUserStore = create<UserState>()((set, get) => ({
     // Expiry time
     sessionTokenExpiry: 0,
 
-    permissions: {
+    role: {
+        id: 0,
+        roleName: '',
         createImage: false,
         readImage: false,
         modifyImage: false,
@@ -38,8 +40,8 @@ const useUserStore = create<UserState>()((set, get) => ({
         sessionTokenExpiry: exp,
     })),
 
-    setPermissions: (permissions: UserPermissions) => set((state) => ({
-        ...state, permissions
+    setRole: (role: UserRole) => set((state) => ({
+        ...state, role 
     })),
 }));
 

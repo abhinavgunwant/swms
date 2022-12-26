@@ -93,7 +93,7 @@ const Home = (): React.ReactElement => {
                     const responseJson = await permResponse.json();
 
                     if (responseJson) {
-                        userStore.setPermissions(responseJson);
+                        userStore.setRole(responseJson);
                     }
                 }
 

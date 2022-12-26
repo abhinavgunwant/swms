@@ -1,8 +1,15 @@
 import { useState, useEffect, useTransition, Fragment, ChangeEvent } from 'react';
 
 import {
-    Typography, Grid, TextField, Button, Box, CircularProgress,
+    Typography, Grid, TextField, Button, Box, CircularProgress, Accordion,
+    AccordionSummary, AccordionDetails, InputLabel, Select, FormControl,
+    OutlinedInput,
+    SelectChangeEvent,
 } from '@mui/material';
+
+import {
+    ExpandMore,
+} from '@mui/icons-material';
 
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import EmailTextField from '../../../components/EmailTextField';
@@ -19,6 +26,12 @@ const StyledTextField = styled(TextField)`
 
 const StyledGrid = styled(Grid)`
     margin-top: 1rem;
+`;
+
+const ChipWrapper = styled(Box)`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5;
 `;
 
 const Create = () => {
@@ -290,6 +303,32 @@ const Create = () => {
                             required />
                     </Grid>
                 </Grid>
+
+                {/* <FormControl>
+                        <InputLabel id="role-chip-label">Roles</InputLabel>
+
+                        <Select
+                            labelId="role-chip-label"
+                            id="role-chip"
+                            input={
+                                <OutlinedInput
+                                    id="select-role-chip"
+                                    label="User Roles"
+                                />
+                            }
+                            renderValue={
+                                (selected) => <ChipWrapper>
+                                    { 
+                                        selected.map((value) => <Chip
+                                            key={ value }
+                                            label={ value } />
+                                        )
+                                    }
+                                </ChipWrapper>
+                            }
+                            multiple>
+                        </Select>
+                    </FormControl> */}
             </Grid>
         </StyledGrid>
 

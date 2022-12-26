@@ -1,4 +1,4 @@
-import UserPermissions from "../../models/UserPermissions";
+import UserRole from "../../models/UserRole";
 
 export default interface UserState {
     // Session token
@@ -7,8 +7,9 @@ export default interface UserState {
     // Session token expiry timestamp
     sessionTokenExpiry: number,
 
-    permissions: UserPermissions,
+    role: UserRole,
 
     setSession: (token: string, exp: number) => void;
-    setPermissions: (permissions: UserPermissions) => void;
+    setRole: (role: UserRole) => void;
 }
+

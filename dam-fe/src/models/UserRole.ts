@@ -1,4 +1,6 @@
-interface UserPermissions {
+export default interface UserRole {
+    id: number,
+    roleName: string,
     createImage: boolean,
     readImage: boolean,
     modifyImage: boolean,
@@ -20,4 +22,3 @@ interface UserPermissions {
     accessAllProjects: boolean,
 }
 
-export default UserPermissions;

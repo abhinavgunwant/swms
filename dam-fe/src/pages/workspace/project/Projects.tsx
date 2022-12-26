@@ -117,7 +117,7 @@ const Project = () => {
             /**
              * Only show new button if user has required permission
              */
-            userStore.permissions.createProject &&
+            userStore.role.createProject &&
             <WorkspaceFab inWorkspaceHome={ true } />
         }
     </div>
