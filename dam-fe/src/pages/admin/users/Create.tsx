@@ -3,9 +3,10 @@ import { useState, useEffect, useTransition, Fragment, ChangeEvent } from 'react
 import {
     Typography, Grid, TextField, Button, Box, CircularProgress, Accordion,
     AccordionSummary, AccordionDetails, InputLabel, Select, FormControl,
-    OutlinedInput,
-    SelectChangeEvent,
+    OutlinedInput, SelectChangeEvent, Alert,
 } from '@mui/material';
+
+import useAPI from '../../../hooks/useAPI';
 
 import {
     ExpandMore,
@@ -59,9 +60,15 @@ const Create = () => {
         confirmPasswordError, setConfirmPasswordError
     ] = useState<boolean>(false);
     const [ saving, setSaving ] = useState<boolean>(false);
+    const [ error, setError ] = useState<boolean>(false);
+    const [ errorMessage, setErrorMessage ] = useState<string>('');
+    const [ success, setSuccess ] = useState<boolean>(false);
+    const [ successMessage, setSuccessMessage ] = useState<string>('');
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
+
+    const { createUser } = useAPI();
 
     const passwordPattern = /^(\w|[!@#\$%^&\*\(\)_])+$/g;
 
@@ -194,10 +201,24 @@ const Create = () => {
         return true;
     }
 
+    const onSuccessMessageClosed = () => {
+        startTransition(() => {
+            setSuccess(false);
+            setSuccessMessage('');
+        });
+    }
+
+    const onErrorMessageClosed = () => {
+        startTransition(() => {
+            setError(false);
+            setErrorMessage('');
+        });
+    }
+
     /**
      * Does a final validation before calling the create user API.
      */
-    const onSave = () => {
+    const onSave = async () => {
         if (emailError) {
             return;
         }
@@ -217,7 +238,38 @@ const Create = () => {
             return;
         }
 
-        startTransition(() => setSaving(true));
+        startTransition(() => {
+            setSaving(true);
+            setSuccess(false);
+            setSuccessMessage('');
+            setError(false);
+            setErrorMessage('');
+        });
+
+        console.log('creating user');
+
+        const resp = await createUser({
+            name, loginId: login, email, password
+        });
+
+        if (resp.success) {
+            setTimeout(() => startTransition(() => {
+                setSaving(false);
+                setName('');
+                setLogin('');
+                setEmail('');
+                setPassword('');
+                setConfirmPassword('');
+                setSuccess(true);
+                setSuccessMessage(resp.message);
+            }), 100);
+        } else {
+            setTimeout(() => startTransition(() => {
+                setSaving(false);
+                setError(true);
+                setErrorMessage(resp.message);
+            }), 100);
+        }
     };
 
     return <div className="page page--create-users">
@@ -329,6 +381,19 @@ const Create = () => {
                             multiple>
                         </Select>
                     </FormControl> */}
+                {
+                    error &&
+                    <Alert severity='error' onClose={ onErrorMessageClosed }>
+                        { errorMessage }
+                    </Alert>
+                }
+
+                {
+                    success &&
+                    <Alert severity='success' onClose={ onSuccessMessageClosed }>
+                        { successMessage }
+                    </Alert>
+                }
             </Grid>
         </StyledGrid>
 

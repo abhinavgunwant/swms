@@ -10,6 +10,7 @@ use crate::{
 };
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateUserRequest {
     login_id: String,
     password: String,
@@ -27,8 +28,6 @@ pub struct UserResponseMessage {
 
 #[post("/api/admin/user")]
 pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
-    let repo = get_user_repository();
-
     let user = User {
         id: 0, // id is auto generated, so it does not matter
         name: req_obj.name.clone(),
@@ -56,7 +55,7 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
             eprintln!("{}", _e);
             HttpResponse::Ok().json(UserResponseMessage{
                 success: false,
-                message: String::from("User Created!"),
+                message: String::from("Some error occured, please try again!"),
                 user_id: None,
             })
         }

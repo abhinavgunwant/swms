@@ -4,8 +4,10 @@ import Project from '../models/Project';
 import SelectUserModel from '../models/SelectUserModel';
 import UploadImage from '../models/UploadImage';
 import Rendition from '../models/Rendition';
+import CreateUserPayload from '../models/CreateUserPayload';
 
 const HOST = 'http://localhost:8080';
+const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
 
 // const DEFAULT_ERROR_RESPONSE = {
 //     success: false,
@@ -17,6 +19,41 @@ const useAPI = () => {
     const wsStore = useWorkspaceStore();
 
     return {
+        createUser: async (user: CreateUserPayload) => {
+            const response = await fetch('http://localhost:8080/api/admin/user', {
+                headers: {
+                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+                body: JSON.stringify(user)
+            });
+
+            try {
+                const json = await response.json();
+                console.log('user creation response: ', json);
+
+                if (json) {
+                    if (!json.message) {
+                        if (json.success) {
+                            json.message = 'User Created!';
+                        } else {
+                            json.message = DEFAULT_ERROR_MESSAGE;
+                        }
+                    }
+
+                    return json;
+                }
+            } catch (e) {
+                console.log(e);
+            }
+
+            return {
+                success: false,
+                message: DEFAULT_ERROR_MESSAGE,
+            };
+        },
         /**
          * Gets the list of projects from dam api and sets it in store.
          */
