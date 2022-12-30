@@ -6,7 +6,7 @@ use qstring::QString;
 use crate::{
     repository::user::{ get_user_repository, UserRepository },
     db::DBError,
-    model::user::User
+    model::{ user::User, user_listing::UserListing },
 };
 
 #[derive(Deserialize)]
@@ -24,6 +24,13 @@ pub struct UserResponseMessage {
     success: bool,
     message: String,
     user_id: Option<u32>,
+}
+
+#[derive(Serialize)]
+pub struct UserListResponseMessage {
+    success: bool,
+    message: String,
+    users: Vec<UserListing>,
 }
 
 #[post("/api/admin/user")]
@@ -121,6 +128,40 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
                         })
                 }
             }
+        }
+    }
+}
+
+#[get("/api/admin/users")]
+pub async fn get_user_list(req: HttpRequest) -> HttpResponse {
+    match get_user_repository().get_all() {
+        Ok (users) => {
+            let mut user_list: Vec<UserListing> = vec![];
+
+            for user in users.iter() {
+                user_list.push(UserListing {
+                    id: user.id.clone(),
+                    login_id: user.login_id.clone(),
+                    name: user.name.clone(),
+                    email: user.email.clone(),
+                });
+            }
+
+            HttpResponse::Ok().json(UserListResponseMessage {
+                success: true,
+                message: String::from("Got Users"),
+                users: user_list,
+            })
+        }
+
+        Err (_e) => {
+            eprintln!("Some error occurred while fetching all users");
+
+            HttpResponse::InternalServerError().json(UserListResponseMessage {
+                success: false,
+                message: String::from("Internal Server Error"),
+                users: vec![],
+            })
         }
     }
 }

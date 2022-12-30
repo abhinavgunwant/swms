@@ -17,6 +17,8 @@ import CreateUserPage from './Create';
 
 import UserListing from '../../../models/UserListing';
 
+import useAPI from '../../../hooks/useAPI';
+
 import styled from '@emotion/styled';
 import { styled as matStyled } from '@mui/material/styles';
 
@@ -42,6 +44,8 @@ const Users = () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
+
+    const { getUsers } = useAPI();
 
     const navigate = useNavigate();
 
@@ -102,10 +106,21 @@ const Users = () => {
         selectionArr.reduce((acc, curr) => acc || curr, false);
 
     useEffect(() => {
-        startTransition(() => setData([
-            { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 1, loginId: 'abhii1', name: 'Abhinav Gunwant1', email: 'abhi@example.com' }, { id: 2, loginId: 'abhii2', name: 'Abhinav Gunwant2', email: 'abhi@example.com' }, { id: 3, loginId: 'abhii3', name: 'Abhinav Gunwant3', email: 'abhi@example.com' }, { id: 4, loginId: 'abhii4', name: 'Abhinav Gunwant4', email: 'abhi@example.com' },{ id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, 
-        ]));
-    });
+        const makeReq = async () => {
+            const resp = await getUsers();
+
+            if (resp.success) {
+                startTransition(() => {
+                    setData(
+                        resp.users,
+                    //[{ id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 1, loginId: 'abhii1', name: 'Abhinav Gunwant1', email: 'abhi@example.com' }, { id: 2, loginId: 'abhii2', name: 'Abhinav Gunwant2', email: 'abhi@example.com' }, { id: 3, loginId: 'abhii3', name: 'Abhinav Gunwant3', email: 'abhi@example.com' }, { id: 4, loginId: 'abhii4', name: 'Abhinav Gunwant4', email: 'abhi@example.com' },{ id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' },] 
+                    );
+                });
+            }
+        };
+
+        makeReq();
+    }, []);
 
     useEffect(() => {
         console.log(selectAll, allSelected());

@@ -19,6 +19,38 @@ const useAPI = () => {
     const wsStore = useWorkspaceStore();
 
     return {
+        /**
+         * Gets a list of all the users at once.
+         */
+        getUsers: async () => {
+            const response = await fetch('http://localhost:8080/api/admin/users', {
+                headers: {
+                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                },
+            });
+
+            try {
+                const json = await response.json();
+                console.log('user list response: ', json);
+
+                if (json) {
+                    if (!json.message && !json.success) {
+                        json.message = DEFAULT_ERROR_MESSAGE;
+                    }
+
+                    return json;
+                }
+            } catch (e) {
+                console.log(e);
+            }
+
+            return {
+                success: false,
+                message: DEFAULT_ERROR_MESSAGE,
+            };
+        },
+
         createUser: async (user: CreateUserPayload) => {
             const response = await fetch('http://localhost:8080/api/admin/user', {
                 headers: {
@@ -54,6 +86,7 @@ const useAPI = () => {
                 message: DEFAULT_ERROR_MESSAGE,
             };
         },
+
         /**
          * Gets the list of projects from dam api and sets it in store.
          */
