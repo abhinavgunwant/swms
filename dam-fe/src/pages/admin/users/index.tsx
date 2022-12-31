@@ -1,23 +1,24 @@
-import { useState, useEffect, ChangeEvent, useTransition } from 'react';
+import {
+    useState, useEffect, useTransition, ChangeEvent, Fragment, useMemo,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
     Box, Typography, FormControl, InputLabel, Select, MenuItem, List,
     ListItem, ListItemText, ListItemButton, IconButton, Table, TableHead,
     TableRow, TableCell, TableBody, TableContainer, TableSortLabel, Checkbox,
-    TablePagination,
+    TablePagination, CircularProgress,
 } from '@mui/material';
 
-import { Edit, Delete, Add, LockReset } from '@mui/icons-material';
+import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
 
-import Breadcrumbs from '../../../components/Breadcrumbs';
-import Search from '../../../components/Search';
-import CustomFab from '../../../components/CustomFab';
+import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 import CreateUserPage from './Create';
+import Edit from './Edit';
 
 import UserListing from '../../../models/UserListing';
-
 import useAPI from '../../../hooks/useAPI';
+import useAdminStore from '../../../store/admin/AdminStore';
 
 import styled from '@emotion/styled';
 import { styled as matStyled } from '@mui/material/styles';
@@ -32,7 +33,7 @@ const ContentBox = matStyled(Box)`
     margin: 1rem 0 4rem 0;
 `;
 
-const columns: string[] = [ 'Login ID', 'Name', 'Email' ];
+const columns: string[] = [ 'Login ID', 'Name', 'Email', 'Actions' ];
 
 const Users = () => {
     const [ searchTerm, setSearchTerm ] = useState<string>('');
@@ -41,11 +42,14 @@ const Users = () => {
     const [ selectAll, setSelectAll ] = useState<boolean>(false);
     const [ selectionArr, setSelectionArr ] = useState<boolean[]>([]);
     const [ data, setData ] = useState<UserListing[]>([]);
+    const [ loading, setLoading ] = useState<boolean>(true);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
     const { getUsers } = useAPI();
+
+    const adminStore = useAdminStore();
 
     const navigate = useNavigate();
 
@@ -65,9 +69,8 @@ const Users = () => {
         _page: number
     ) => startTransition(() => setPage(_page));
 
-    const onSelectAll = (e: ChangeEvent<HTMLInputElement>) => startTransition(
-        () => setSelectAll(e.target.checked)
-    );
+    const onSelectAll = (e: ChangeEvent<HTMLInputElement>) =>
+        setSelectAll(e.target.checked);
 
     const onRowSelected = (n: number) => {
         const arr = [ ...selectionArr ];
@@ -86,8 +89,16 @@ const Users = () => {
         startTransition(() => setSelectionArr(arr))
     };
 
-    const allSelected = () => {
-        if (selectionArr.length === 0) {
+    const onEdit = (userListingObj: UserListing) => {
+        adminStore.setUserToEdit(userListingObj);
+
+        navigate('/admin/users/edit');
+    }
+
+    const allSelected = useMemo(() => {
+        const n = selectionArr.length;
+
+        if (n === 0) {
             return false;
         }
 
@@ -99,11 +110,38 @@ const Users = () => {
             return false;
         }
 
-        return selectionArr.reduce((acc, curr) => acc && curr, true);
-    }
+        let count = 0;
 
-    const someSelected = () =>
-        selectionArr.reduce((acc, curr) => acc || curr, false);
+        for (let i=0; i<n && selectionArr[i]; ++i, ++count) {
+            // no code required here...
+        }
+
+        return count === n;
+    }, [ selectionArr, pageSize, data ]);
+
+    const someSelected = useMemo(() => {
+        for (let i=0; i<selectionArr.length; ++i) {
+            if (selectionArr[i]) {
+                return true;
+            }
+        }
+    }, [ selectionArr ]);
+
+    const multipleSelected = () => {
+        if (selectionArr.length) {
+            let count = 0;
+
+            for (let i=0; i<selectionArr.length && count < 2; ++i) {
+                if (selectionArr[i]) {
+                    ++count;
+                }
+            }
+
+            return count > 1;
+        }
+
+        return false;
+    }
 
     useEffect(() => {
         const makeReq = async () => {
@@ -111,50 +149,43 @@ const Users = () => {
 
             if (resp.success) {
                 startTransition(() => {
-                    setData(
-                        resp.users,
-                    //[{ id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 1, loginId: 'abhii1', name: 'Abhinav Gunwant1', email: 'abhi@example.com' }, { id: 2, loginId: 'abhii2', name: 'Abhinav Gunwant2', email: 'abhi@example.com' }, { id: 3, loginId: 'abhii3', name: 'Abhinav Gunwant3', email: 'abhi@example.com' }, { id: 4, loginId: 'abhii4', name: 'Abhinav Gunwant4', email: 'abhi@example.com' },{ id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' }, { id: 0, loginId: 'abhii', name: 'Abhinav Gunwant', email: 'abhi@example.com' },] 
-                    );
+                    setData(resp.users);
+                    setLoading(false);
                 });
             }
+
+            startTransition(() => setLoading(false));
         };
 
         makeReq();
     }, []);
 
     useEffect(() => {
-        console.log(selectAll, allSelected());
         if (selectAll) {
             if (data.length >= pageSize) {
-                startTransition(() => setSelectionArr(
-                    Array(pageSize).fill(true))
-                );
+                setSelectionArr(Array(pageSize).fill(true));
 
                 return;
             }
 
-            startTransition(() => setSelectionArr(
-                Array(data.length).fill(true))
-            );
+            setSelectionArr(Array(data.length).fill(true));
 
             return;
         }
 
-        if (allSelected()) {
-            startTransition(() => setSelectionArr(
-                Array(selectionArr.length).fill(false))
-            );
+        if (allSelected) {
+            setSelectionArr(Array(selectionArr.length).fill(false));
         }
     }, [ selectAll ]);
 
     useEffect(() => {
-        if (selectAll && !allSelected()) {
-            startTransition(() => setSelectAll(false));
+        if (selectAll && !allSelected) {
+            setSelectAll(false)
 
             return;
         }
 
-        if (!selectAll && allSelected()) {
+        if (!selectAll && allSelected) {
             startTransition(() => setSelectAll(true));
         }
     }, [ selectionArr ]);
@@ -169,92 +200,113 @@ const Users = () => {
             <Search />
         </TopRow>
 
-        <ContentBox>
-            <TableContainer>
-                <Table stickyHeader aria-label="sticky table">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell padding="checkbox">
-                                <Checkbox
-                                    color="primary"
-                                    checked={ selectAll }
-                                    onChange={ onSelectAll } />
-                            </TableCell>
+        {
+            loading ? <Loading />
+            :
+            <Fragment>
+            <ContentBox>
+                <TableContainer>
+                    <Table stickyHeader aria-label="sticky table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        color="primary"
+                                        checked={ selectAll }
+                                        onChange={ onSelectAll } />
+                                </TableCell>
 
-                            {
-                                columns.map((col, i) => <TableCell key={ i }>
-                                    <TableSortLabel
-                                        active={ false }
-                                        direction="asc"
-                                        onClick={ () => {} }>
-                                        { col }
-                                    </TableSortLabel>
-                                </TableCell>)
-                            }
-                        </TableRow>
-                    </TableHead>
+                                {
+                                    columns.map((col, i) => <TableCell
+                                            key={ i }>
+                                        <TableSortLabel
+                                            active={ false }
+                                            direction="asc"
+                                            onClick={ () => {} }>
+                                            { col }
+                                        </TableSortLabel>
+                                    </TableCell>)
+                                }
+                            </TableRow>
+                        </TableHead>
 
-                    <TableBody>
-                        { data.slice(page * pageSize, page * pageSize + pageSize)
-                            .map((row, i) => <TableRow key={ i }>
-                            <TableCell padding="checkbox">
-                                <Checkbox
-                                    color="primary"
-                                    checked={ selectionArr.length > i && selectionArr[i] }
-                                    onChange={ () => onRowSelected(i) } />
-                            </TableCell>
+                        <TableBody>
+                            { data.slice(
+                                page * pageSize, page * pageSize + pageSize
+                                ).map((row, i) => <TableRow key={ i }>
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        color="primary"
+                                        checked={
+                                            selectionArr.length > i
+                                            && selectionArr[i]
+                                        }
+                                        onChange={ () => onRowSelected(i) } />
+                                </TableCell>
 
-                            <TableCell>{ row.loginId }</TableCell>
-                            <TableCell>{ row.name }</TableCell>
-                            <TableCell>{ row.email }</TableCell>
-                        </TableRow>) }
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                                <TableCell>{ row.loginId }</TableCell>
+                                <TableCell>{ row.name }</TableCell>
+                                <TableCell>{ row.email }</TableCell>
+                                <TableCell sx={{ display: 'flex' }}>
+                                    <IconButton onClick={ () => onEdit(row) }>
+                                        <EditIcon />
+                                    </IconButton>
+                                    <IconButton><LockReset /></IconButton>
+                                    <IconButton
+                                        color="warning">
+                                        <Delete />
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>) }
+                        </TableBody>
+                    </Table>
+                </TableContainer>
 
-            <TablePagination
-                rowsPerPageOptions={[ 10, 25, 50, 100 ]}
-                component="div"
-                count={ data.length }
-                rowsPerPage={ pageSize }
-                onRowsPerPageChange={ onPageSizeChanged }
-                page={ page }
-                onPageChange={ onPageChanged } />
-        </ContentBox>
+                <TablePagination
+                    rowsPerPageOptions={[ 10, 25, 50, 100 ]}
+                    component="div"
+                    count={ data.length }
+                    rowsPerPage={ pageSize }
+                    onRowsPerPageChange={ onPageSizeChanged }
+                    page={ page }
+                    onPageChange={ onPageChanged } />
+            </ContentBox>
 
-        <CustomFab fabs={[
-            {
-                text: "New User",
-                preIcon: <Add />,
-                color: "secondary",
-                show: true,
-                onClick: () => {
-                    console.log('"New User" button clicked!');
-                    navigate('/admin/users/create');
+            <CustomFab fabs={[
+                {
+                    text: "New User",
+                    preIcon: <Add />,
+                    color: "secondary",
+                    show: true,
+                    onClick: () => {
+                        console.log('"New User" button clicked!');
+                        navigate('/admin/users/create');
+                    },
                 },
-            },
-            {
-                text: "Reset Password",
-                preIcon: <LockReset />,
-                show: someSelected(),
-                onClick: () => {
-                    console.log('"Reset Password" button clicked!');
+                {
+                    text: "Reset Password",
+                    preIcon: <LockReset />,
+                    show: someSelected && !multipleSelected(),
+                    onClick: () => {
+                        console.log('"Reset Password" button clicked!');
+                    },
                 },
-            },
-            {
-                text: "Delete User(s)",
-                preIcon: <Delete />,
-                color: "error",
-                show: someSelected(),
-                onClick: () => {
-                    console.log('"Delete User(s)" button clicked!');
+                {
+                    text: "Delete User(s)",
+                    preIcon: <Delete />,
+                    color: "error",
+                    show: someSelected,
+                    onClick: () => {
+                        console.log('"Delete User(s)" button clicked!');
+                    },
                 },
-            },
-            ]}/>
+                ]}/>
+            </Fragment>
+        }
     </div>;
 }
 
-export { CreateUserPage as Create };
+export { CreateUserPage as Create, Edit };
 
 export default Users;
 

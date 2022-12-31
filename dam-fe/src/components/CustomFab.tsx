@@ -33,12 +33,13 @@ const StyledFab = muiStyled(Fab)`
     margin-left: 1rem;
 `;
 
-const CustomFab = (props: CustomFabProps) => {
+export const CustomFab = (props: CustomFabProps) => {
     return <FabWrapper>
         {
             props.fabs
             .filter((fab) => fab.show ? fab.show : false)
-            .map((fab) => <StyledFab
+            .map((fab, i) => <StyledFab
+                key={ i }
                 color={ fab.color }
                 variant="extended"
                 onClick={ fab.onClick }>

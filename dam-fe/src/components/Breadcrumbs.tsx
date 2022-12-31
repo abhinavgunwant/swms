@@ -12,7 +12,7 @@ const StyledBreadcrumbs = styled(MuiBreadcrumbs)`
     height: 2.25rem;
 `;
 
-const Breadcrumbs = ({ links }: BreadcrumbProps) => {
+export const Breadcrumbs = ({ links }: BreadcrumbProps) => {
     return <StyledBreadcrumbs>
         {
             links.map((link, i) => 

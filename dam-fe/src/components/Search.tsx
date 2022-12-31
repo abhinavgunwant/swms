@@ -11,9 +11,10 @@ import styled from '@emotion/styled';
 const SearchWrapper = styled.div`
     background: #eeeeee;
     padding: 0 0.25rem 0 1rem;
+    border-radius: 4px;
 `;
 
-const Search = () => {
+export const Search = () => {
     const [ expanded, setExpanded ] = useState<boolean>(false);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
