@@ -388,8 +388,27 @@ impl UserRepository for MySQLUserRepository {
         }
     }
 
-    fn update(&self, user: User) {
-        println!("Updating an user");
+    fn update(&self, user: User) -> Result<(), String> {
+        println!("Updating a user");
+
+        let mut conn = get_db_connection();
+
+        match conn.exec_drop(
+            r"UPDATE USER SET name = :name, email = :email WHERE ID = :id",
+            params! {
+                "id" => user.id,
+                "name" => user.name,
+                "email" => user.email,
+            }
+        ) {
+            Ok(_) => Ok(()),
+
+            Err (e) => {
+                eprintln!("{}", e);
+
+                return Err(String::from("Unable to update user."));
+            }
+        }
     }
 
     fn remove(&self, id: User) {

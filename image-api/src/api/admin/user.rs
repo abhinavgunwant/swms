@@ -1,4 +1,4 @@
-use actix_web::{ get, post, web::Json, HttpRequest, HttpResponse };
+use actix_web::{ get, post, put, web::Json, HttpRequest, HttpResponse };
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
 use qstring::QString;
@@ -66,6 +66,32 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
                 user_id: None,
             })
         }
+    }
+}
+
+/**
+ * Edits user by replacing current user data with supplied data.
+ *
+ * Note: Using `UserListing` struct here since it resembles the field we want
+ * to submit when changing user attributes.
+ */
+#[put("/api/admin/user")]
+pub async fn edit_user(req_obj: Json<UserListing>) -> HttpResponse {
+    match get_user_repository().update(User {
+        id: req_obj.id,
+        name: req_obj.name.clone(),
+        login_id: req_obj.login_id.clone(),
+        password: String::from(""),
+        email: req_obj.email.clone(),
+        user_role: 0,
+        created_by: 0,
+        modified_by: 0,
+        created_on: Utc::now(),
+        modified_on: Utc::now(),
+        last_login_on: Utc::now(),
+    }) {
+        Ok (_) => HttpResponse::Ok().body("User successfully updated!"),
+        Err (e) => HttpResponse::InternalServerError().body(e),
     }
 }
 

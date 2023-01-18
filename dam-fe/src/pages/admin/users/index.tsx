@@ -14,6 +14,7 @@ import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
 
 import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 import CreateUserPage from './Create';
+import UserRoles from './UserRoles';
 import Edit from './Edit';
 
 import UserListing from '../../../models/UserListing';
@@ -292,6 +293,14 @@ const Users = () => {
                     },
                 },
                 {
+                    text: "Edit User",
+                    preIcon: <EditIcon />,
+                    show: someSelected && !multipleSelected(),
+                    onClick: () => {
+                        console.log('"Edit User" button clicked!');
+                    },
+                },
+                {
                     text: "Delete User(s)",
                     preIcon: <Delete />,
                     color: "error",
@@ -306,7 +315,7 @@ const Users = () => {
     </div>;
 }
 
-export { CreateUserPage as Create, Edit };
+export { CreateUserPage as Create, Edit, UserRoles };
 
 export default Users;
 

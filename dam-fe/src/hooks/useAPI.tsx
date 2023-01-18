@@ -5,6 +5,7 @@ import SelectUserModel from '../models/SelectUserModel';
 import UploadImage from '../models/UploadImage';
 import Rendition from '../models/Rendition';
 import CreateUserPayload from '../models/CreateUserPayload';
+import UserListing from '../models/UserListing';
 
 const HOST = 'http://localhost:8080';
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
@@ -85,6 +86,27 @@ const useAPI = () => {
                 success: false,
                 message: DEFAULT_ERROR_MESSAGE,
             };
+        },
+
+        /**
+         * Edits user by replacing user attributes with ones in `user`.
+         */
+        editUser: async (user: UserListing) => {
+            const response = await fetch('http://localhost:8080/api/admin/user', {
+                headers: {
+                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+                method: 'PUT',
+                body: JSON.stringify(user)
+            });
+
+            if (response.status === 200) {
+                return true;
+            }
+
+            return false;
         },
 
         /**

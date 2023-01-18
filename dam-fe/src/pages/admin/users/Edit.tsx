@@ -10,6 +10,8 @@ import {
 import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 
 import useAdminStore from '../../../store/admin/AdminStore';
+import UserListing from '../../../models/UserListing';
+import useAPI from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
 
@@ -25,6 +27,8 @@ export const Edit = () => {
 
     const [ _, startTransition ] = useTransition();
 
+    const { editUser } = useAPI();
+
     const adminStore = useAdminStore();
     const navigate = useNavigate();
 
@@ -39,6 +43,24 @@ export const Edit = () => {
     const onResetPassword = () => {
         // TODO: Open reset password dialog.
     };
+
+    const onSave = () => {
+
+        if (adminStore && adminStore.userToEdit) {
+            const user: UserListing = {
+                id: adminStore.userToEdit.id,
+                loginId: adminStore.userToEdit.loginId,
+                name,
+                email,
+            }
+
+            editUser(user);
+
+            console.log('User edited!');
+
+            navigate('/admin/users');
+        }
+    }
 
     useEffect(() => {
         if (
@@ -108,7 +130,8 @@ export const Edit = () => {
 
         <Button
             variant="contained"
-            disabled={ !enableSave }>
+            disabled={ !enableSave }
+            onClick={ onSave }>
             Save
         </Button>
 

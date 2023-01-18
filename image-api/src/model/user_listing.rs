@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{ Serialize, Deserialize };
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize )]
 #[serde(rename_all = "camelCase")]
 pub struct UserListing {
     pub id: u32,

@@ -1,5 +1,5 @@
 import {
-    Group, Settings, PersonSearch, GroupAdd, Workspaces
+    Group, Settings, PersonSearch, GroupAdd, Workspaces, AdminPanelSettings
 } from '@mui/icons-material';
 
 import MenuItem from '../../models/MenuItem';
@@ -26,6 +26,12 @@ const menu: MenuItem[] = [
                 title: 'Create Users',
                 navigateTo: '/admin/users/create',
                 icon: <GroupAdd />,
+                children: [],
+            },
+            {
+                title: 'View User Roles',
+                navigateTo: '/admin/roles',
+                icon: <AdminPanelSettings />,
                 children: [],
             },
         ]

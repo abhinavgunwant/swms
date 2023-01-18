@@ -38,6 +38,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::auth::auth)
             .service(api::admin::auth::get_user_permissions)
             .service(api::admin::user::create_user)
+            .service(api::admin::user::edit_user)
             .service(api::admin::user::get_user)
             .service(api::admin::user::get_user_list)
             .service(api::admin::user::search_user)
