@@ -3,6 +3,7 @@ pub mod auth;
 pub mod user;
 pub mod project;
 pub mod rendition;
+pub mod role;
 
 use actix_web::{ HttpResponse, HttpRequest, get };
 use serde::{ Serialize, Deserialize };

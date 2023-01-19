@@ -8,5 +8,6 @@ pub mod user_permissions;
 pub mod user_search;
 pub mod user_listing;
 pub mod upload_image;
+pub mod role;
 //pub mod insert_response;
 

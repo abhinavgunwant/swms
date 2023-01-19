@@ -1,0 +1,28 @@
+pub mod db;
+
+use std::result::Result;
+use crate::{
+    db::{ DBError, DBImpl, get_db_context },
+    model::role::Role,
+};
+use db::mysql::MySQLRoleRepository;
+
+pub trait RoleRepository {
+    //fn get(&self, id: u16) -> Result<Role, DBError>;
+    fn get_all(&self) -> Result<Vec<Role>, DBError>;
+    fn add(&self, role: Role);
+    fn update(&self, role: Role) -> Result<(), String>;
+    fn remove(&self, id: Role);
+    fn remove_item(&self, id: u32);
+}
+
+pub fn get_role_repository() -> impl RoleRepository {
+    let dctxt = get_db_context();
+
+    match dctxt.dbimpl {
+        DBImpl::MYSQL => {
+            MySQLRoleRepository {}
+        }
+    }
+}
+

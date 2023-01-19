@@ -23,3 +23,4 @@ pub struct UserPermissions {
     pub publish_all: bool,
     pub access_all_projects: bool,
 }
+
