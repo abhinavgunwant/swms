@@ -6,6 +6,7 @@ import UploadImage from '../models/UploadImage';
 import Rendition from '../models/Rendition';
 import CreateUserPayload from '../models/CreateUserPayload';
 import UserListing from '../models/UserListing';
+import Role from '../models/Role';
 
 const HOST = 'http://localhost:8080';
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
@@ -107,6 +108,30 @@ const useAPI = () => {
             }
 
             return false;
+        },
+
+        /**
+         * Gets all the roles in the system.
+         */
+        getRoles: async () => {
+            const response = await fetch('http://localhost:8080/api/admin/roles', {
+                headers: {
+                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                },
+            });
+
+            if (response.status === 200) {
+                try {
+                    const roles: Role[] = await response.json();
+
+                    return { success: true, roles };
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+
+            return { success: false, roles: [] };
         },
 
         /**
