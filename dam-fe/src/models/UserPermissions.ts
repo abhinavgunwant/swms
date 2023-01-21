@@ -20,3 +20,25 @@ export default interface UserPermissions {
     accessAllProjects: boolean,
 }
 
+export const UserPermissionsKeyToNameMapping: { [key in keyof UserPermissions]: string } = {
+    createImage: 'Create Image',
+    readImage: 'Read Image',
+    modifyImage: 'Modify Image',
+    deleteImage: 'Delete Image',
+    readRenditions: 'Read Renditions',
+    createRenditions: 'Create Renditions',       
+    modifyRenditions: 'Modify Renditions', 
+    deleteRenditions: 'Delete Renditions', 
+    readProject: 'Read Project',
+    createProject: 'Create Project',
+    modifyProject: 'Modify Project',
+    deleteProject: 'Delete Project',
+    readUser: 'Read User',
+    createUser: 'Create User',
+    modifyUser: 'Modify User',
+    deleteUser: 'Delete User',
+    publish: 'Publish',
+    publishAll: 'Publish All',
+    accessAllProjects: 'Access All Projects',
+};
+

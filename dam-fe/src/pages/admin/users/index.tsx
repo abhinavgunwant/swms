@@ -15,6 +15,7 @@ import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
 import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 import CreateUserPage from './Create';
 import UserRoles from './UserRoles';
+import NewEditRole from './NewEditRole';
 import Edit from './Edit';
 
 import UserListing from '../../../models/UserListing';
@@ -315,7 +316,7 @@ const Users = () => {
     </div>;
 }
 
-export { CreateUserPage as Create, Edit, UserRoles };
+export { CreateUserPage as Create, Edit, UserRoles, NewEditRole };
 
 export default Users;
 
