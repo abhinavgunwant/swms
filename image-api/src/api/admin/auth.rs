@@ -81,6 +81,9 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
     }
 }
 
+/**
+ * Gets permissions for the logged in user.
+ */
 #[get("/api/admin/auth/permissions")]
 pub async fn get_user_permissions(req_obj: HttpRequest) -> HttpResponse {
     match validate_session_token(req_obj) {
@@ -103,3 +106,4 @@ pub async fn get_user_permissions(req_obj: HttpRequest) -> HttpResponse {
         }
     }
 }
+

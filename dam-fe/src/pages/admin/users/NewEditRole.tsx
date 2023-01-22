@@ -1,4 +1,6 @@
-import { useState, useEffect, ReactNode } from 'react';
+import {
+    useState, useEffect, ReactNode, ChangeEventHandler, ChangeEvent, memo,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -7,7 +9,8 @@ import {
 
 import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 
-import Role from '../../../models/Role';
+import Role, { RoleImpl } from '../../../models/Role';
+import { useAdminStore } from '../../../store';
 
 import {
     UserPermissionsKeyToNameMapping
@@ -21,11 +24,11 @@ const StyledTextField = styled(TextField)`
     margin-bottom: 0.5rem;
 `;
 
-const StyledGridItem = (props: { children: ReactNode}) => <Grid
+const StyledGridItem = memo((props: { children: ReactNode}) => <Grid
     item xs={ 6 } md={ 4 } lg={ 3 }>
 
     { props.children }
-</Grid>;
+</Grid>);
 
 interface NewEditRoleProps {
     role: 'new' | 'edit',
@@ -40,8 +43,21 @@ const NewEditRole = (props: NewEditRoleProps) => {
     const [ roleName, setRoleName ] = useState<string>('');
 
     const navigate = useNavigate();
+    const adminStore = useAdminStore();
 
-    const onNameChanged = () => {};
+    const onNameChanged: ChangeEventHandler = (
+        e: ChangeEvent<HTMLInputElement>
+    ) => {
+//         if (typeof role === 'undefined') {
+//             const newRole = new RoleImpl();
+//             newRole.roleName = e.target.value;
+//             setRole(newRole);
+// 
+//             return;
+//         }
+
+        setRoleName(e.target.value);
+    };
     const onNameFocus = () => {};
     const onNameBlur = () => {};
 
@@ -57,7 +73,12 @@ const NewEditRole = (props: NewEditRoleProps) => {
         // When editing the role, the admin store must have the Role to be
         // edited, redirect back to "View Roles" page if this is not set.
         if (props.role === 'edit') {
-            // TODO: Implement this!
+            if (adminStore.roleToEdit) {
+                setRole(adminStore.roleToEdit);
+                setRoleName(adminStore.roleToEdit.roleName);
+            } else {
+                navigate('/admin/roles');
+            }
         }
     }, []);
 
@@ -68,7 +89,9 @@ const NewEditRole = (props: NewEditRoleProps) => {
             'New Role',
         ] } />
 
-        <Typography variant="h5">New Role</Typography>
+        <Typography variant="h5">
+            { props.role === 'edit' ? 'Edit Role' : 'New Role' }
+        </Typography>
 
         <FormGroup>
             <Grid container>

@@ -12,6 +12,7 @@ import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 
 import useAPI from '../../../hooks/useAPI';
 import Role from '../../../models/Role';
+import { useAdminStore } from '../../../store';
 import
     UserPermissions, { UserPermissionsKeyToNameMapping }
 from '../../../models/UserPermissions';
@@ -29,11 +30,14 @@ const UserRoles = () => {
     const [ _, startTransition ] = useTransition();
 
     const { getRoles } = useAPI();
+    const adminStore = useAdminStore();
 
     const navigate = useNavigate();
 
     const onEdit = (role: Role) => {
-    }
+        adminStore.setRoleToEdit(role);
+        navigate('/admin/roles/edit');
+    };
 
     useEffect(() => {
         const func = async () => {
