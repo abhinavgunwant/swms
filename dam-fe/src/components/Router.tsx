@@ -27,8 +27,8 @@ const Router = ():React.ReactElement => {
             <Route path="/admin/users/create" element={ <Create /> } />
             <Route path="/admin/users/edit" element={ <Edit /> } />
             <Route path="/admin/roles" element={ <UserRoles /> } />
-            <Route path="/admin/roles/create" element={ <NewEditRole role="new" /> } />
-            <Route path="/admin/roles/edit" element={ <NewEditRole role="edit" /> } />
+            <Route path="/admin/roles/create" element={ <NewEditRole mode="new" /> } />
+            <Route path="/admin/roles/edit" element={ <NewEditRole mode="edit" /> } />
             <Route path="/workspace/tree/:projectSlug" element={ <Workspace /> } />
             <Route path={`/workspace/tree/:projectSlug/${ imagePath + (imagePath ? '/' : '') }:imageSlug`} element={ <Workspace /> } />
             <Route path="/workspace/new-image" element={ <NewImage /> } />

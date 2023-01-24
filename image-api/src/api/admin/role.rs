@@ -26,3 +26,14 @@ pub async fn get_all_roles() -> HttpResponse {
     }
 }
 
+#[post("/api/admin/role")]
+pub async fn set_role(role: Json<Role>) -> HttpResponse {
+    get_role_repository().add(Role {
+        id: role.id,
+        role_name: role.role_name.clone(),
+        permissions: role.permissions,
+    });
+
+    HttpResponse::Ok().body("Role Created!")
+}
+

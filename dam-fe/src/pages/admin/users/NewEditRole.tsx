@@ -1,5 +1,6 @@
 import {
     useState, useEffect, ReactNode, ChangeEventHandler, ChangeEvent, memo,
+    Fragment, useTransition,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,10 +12,10 @@ import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
 
 import Role, { RoleImpl } from '../../../models/Role';
 import { useAdminStore } from '../../../store';
+import useAPI from '../../../hooks/useAPI';
 
-import {
-    UserPermissionsKeyToNameMapping
-} from '../../../models/UserPermissions';
+import UserPermissions, { UserPermissionsImpl, UserPermissionsKeyToNameMapping }
+from '../../../models/UserPermissions';
 
 import { styled } from '@mui/material/styles';
 
@@ -24,14 +25,58 @@ const StyledTextField = styled(TextField)`
     margin-bottom: 0.5rem;
 `;
 
-const StyledGridItem = memo((props: { children: ReactNode}) => <Grid
-    item xs={ 6 } md={ 4 } lg={ 3 }>
+const PermissionsView = memo((
+    props: {
+        permissions?: UserPermissions,
+        onPermissionsChanged: (newPerms: UserPermissions) => void
+    }
+) => {
+    const onPermissionsChanged = (key: string, value: boolean) => {
+        let newPerms: UserPermissions;
 
-    { props.children }
-</Grid>);
+        if (props.permissions === undefined) {
+            newPerms = new UserPermissionsImpl();
+            (newPerms as any)[key] = value;
+        } else {
+            newPerms = { ...props.permissions, [key]: value };
+        }
+
+        props.onPermissionsChanged(newPerms);
+    };
+
+    if (props.permissions === undefined) {
+        return null; 
+    }
+
+    return <Fragment>
+    {
+        Object.entries(UserPermissionsKeyToNameMapping)
+        .map(([key, value]) => {
+            if (typeof value === 'string') {
+                return <Grid xs={6} md={4} lg={3} key={key} item>
+                    <FormControlLabel
+                        control={
+                            <Checkbox checked={
+                                (props.permissions as any)[key]
+                            } />
+                        }
+                        onChange={
+                            (_, checked: boolean) => {
+                                onPermissionsChanged(key, checked)
+                            }
+                        }
+                        label={ value } />
+                </Grid>;
+            }
+
+            return '';
+        })
+    }
+    </Fragment>;
+});
 
 interface NewEditRoleProps {
-    role: 'new' | 'edit',
+    mode: 'new' | 'edit',
 }
 
 /**
@@ -42,26 +87,50 @@ const NewEditRole = (props: NewEditRoleProps) => {
     const [ nameError, setNameError ] = useState<boolean>(false);
     const [ roleName, setRoleName ] = useState<string>('');
 
+    const [ _, startTransition ] = useTransition();
+
     const navigate = useNavigate();
     const adminStore = useAdminStore();
+
+    const { createEditRoles } = useAPI();
 
     const onNameChanged: ChangeEventHandler = (
         e: ChangeEvent<HTMLInputElement>
     ) => {
-//         if (typeof role === 'undefined') {
-//             const newRole = new RoleImpl();
-//             newRole.roleName = e.target.value;
-//             setRole(newRole);
-// 
-//             return;
-//         }
+        if (role === undefined) {
+            setRole(new RoleImpl(-1, e.target.value));
+        } else {
+            setRole(new RoleImpl(
+                role.id,
+                e.target.value,
+                { ...role?.permissions }
+            ));
+        }
 
-        setRoleName(e.target.value);
+        setNameError(false);
+        //setRoleName(e.target.value);
     };
-    const onNameFocus = () => {};
-    const onNameBlur = () => {};
 
-    const onSave = () => {
+    const onPermissionsChanged = (newPerms: UserPermissions) => {
+        startTransition(() => setRole(new RoleImpl(role?.id, '', newPerms)));
+    };
+
+    const onSave = async () => {
+        console.log(role);
+
+        if (role === undefined) {
+            return;
+        }
+
+        if (!role?.roleName) {
+            startTransition(() => setNameError(true));
+            return;
+        }
+
+        console.log('mode=', props.mode);
+
+        await createEditRoles(role, props.mode);
+
         navigate('/admin/roles');
     };
 
@@ -72,13 +141,15 @@ const NewEditRole = (props: NewEditRoleProps) => {
     useEffect(() => {
         // When editing the role, the admin store must have the Role to be
         // edited, redirect back to "View Roles" page if this is not set.
-        if (props.role === 'edit') {
+        if (props.mode === 'edit') {
             if (adminStore.roleToEdit) {
                 setRole(adminStore.roleToEdit);
-                setRoleName(adminStore.roleToEdit.roleName);
+               // setRoleName(adminStore.roleToEdit.roleName);
             } else {
                 navigate('/admin/roles');
             }
+        } else {
+            setRole(new RoleImpl());
         }
     }, []);
 
@@ -90,7 +161,7 @@ const NewEditRole = (props: NewEditRoleProps) => {
         ] } />
 
         <Typography variant="h5">
-            { props.role === 'edit' ? 'Edit Role' : 'New Role' }
+            { props.mode === 'edit' ? 'Edit Role' : 'New Role' }
         </Typography>
 
         <FormGroup>
@@ -100,13 +171,11 @@ const NewEditRole = (props: NewEditRoleProps) => {
                         <StyledTextField
                             error={ nameError }
                             label="Role Name"
-                            value={ roleName }
+                            value={ role?.roleName }
                             onChange={ onNameChanged }
-                            onFocus={ onNameFocus }
-                            onBlur={ onNameBlur }
                             helperText={
                                 nameError ?
-                                    'Full name; 4 - 64 characters' : ''
+                                    '4 - 64 alpha-numeric characters' : ''
                             }
                             required />
                     </Grid>
@@ -125,20 +194,9 @@ const NewEditRole = (props: NewEditRoleProps) => {
                     </Grid>
                 </Grid>
 
-                {
-                    Object.entries(UserPermissionsKeyToNameMapping)
-                    .map(([key, value]) => {
-                        if (typeof value === 'string') {
-                            return <StyledGridItem key={ key }>
-                                <FormControlLabel
-                                    control={ <Checkbox /> }
-                                    label={ value } />
-                            </StyledGridItem>;
-                        }
-
-                        return '';
-                    })
-                }
+                <PermissionsView
+                    permissions={ role?.permissions }
+                    onPermissionsChanged={ onPermissionsChanged } />
 
                 <Grid container>
                     <Grid item xs={ 12 } sx={{ marginTop: '1rem' }}>

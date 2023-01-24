@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{ Serialize, Deserialize };
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPermissions {
     pub create_image: bool,

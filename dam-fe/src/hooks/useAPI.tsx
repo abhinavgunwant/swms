@@ -134,6 +134,24 @@ const useAPI = () => {
             return { success: false, roles: [] };
         },
 
+        createEditRoles: async (role: Role, mode: 'new' | 'edit' = 'new') => {
+            const response = await fetch('http://localhost:8080/api/admin/role', {
+                headers: {
+                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+                method: mode === 'new' ? 'POST' : 'PUT',
+                body: JSON.stringify(role),
+            });
+
+            if (response.status === 200) {
+                return true;
+            }
+
+            return false;
+        },
+
         /**
          * Gets the list of projects from dam api and sets it in store.
          */

@@ -127,7 +127,7 @@ const UserRoles = () => {
             show: true,
             onClick: () => {
                 console.log('"New Role" button clicked!');
-                navigate('/admin/roles/edit');
+                navigate('/admin/roles/create');
             },
             }]}/>
     </div>;

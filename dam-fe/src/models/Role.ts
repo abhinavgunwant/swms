@@ -12,7 +12,7 @@ export class RoleImpl implements Role {
     permissions: UserPermissions;
 
     constructor (
-        id: number = -1,
+        id: number = 0,
         name: string = '',
         permissions: UserPermissions = new UserPermissionsImpl()
     ) {
