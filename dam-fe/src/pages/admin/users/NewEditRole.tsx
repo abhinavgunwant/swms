@@ -112,7 +112,9 @@ const NewEditRole = (props: NewEditRoleProps) => {
     };
 
     const onPermissionsChanged = (newPerms: UserPermissions) => {
-        startTransition(() => setRole(new RoleImpl(role?.id, '', newPerms)));
+        startTransition(() => setRole(
+            new RoleImpl(role?.id, role?.roleName || '', newPerms
+        )));
     };
 
     const onSave = async () => {

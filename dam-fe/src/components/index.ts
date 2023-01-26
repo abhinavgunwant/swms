@@ -10,4 +10,5 @@ export * from './Search';
 export * from './SelectUsers';
 export * from './Thumbnail';
 export * from './Typeahead';
+export * from './ConfirmDialog';
 

@@ -1,7 +1,8 @@
-use actix_web::{ get, post, put, web::Json, HttpRequest, HttpResponse };
+use actix_web::{
+    get, post, put, delete, web::Json, HttpRequest, HttpResponse
+};
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
-use qstring::QString;
 
 use crate::{
     repository::role::{ get_role_repository, RoleRepository },
@@ -28,12 +29,37 @@ pub async fn get_all_roles() -> HttpResponse {
 
 #[post("/api/admin/role")]
 pub async fn set_role(role: Json<Role>) -> HttpResponse {
-    get_role_repository().add(Role {
+    match get_role_repository().add(Role {
         id: role.id,
         role_name: role.role_name.clone(),
         permissions: role.permissions,
-    });
+    }) {
+        Ok (msg) => HttpResponse::Ok().body(msg),
+        Err (msg) => HttpResponse::InternalServerError().body(msg)
+    }
+}
 
-    HttpResponse::Ok().body("Role Created!")
+#[put("/api/admin/role")]
+pub async fn update_role(role: Json<Role>) -> HttpResponse {
+    match get_role_repository().update(Role {
+        id: role.id,
+        role_name: role.role_name.clone(),
+        permissions: role.permissions,
+    }) {
+        Ok (msg) => HttpResponse::Ok().body(msg),
+        Err (msg) => HttpResponse::InternalServerError().body(msg)
+    }
+}
+
+#[delete("/api/admin/role")]
+pub async fn delete_role(role: Json<Role>) -> HttpResponse {
+    match get_role_repository().remove(Role {
+        id: role.id,
+        role_name: role.role_name.clone(),
+        permissions: role.permissions,
+    }) {
+        Ok (msg) => HttpResponse::Ok().body(msg),
+        Err (msg) => HttpResponse::InternalServerError().body(msg)
+    }
 }
 

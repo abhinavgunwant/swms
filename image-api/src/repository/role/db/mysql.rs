@@ -73,145 +73,25 @@ impl RoleRepository for MySQLRoleRepository {
         }
     }
 
-    //fn get(&self, id: u16) -> Result<Role, DBError> {}
-
-    fn add(&self, role: Role) {
-        let error_msg: String = String::from("Error Inserting Data!");
-
-        let mut conn = get_db_connection();
-        //let transaction_result = conn.start_transaction(TxOpts::default());
-
-//        match transaction_result {
-//            Ok (mut tx) => {
-                //let res = tx.exec_drop(
-                conn.exec_drop(
-                    r"INSERT INTO USER_ROLE (
-                        ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
-                        DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS,
-                        MODIFY_RENDITIONS, DELETE_RENDITIONS, READ_PROJECT,
-                        CREATE_PROJECT, MODIFY_PROJECT, DELETE_PROJECT,
-                        READ_USER, CREATE_USER, MODIFY_USER, DELETE_USER,
-                        PUBLISH, PUBLISH_ALL, ACCESS_ALL_PROJECTS
-                    ) VALUES (
-                        :role_name, :create_image, :read_image, :modify_image,
-                        :delete_image, :read_renditions, :create_renditions,
-                        :modify_renditions, :delete_renditions, :read_project,
-                        :create_project, :modify_project, :delete_project,
-                        :read_user, :create_user, :modify_user, :delete_user,
-                        :publish, :publish_all, :access_all_projects
-                    )",
-                    params! {
-                        "role_name" => &role.role_name,
-                        "create_image" => &role.permissions.create_image,
-                        "read_image" => &role.permissions.read_image,
-                        "modify_image" => &role.permissions.modify_image,
-                        "delete_image" => &role.permissions.delete_image,
-                        "read_renditions" => &role.permissions.read_renditions,
-                        "create_renditions" => &role.permissions.create_renditions,
-                        "modify_renditions" => &role.permissions.modify_renditions,
-                        "delete_renditions" => &role.permissions.delete_renditions,
-                        "read_project" => &role.permissions.read_project,
-                        "create_project" => &role.permissions.create_project,
-                        "modify_project" => &role.permissions.modify_project,
-                        "delete_project" => &role.permissions.delete_project,
-                        "read_user" => &role.permissions.read_user,
-                        "create_user" => &role.permissions.create_user,
-                        "modify_user" => &role.permissions.modify_user,
-                        "delete_user" => &role.permissions.delete_user,
-                        "publish" => &role.permissions.publish,
-                        "publish_all" => &role.permissions.publish_all,
-                        "access_all_project" => &role.permissions.access_all_projects,
-                    }
-                );
-
-//                match res {
-//                    Ok (_) => {
-//                        println!("Data Inserted!");
-//
-//                        let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
-//                            r"SELECT LAST_INSERT_ID() as LID;",
-//                            Params::Empty,
-//                        );
-//
-//                        match row_wrapped {
-//                            Ok(row_option) => {
-//                                match row_option {
-//                                    Some (mut row) => {
-//                                        match row.take("LID") {
-//                                            Some (id) => {
-//                                                let c_res = tx.commit();
-//                                                
-//                                                match c_res {
-//                                                    Ok (_) => Ok(id),
-//                                                    Err (_) => Err(error_msg)
-//                                                }
-//                                            }
-//
-//                                            None => {
-//                                                let c_res = tx.rollback();
-//                                                
-//                                                match c_res {
-//                                                    Ok (_) => Err(error_msg),
-//                                                    Err (_) => Err(error_msg)
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//
-//                                    None => {
-//                                        let c_res = tx.rollback();
-//                                        
-//                                        match c_res {
-//                                            Ok (_) => Err(error_msg),
-//                                            Err (_) => Err(error_msg)
-//                                        }
-//                                    }
-//                                }
-//                            }
-//
-//                            Err(_e) => {
-//                                let c_res = tx.rollback();
-//                                
-//                                match c_res {
-//                                    Ok (_) => Err(error_msg),
-//                                    Err (_) => Err(error_msg)
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    Err (_) => {
-//                        let c_res = tx.rollback();
-//                        
-//                        match c_res {
-//                            Ok (_) => Err(error_msg),
-//                            Err (_) => Err(error_msg)
-//                        }
-//                    }
-//                }
-//            }
-//
-//            Err (_e) => Err(String::from("Error initializing transaction"))
-//        }
-    }
-
-    fn update(&self, role: Role) -> Result<(), String> {
+    fn add(&self, role: Role) -> Result<String, String> {
         let mut conn = get_db_connection();
 
-        match conn.exec_drop(r"UPDATE USER_ROLE SET
-            ROLE_NAME = :role_name, CREATE_IMAGE = :create_image,
-            READ_IMAGE = :read_image, MODIFY_IMAGE = :modify_image,
-            DELETE_IMAGE = :delete_image, READ_RENDITIONS = :read_renditions,
-            CREATE_RENDITIONS = :create_renditions,
-            MODIFY_RENDITIONS = :modify_renditions,
-            DELETE_RENDITIONS = :delete_renditions,
-            READ_PROJECT = :read_project, CREATE_PROJECT = :create_project,
-            MODIFY_PROJECT = :modify_project, DELETE_PROJECT = :delete_project,
-            READ_USER = :read_user, CREATE_USER = :create_user,
-            MODIFY_USER = :modify_user, DELETE_USER = :delete_user,
-            PUBLISH = :publish, PUBLISH_ALL = :publish_all,
-            ACCESS_ALL_PROJECTS = :ACCESS_ALL_PROJECTS
-            ",
+          match conn.exec_drop(
+            r"INSERT INTO USER_ROLE (
+                ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
+                DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS,
+                MODIFY_RENDITIONS, DELETE_RENDITIONS, READ_PROJECT,
+                CREATE_PROJECT, MODIFY_PROJECT, DELETE_PROJECT,
+                READ_USER, CREATE_USER, MODIFY_USER, DELETE_USER,
+                PUBLISH, PUBLISH_ALL, ACCESS_ALL_PROJECTS
+            ) VALUES (
+                :role_name, :create_image, :read_image, :modify_image,
+                :delete_image, :read_renditions, :create_renditions,
+                :modify_renditions, :delete_renditions, :read_project,
+                :create_project, :modify_project, :delete_project,
+                :read_user, :create_user, :modify_user, :delete_user,
+                :publish, :publish_all, :access_all_projects
+            )",
             params! {
                 "role_name" => &role.role_name,
                 "create_image" => &role.permissions.create_image,
@@ -232,31 +112,95 @@ impl RoleRepository for MySQLRoleRepository {
                 "delete_user" => &role.permissions.delete_user,
                 "publish" => &role.permissions.publish,
                 "publish_all" => &role.permissions.publish_all,
-                "access_all_project" => &role.permissions.access_all_projects,
+                "access_all_projects" => &role.permissions.access_all_projects,
             }
         ) {
-            Ok(_) => Ok(()),
+            Ok(_) => Ok(String::from("Successfully created new role!")),
 
             Err (e) => {
-                eprintln!("{}", e);
+                eprintln!("Error saving role: {}", e);
 
-                return Err(String::from("Unable to update role."));
+                Err(String::from("Error saving role."))
             }
         }
     }
 
-    /**
-     * TODO: Implement this!
-     */
-    fn remove(&self, id: Role) {
-        todo!("Implement this!");
+    fn update(&self, role: Role) -> Result<String, String> {
+        let mut conn = get_db_connection();
+
+        match conn.exec_drop(r"UPDATE USER_ROLE SET
+                ROLE_NAME = :role_name, CREATE_IMAGE = :create_image,
+                READ_IMAGE = :read_image, MODIFY_IMAGE = :modify_image,
+                DELETE_IMAGE = :delete_image,
+                READ_RENDITIONS = :read_renditions,
+                CREATE_RENDITIONS = :create_renditions,
+                MODIFY_RENDITIONS = :modify_renditions,
+                DELETE_RENDITIONS = :delete_renditions,
+                READ_PROJECT = :read_project, CREATE_PROJECT = :create_project,
+                MODIFY_PROJECT = :modify_project,
+                DELETE_PROJECT = :delete_project,
+                READ_USER = :read_user, CREATE_USER = :create_user,
+                MODIFY_USER = :modify_user, DELETE_USER = :delete_user,
+                PUBLISH = :publish, PUBLISH_ALL = :publish_all,
+                ACCESS_ALL_PROJECTS = :access_all_projects
+            WHERE ID = :id",
+            params! {
+                "id" => &role.id,
+                "role_name" => &role.role_name,
+                "create_image" => &role.permissions.create_image,
+                "read_image" => &role.permissions.read_image,
+                "modify_image" => &role.permissions.modify_image,
+                "delete_image" => &role.permissions.delete_image,
+                "read_renditions" => &role.permissions.read_renditions,
+                "create_renditions" => &role.permissions.create_renditions,
+                "modify_renditions" => &role.permissions.modify_renditions,
+                "delete_renditions" => &role.permissions.delete_renditions,
+                "read_project" => &role.permissions.read_project,
+                "create_project" => &role.permissions.create_project,
+                "modify_project" => &role.permissions.modify_project,
+                "delete_project" => &role.permissions.delete_project,
+                "read_user" => &role.permissions.read_user,
+                "create_user" => &role.permissions.create_user,
+                "modify_user" => &role.permissions.modify_user,
+                "delete_user" => &role.permissions.delete_user,
+                "publish" => &role.permissions.publish,
+                "publish_all" => &role.permissions.publish_all,
+                "access_all_projects" => &role.permissions.access_all_projects,
+            }
+        ) {
+            Ok(_) => Ok(String::from("Successfully updated role!")),
+
+            Err (e) => {
+                eprintln!("Error while updating role: {}", e);
+
+                Err(String::from("Unable to update role."))
+            }
+        }
     }
 
-    /**
-     * TODO: Implement this!
-     */
-    fn remove_item(&self, id: u32) {
-        todo!("Implement this!");
+    fn remove(&self, role: Role) -> Result<String, String> {
+        self.remove_item(role.id as u32)
+    }
+
+    fn remove_item(&self, id: u32) -> Result<String, String> {
+        let mut conn = get_db_connection();
+
+        match conn.exec_drop(
+            r"DELETE FROM USER_ROLE WHERE ID = :id",
+            params! { "id" => id.clone() }) {
+
+            Ok (_) => {
+                println!("Role with ID: {} removed successfully!", id);
+
+                Ok (String::from("Successfully removed role."))
+            }
+
+            Err (e) => {
+                eprintln!("Unable to remove role with ID: {}\nError: {}", id, e);
+
+                Err (String::from("Unable to remove role."))
+            }
+        }
     }
 }
 

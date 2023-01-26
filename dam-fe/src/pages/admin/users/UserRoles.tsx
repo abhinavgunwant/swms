@@ -8,7 +8,7 @@ import {
 
 import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
 
-import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
+import { Breadcrumbs, Search, CustomFab, Loading, ConfirmDialog } from '../../../components';
 
 import useAPI from '../../../hooks/useAPI';
 import Role from '../../../models/Role';
@@ -25,7 +25,10 @@ const StyledSortLabel = styled(TableSortLabel)`
 
 const UserRoles = () => {
     const [ loading, setLoading ] = useState<boolean>(true);
+    const [ showDeleteConfirmDialog, setShowDeleteConfirmDialog ]
+            = useState<boolean>(true);
     const [ roles, setRoles ] = useState<Role[]>([]);
+    const [ roleToDelete, setRoleToDelete ] = useState<Role>();
 
     const [ _, startTransition ] = useTransition();
 
@@ -37,6 +40,17 @@ const UserRoles = () => {
     const onEdit = (role: Role) => {
         adminStore.setRoleToEdit(role);
         navigate('/admin/roles/edit');
+    };
+
+    /**
+     * When user clicks on the delete button on a role in the view roels page.
+     */
+    const onDelete = (role: Role) => startTransition(() => {
+        setShowDeleteConfirmDialog(true);
+        setRoleToDelete(role);
+    });
+
+    const onDeleteDialogClosed = () => {
     };
 
     useEffect(() => {
@@ -109,7 +123,8 @@ const UserRoles = () => {
                                         <EditIcon />
                                     </IconButton>
                                     <IconButton
-                                        color="warning">
+                                        color="warning"
+                                        onClick={ () => onDelete(role) }>
                                         <Delete />
                                     </IconButton>
                                 </TableCell>
@@ -130,6 +145,31 @@ const UserRoles = () => {
                 navigate('/admin/roles/create');
             },
             }]}/>
+
+        <ConfirmDialog
+            title="Are you sure?"
+            body={ <span>
+                <p>
+                Deleting this role will revoke all permissions from users that
+                have this role.
+                </p>
+            </span>}
+            open={ showDeleteConfirmDialog }
+            onClose={ onDeleteDialogClosed }
+            actions={[
+                {
+                    text: 'Cancel',
+                    action: () => {},
+                    buttonVariant: 'outlined',
+                    buttonColor: 'error',
+                },
+                {
+                    text: 'Delete',
+                    action: () => {},
+                    buttonVariant: 'contained',
+                    buttonColor: 'error',
+                }
+            ]} />
     </div>;
 }
 
