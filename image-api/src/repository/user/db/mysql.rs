@@ -373,7 +373,10 @@ impl UserRepository for MySQLUserRepository {
                         }
                     }
 
-                    Err (_) => {
+                    Err (e) => {
+                        eprintln!("Error inserting data: {}", e);
+                        eprintln!("Rolling back the transaction!");
+
                         let c_res = tx.rollback();
                         
                         match c_res {
@@ -389,22 +392,22 @@ impl UserRepository for MySQLUserRepository {
     }
 
     fn update(&self, user: User) -> Result<(), String> {
-        println!("Updating a user");
-
         let mut conn = get_db_connection();
 
         match conn.exec_drop(
-            r"UPDATE USER SET name = :name, email = :email WHERE ID = :id",
+            r"UPDATE USER SET NAME = :name, EMAIL = :email,
+            USER_ROLE = :user_role WHERE ID = :id",
             params! {
                 "id" => user.id,
                 "name" => user.name,
                 "email" => user.email,
+                "user_role" => user.user_role,
             }
         ) {
             Ok(_) => Ok(()),
 
             Err (e) => {
-                eprintln!("{}", e);
+                eprintln!("Error updating user: {}", e);
 
                 return Err(String::from("Unable to update user."));
             }

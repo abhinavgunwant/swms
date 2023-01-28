@@ -24,7 +24,7 @@ interface EmailTextFieldProps {
 
 const EMAIL_PATTERN_ERROR = 'Must be a valid email';
 
-const EmailTextField = (props: EmailTextFieldProps) => {
+export const EmailTextField = (props: EmailTextFieldProps) => {
     const [ error, setError ] = useState<boolean>(false);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 

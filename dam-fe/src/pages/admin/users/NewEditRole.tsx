@@ -159,7 +159,7 @@ const NewEditRole = (props: NewEditRoleProps) => {
         <Breadcrumbs links={ [
             { text: 'Admin', to: '/admin' },
             { text: 'User Roles', to: '/admin/roles' },
-            'New Role',
+            props.mode === 'edit' ? 'Edit Role' : 'New Role',
         ] } />
 
         <Typography variant="h5">

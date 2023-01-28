@@ -3,5 +3,6 @@ export default interface CreateUserPayload {
     loginId: string,
     email: string,
     password: string,
+    userRole: number,
 }
 

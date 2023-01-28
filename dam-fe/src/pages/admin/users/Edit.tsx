@@ -3,11 +3,9 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-    TextField, Button, Typography, Grid,
-} from '@mui/material';
+import { TextField, Button, Typography, Grid } from '@mui/material';
 
-import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
+import { Breadcrumbs, RoleSelect } from '../../../components';
 
 import useAdminStore from '../../../store/admin/AdminStore';
 import UserListing from '../../../models/UserListing';
@@ -23,6 +21,7 @@ const StyledTF = styled(TextField)`
 export const Edit = () => {
     const [ name, setName ] = useState<string>('');
     const [ email, setEmail ] = useState<string>('');
+    const [ userRole, setUserRole ] = useState<number>();
     const [ enableSave, setEnableSave ] = useState<boolean>(false);
 
     const [ _, startTransition ] = useTransition();
@@ -40,18 +39,20 @@ export const Edit = () => {
         e: ChangeEvent<HTMLInputElement>
     ) => setEmail(e.target.value);
 
+    const onUserRoleChanged = (userRole: number) => setUserRole(userRole);
+
     const onResetPassword = () => {
         // TODO: Open reset password dialog.
     };
 
     const onSave = () => {
-
         if (adminStore && adminStore.userToEdit) {
             const user: UserListing = {
                 id: adminStore.userToEdit.id,
                 loginId: adminStore.userToEdit.loginId,
                 name,
                 email,
+                userRole,
             }
 
             editUser(user);
@@ -62,20 +63,29 @@ export const Edit = () => {
         }
     }
 
+    const onCancel = () => {
+        navigate('/admin/users');
+    }
+
     useEffect(() => {
         if (
-            adminStore?.userToEdit?.name === name
-            && adminStore?.userToEdit?.email === email
+            typeof adminStore !== 'undefined'
+            && typeof adminStore.userToEdit !== 'undefined'
         ) {
-            if (enableSave) {
-                startTransition(() => setEnableSave(false));
-            }
-        } else {
-            if (!enableSave) {
+            if (
+                adminStore.userToEdit?.name === name
+                && adminStore.userToEdit?.email === email
+                && adminStore.userToEdit?.userRole === userRole
+            ) {
+                if (enableSave) {
+                    startTransition(() => setEnableSave(false));
+                }
+            } else if (!enableSave) {
+                console.log('enabling Save');
                 startTransition(() => setEnableSave(true));
             }
         }
-    }, [ name, email ]);
+    }, [ name, email, userRole ]);
 
     useEffect(() => {
         if (!adminStore.userToEdit) {
@@ -84,8 +94,13 @@ export const Edit = () => {
             return;
         }
 
-        setName(adminStore.userToEdit.name);
-        setEmail(adminStore.userToEdit.email);
+        startTransition(() => {
+            if (adminStore.userToEdit) {
+                setName(adminStore.userToEdit.name);
+                setEmail(adminStore.userToEdit.email);
+                setUserRole(adminStore.userToEdit.userRole);
+            }
+        });
     }, []);
 
     if (!adminStore.userToEdit) {
@@ -118,11 +133,13 @@ export const Edit = () => {
                     value={ email }
                     onChange={ onEmailChanged } />
 
+                <RoleSelect
+                    userRole={ userRole ? userRole : 0 }
+                    onChange={ onUserRoleChanged } />
+
                 <Button
                     onClick={ onResetPassword }
-                    sx={{
-                        margin: '0.5rem 0 1rem 0'
-                    }}>
+                    sx={{ margin: '0.5rem 0 1rem 0' }}>
                     Reset Password
                 </Button>
             </Grid>
@@ -137,7 +154,8 @@ export const Edit = () => {
 
         <Button
             variant="outlined"
-            sx={{ marginLeft: '0.5rem' }}>
+            sx={{ marginLeft: '0.5rem' }}
+            onClick={ onCancel }>
             Cancel
         </Button>
     </div>;

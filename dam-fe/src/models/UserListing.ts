@@ -3,5 +3,6 @@ export default interface UserList {
     loginId: string,
     name: string,
     email: string,
+    userRole?: number,
 }
 

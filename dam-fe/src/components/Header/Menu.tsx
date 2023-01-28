@@ -129,7 +129,9 @@ const Menu = (props: MenuProps) => {
 
                     <List sx={{ width: 300 }}>
                         {
-                            menuData.map((m) => <ListItem disablePadding>
+                            menuData.map((m, i) => <ListItem
+                                key={ i }
+                                disablePadding>
                                 <ListItemButton onClick={() => onClicked(m)}>
                                     {
                                         m.icon &&

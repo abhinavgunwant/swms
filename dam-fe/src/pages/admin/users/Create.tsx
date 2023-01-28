@@ -1,19 +1,13 @@
 import { useState, useEffect, useTransition, Fragment, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
-    Typography, Grid, TextField, Button, Box, CircularProgress, Accordion,
-    AccordionSummary, AccordionDetails, InputLabel, Select, FormControl,
-    OutlinedInput, SelectChangeEvent, Alert,
+    Typography, Grid, TextField, Button, Box, CircularProgress, Alert,
 } from '@mui/material';
 
 import useAPI from '../../../hooks/useAPI';
 
-import {
-    ExpandMore,
-} from '@mui/icons-material';
-
-import Breadcrumbs from '../../../components/Breadcrumbs';
-import EmailTextField from '../../../components/EmailTextField';
+import { Breadcrumbs, EmailTextField, RoleSelect } from '../../../components';
 
 import { isEmpty } from '../../../utils/misc';
 
@@ -29,12 +23,6 @@ const StyledGrid = styled(Grid)`
     margin-top: 1rem;
 `;
 
-const ChipWrapper = styled(Box)`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5;
-`;
-
 const Create = () => {
     const [ name, setName ] = useState<string>('');
     const [ nameError, setNameError ] = useState<boolean>(false);
@@ -43,6 +31,7 @@ const Create = () => {
     const [ showLoginHelper, setShowLoginHelper ] = useState<boolean>(false);
     const [ loginError, setLoginError ] = useState<boolean>(false);
     const [ email, setEmail ] = useState<string>('');
+    const [ userRole, setUserRole ] = useState<number>(0);
     const [
         forceShowEmailError, setForceShowEmailError
     ] = useState<boolean>(false);
@@ -67,6 +56,8 @@ const Create = () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
+
+    const navigate = useNavigate();
 
     const { createUser } = useAPI();
 
@@ -94,6 +85,8 @@ const Create = () => {
         const newEmail = e.target.value;
         setEmail(newEmail);
     }
+
+    const onUserRoleChanged = (userRole: number) => setUserRole(userRole);
 
     const onEmailError = () => startTransition(() => setEmailError(true));
     const onEmailValid = () => startTransition(() => {
@@ -225,9 +218,9 @@ const Create = () => {
 
         // Validate all fields once again!
         let valid: boolean = validateName();
-        valid = validateLogin() || valid;
-        valid = validatePassword() || valid;
-        valid = validateConfirmPassword() || valid;
+        valid = validateLogin() && valid;
+        valid = validatePassword() && valid;
+        valid = validateConfirmPassword() && valid;
 
         if (!emailError && email === '') {
             valid = false;
@@ -246,10 +239,8 @@ const Create = () => {
             setErrorMessage('');
         });
 
-        console.log('creating user');
-
         const resp = await createUser({
-            name, loginId: login, email, password
+            name, loginId: login, email, password, userRole
         });
 
         if (resp.success) {
@@ -270,6 +261,10 @@ const Create = () => {
                 setErrorMessage(resp.message);
             }), 100);
         }
+    };
+
+    const onCancel = () => {
+        navigate('/admin/users');
     };
 
     return <div className="page page--create-users">
@@ -315,13 +310,22 @@ const Create = () => {
                     }
                     required />
 
-                <EmailTextField
-                    value={ email }
-                    forceShowError={ forceShowEmailError }
-                    onChange={ onEmailChanged }
-                    onError={ onEmailError }
-                    onValid={ onEmailValid }
-                    required />
+                <Grid container>
+                    <Grid item xs={12} md={6}>
+                        <EmailTextField
+                            value={ email }
+                            forceShowError={ forceShowEmailError }
+                            onChange={ onEmailChanged }
+                            onError={ onEmailError }
+                            onValid={ onEmailValid }
+                            required />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                        <RoleSelect
+                            userRole={ userRole }
+                            onChange={ onUserRoleChanged } />
+                    </Grid>
+                </Grid>
 
                 <Grid container>
                     <Grid item xs={12} md={6}>
@@ -356,31 +360,6 @@ const Create = () => {
                     </Grid>
                 </Grid>
 
-                {/* <FormControl>
-                        <InputLabel id="role-chip-label">Roles</InputLabel>
-
-                        <Select
-                            labelId="role-chip-label"
-                            id="role-chip"
-                            input={
-                                <OutlinedInput
-                                    id="select-role-chip"
-                                    label="User Roles"
-                                />
-                            }
-                            renderValue={
-                                (selected) => <ChipWrapper>
-                                    { 
-                                        selected.map((value) => <Chip
-                                            key={ value }
-                                            label={ value } />
-                                        )
-                                    }
-                                </ChipWrapper>
-                            }
-                            multiple>
-                        </Select>
-                    </FormControl> */}
                 {
                     error &&
                     <Alert severity='error' onClose={ onErrorMessageClosed }>
@@ -404,6 +383,8 @@ const Create = () => {
                 disabled={
                     nameError || loginError || emailError || passwordError
                     || confirmPasswordError
+                    || name == '' || login == '' || email == ''
+                    || password == '' || confirmPassword == ''
                 }
                 onClick={ onSave }>
                 {
@@ -423,7 +404,7 @@ const Create = () => {
                 }
             </Button>
 
-            <Button variant="outlined">Cancel</Button>
+            <Button variant="outlined" onClick={ onCancel }>Cancel</Button>
         </Box>
     </div>;
 };

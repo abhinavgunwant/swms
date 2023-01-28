@@ -15,7 +15,8 @@ pub struct CreateUserRequest {
     login_id: String,
     password: String,
     name: String,
-    email: String
+    email: String,
+    user_role: u8,
 }
 
 #[derive(Serialize)]
@@ -30,7 +31,17 @@ pub struct UserResponseMessage {
 pub struct UserListResponseMessage {
     success: bool,
     message: String,
-    users: Vec<UserListing>,
+    users: Vec<EditUserRequest>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditUserRequest {
+    pub id: u32,
+    pub login_id: String,
+    pub name: String,
+    pub email: String,
+    pub user_role: u8,
 }
 
 #[post("/api/admin/user")]
@@ -41,7 +52,7 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
         login_id: req_obj.login_id.clone(),
         password: req_obj.password.clone(),
         email: req_obj.email.clone(),
-        user_role: 0,
+        user_role: req_obj.user_role.clone(),
         created_by: 0,
         modified_by: 0,
         created_on: Utc::now(),
@@ -76,14 +87,14 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
  * to submit when changing user attributes.
  */
 #[put("/api/admin/user")]
-pub async fn edit_user(req_obj: Json<UserListing>) -> HttpResponse {
+pub async fn edit_user(req_obj: Json<EditUserRequest>) -> HttpResponse {
     match get_user_repository().update(User {
         id: req_obj.id,
         name: req_obj.name.clone(),
         login_id: req_obj.login_id.clone(),
         password: String::from(""),
         email: req_obj.email.clone(),
-        user_role: 0,
+        user_role: req_obj.user_role,
         created_by: 0,
         modified_by: 0,
         created_on: Utc::now(),
@@ -162,14 +173,15 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
 pub async fn get_user_list(req: HttpRequest) -> HttpResponse {
     match get_user_repository().get_all() {
         Ok (users) => {
-            let mut user_list: Vec<UserListing> = vec![];
+            let mut user_list: Vec<EditUserRequest> = vec![];
 
             for user in users.iter() {
-                user_list.push(UserListing {
+                user_list.push(EditUserRequest {
                     id: user.id.clone(),
                     login_id: user.login_id.clone(),
                     name: user.name.clone(),
                     email: user.email.clone(),
+                    user_role: user.user_role.clone(),
                 });
             }
 

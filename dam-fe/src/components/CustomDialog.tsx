@@ -1,5 +1,7 @@
 import { ReactNode } from 'react';
 
+import styled from '@emotion/styled';
+
 import {
     Button, Table, TableHead, TableRow, TableCell, TableBody,
     TableContainer, TableSortLabel, Checkbox, TablePagination, Dialog,
@@ -9,7 +11,7 @@ import {
 /**
  * Interface representing the action buttons of the dialog.
  */
-interface ConfirmDialogAction {
+interface CustomDialogAction {
     /**
      * Text of the button
      */
@@ -31,7 +33,7 @@ interface ConfirmDialogAction {
 /**
  * Interface representing all the content in the confirm dialog.
  */
-interface ConfirmDialogProps {
+interface CustomDialogProps {
     /**
      * The text in the top title line.
      */
@@ -43,7 +45,7 @@ interface ConfirmDialogProps {
      */
     body?: ReactNode,
 
-    actions?: ConfirmDialogAction[],
+    actions?: CustomDialogAction[],
 
     /**
      * When to open the dialog.
@@ -56,7 +58,16 @@ interface ConfirmDialogProps {
     onClose: () => void,
 }
 
-export const ConfirmDialog = (props: ConfirmDialogProps) => {
+const DialogActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    margin-top: 1rem;
+    gap: 0.5rem;
+`;
+
+export const CustomDialog = (props: CustomDialogProps) => {
     if (!props.open) {
         return null;
     }
@@ -67,6 +78,7 @@ export const ConfirmDialog = (props: ConfirmDialogProps) => {
         <DialogContent>
             { props.body }
 
+            <DialogActions>
             {
                 props?.actions?.map((action, i) => <Button
                     key={ i }
@@ -77,9 +89,10 @@ export const ConfirmDialog = (props: ConfirmDialogProps) => {
                     </Button>
                 )
             }
+            </DialogActions>
         </DialogContent>
     </Dialog>
 };
 
-export default ConfirmDialog;
+export default CustomDialog;
 

@@ -8,7 +8,7 @@ import {
 
 import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
 
-import { Breadcrumbs, Search, CustomFab, Loading, ConfirmDialog } from '../../../components';
+import { Breadcrumbs, Search, CustomFab, Loading, CustomDialog } from '../../../components';
 
 import useAPI from '../../../hooks/useAPI';
 import Role from '../../../models/Role';
@@ -26,13 +26,13 @@ const StyledSortLabel = styled(TableSortLabel)`
 const UserRoles = () => {
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ showDeleteConfirmDialog, setShowDeleteConfirmDialog ]
-            = useState<boolean>(true);
+            = useState<boolean>(false);
     const [ roles, setRoles ] = useState<Role[]>([]);
     const [ roleToDelete, setRoleToDelete ] = useState<Role>();
 
     const [ _, startTransition ] = useTransition();
 
-    const { getRoles } = useAPI();
+    const { getRoles, deleteRole } = useAPI();
     const adminStore = useAdminStore();
 
     const navigate = useNavigate();
@@ -50,25 +50,47 @@ const UserRoles = () => {
         setRoleToDelete(role);
     });
 
-    const onDeleteDialogClosed = () => {
+    /**
+     * When user clicks on "Delete" button on delete confirmation dialog.
+     */
+    const onConfirmDelete = async () => {
+        if (roleToDelete) {
+            await deleteRole(roleToDelete);
+        }
+
+        startTransition(() => {
+            if (roleToDelete) {
+                setRoleToDelete(undefined);
+                setLoading(true);
+                initRoles();
+            }
+
+            setShowDeleteConfirmDialog(false);
+        });
     };
 
-    useEffect(() => {
-        const func = async () => {
-            const rolesResp = await getRoles();
+    const onDeleteDialogClosed = () => startTransition(
+        () => setShowDeleteConfirmDialog(false)
+    );
 
-            if (
-                rolesResp.success && Array.isArray(rolesResp.roles)
-                && rolesResp.roles.length
-            ) {
-                startTransition(() => {
-                    setRoles(rolesResp.roles);
-                    setLoading(false);
-                });
-            }
-        };
-        func();
-    }, []);
+    /**
+     * Fetches all the roles in the DB.
+     */
+    const initRoles = async () => {
+        const rolesResp = await getRoles();
+
+        if (
+            rolesResp.success && Array.isArray(rolesResp.roles)
+            && rolesResp.roles.length
+        ) {
+            startTransition(() => {
+                setRoles(rolesResp.roles);
+                setLoading(false);
+            });
+        }
+    };
+
+    useEffect(() => { initRoles() }, []);
 
     return <div className="page page--user-roles">
         <Breadcrumbs links={ [
@@ -146,26 +168,24 @@ const UserRoles = () => {
             },
             }]}/>
 
-        <ConfirmDialog
+        <CustomDialog
             title="Are you sure?"
             body={ <span>
-                <p>
                 Deleting this role will revoke all permissions from users that
                 have this role.
-                </p>
             </span>}
             open={ showDeleteConfirmDialog }
             onClose={ onDeleteDialogClosed }
             actions={[
                 {
                     text: 'Cancel',
-                    action: () => {},
+                    action: onDeleteDialogClosed,
                     buttonVariant: 'outlined',
                     buttonColor: 'error',
                 },
                 {
                     text: 'Delete',
-                    action: () => {},
+                    action: onConfirmDelete,
                     buttonVariant: 'contained',
                     buttonColor: 'error',
                 }

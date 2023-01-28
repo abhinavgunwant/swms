@@ -45,6 +45,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::role::get_all_roles)
             .service(api::admin::role::set_role)
             .service(api::admin::role::update_role)
+            .service(api::admin::role::delete_role)
             .service(api::admin::project::get_projects)
             .service(api::admin::project::add_project)
             .service(api::admin::project::get_projects_for_user)
