@@ -38,7 +38,7 @@ const ImageText = styled(ListItemText)`
     width: 400px;
 `
 
-const ImageListItem = (props: ThumbnailExtendedProps) => {
+export const ImageListItem = (props: ThumbnailExtendedProps) => {
     const store = useWorkspaceStore();
 
     const selected = store.isSelected(props.id);

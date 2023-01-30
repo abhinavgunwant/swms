@@ -1,17 +1,12 @@
 import { Fragment } from 'react';
 
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import { CardActions, CardContent, CardMedia, IconButton } from '@mui/material';
-import Typography from '@mui/material/Typography';
-import CheckIcon from '@mui/icons-material/Check';
-import DeselectIcon from '@mui/icons-material/Deselect';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { styled } from '@mui/material/styles';
+import {
+    Grid, Card, CardActions, CardContent, CardMedia, IconButton, Typography
+} from '@mui/material';
 
 import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
-import useWorkspaceStore from '../store/workspace/WorkspaceStore';
+
+import { styled } from '@mui/material/styles';
 
 const ThumbnailSubtitle = styled(Typography)`color: #888888;`;
 
@@ -20,31 +15,18 @@ const ThumbnailActions = styled(CardActions)`
     justify-content: center;
 `;
 
-const Thumbnail = (props: ThumbnailExtendedProps) => {
-    const store = useWorkspaceStore();
-
+export const Thumbnail = (props: ThumbnailExtendedProps) => {
     const fileNameContent = props.thumbnailLocation.split('/');
     const subtitle = fileNameContent[fileNameContent.length - 1];
-
-    const selected = store.isSelected(props.id);
-
-    const onSelectClicked = () => {
-        if (selected) {
-            store.removeImageFromSelected(props.id);
-        } else {
-            store.addImageToSelected(props.id);
-            store.setSelecting(true);
-        }
-    };
 
     return <Grid item xs={12} sm={6} lg={3} xl={2}>
         <Card
             variant="outlined"
             style={{
-                backgroundColor: selected ? '#1976d244' : 'transparent',
-                boxShadow: selected ? '0 0 0.5rem #1976d244' : 'none',
+                backgroundColor: props.selected ? '#1976d244' : 'transparent',
+                boxShadow: props.selected ? '0 0 0.5rem #1976d244' : 'none',
             }}
-            onClick={ store.selecting ? onSelectClicked : props.onClick }>
+            onClick={ props.onClick }>
             <CardMedia
                 component="img"
                 height="200"
@@ -62,23 +44,16 @@ const Thumbnail = (props: ThumbnailExtendedProps) => {
 
             <ThumbnailActions disableSpacing>
                 {
-                    props.isImage &&
-                    <IconButton aria-label="select" onClick={ onSelectClicked }>
-                        { selected ? <DeselectIcon /> : <CheckIcon />}
-                    </IconButton>
-                }
-
-                {
-                    !(store.selecting && props.isImage) &&
-                    <Fragment>
-                        <IconButton aria-label="edit">
-                            <EditIcon />
-                        </IconButton>
-
-                        <IconButton aria-label="delete">
-                            <DeleteIcon />
-                        </IconButton>
-                    </Fragment>
+                    props?.actions?.map((action, i) => {
+                        if (action.show) {
+                            return <IconButton
+                                aria-label={ action.label }
+                                onClick={ action.action }
+                                key={ i }>
+                                { action.icon }
+                            </IconButton>;
+                        }
+                    })
                 }
             </ThumbnailActions>
         </Card>
@@ -86,3 +61,4 @@ const Thumbnail = (props: ThumbnailExtendedProps) => {
 }
 
 export default Thumbnail;
+

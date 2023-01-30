@@ -12,4 +12,5 @@ export * from './Thumbnail';
 export * from './Typeahead';
 export * from './CustomDialog';
 export * from './RoleSelect';
+export * from './ImagePreview';
 

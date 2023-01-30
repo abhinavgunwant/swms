@@ -1,20 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useTransition } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import Grid from '@mui/material/Grid';
-import List from '@mui/material/List';
-import CircularProgress from '@mui/material/CircularProgress';
+import { Grid, List, CircularProgress } from '@mui/material';
+
+import {
+    Check, Deselect, Visibility, Edit, Delete
+} from '@mui/icons-material';
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import WorkspaceFab from './WorkspaceFab';
-import Thumbnail from '../../components/Thumbnail';
+import { Thumbnail, ImageListItem, ImagePreview } from '../../components';
 
-import { styled } from '@mui/material/styles';
-import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
-import ImageListItem from '../../components/ImageListItem';
 import LinkModel from '../../models/LinkModel';
 import useAPI from '../../hooks/useAPI';
+
 import useUserStore from '../../store/workspace/UserStore';
+import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
+
+import { styled } from '@mui/material/styles';
 
 export const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 9.25rem);
@@ -23,6 +26,20 @@ export const WorkspaceGrid = styled(Grid)`
 `;
 
 const Workspace = ():React.ReactElement => {
+    const [ breadcrumbLinks, setBreadcrumbLinks ]
+        = useState<Array<LinkModel | string>>(['Workspace']);
+    
+    const [ loading, setLoading ] = useState<boolean>(true);
+    const [ showPreview, setShowPreview ] = useState<boolean>(false);
+
+    /**
+     * ID of the image to be previewed
+     */
+    const [ previewId, setPreviewId ] = useState<number>();
+
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    const [ _, startTransition ] = useTransition();
+
     const store = useWorkspaceStore();
     const userStore = useUserStore();
 
@@ -32,18 +49,18 @@ const Workspace = ():React.ReactElement => {
 
     const { getImages } = useAPI();
 
-    const [ breadcrumbLinks, setBreadcrumbLinks ]
-        = useState<Array<LinkModel | string>>(['Workspace']);
-    
-    const [ loading, setLoading ] = useState<boolean>(true);
-    // const [ pageType, setPageType ] = useState<string>('PROJECT');
-
     const onThumbnailClicked = (path: string, slug: string) => {
         return () => navigate(
             '/workspace/tree/' + projectSlug +
             (path && path !== '/' ? path : '') + '/' + slug
         );
     };
+
+    const onPreviewClicked = (id: number) => startTransition(() => {
+        console.log('Preview Clicked!!!!');
+        setShowPreview(true);
+        setPreviewId(id);
+    })
 
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
@@ -74,15 +91,6 @@ const Workspace = ():React.ReactElement => {
         setLoading(false);
     }, []);
 
-//    if (pageType === 'IMAGE') {
-//        console.log('Image page type!');
-//        
-//        return <ViewImage 
-//            projectSlug={ projectSlug }
-//            path={ path }
-//            imageSlug={ imageSlug } />;
-//    }
-
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ breadcrumbLinks } />
 
@@ -93,17 +101,53 @@ const Workspace = ():React.ReactElement => {
                 store.displayStyle === 'GRID' ?
                     <WorkspaceGrid container spacing={2}>
                         {
-                            store.imageList.map(t =>
-                                <Thumbnail
+                            store.imageList.map(t => {
+                                const selected = store.isSelected(t.id);
+
+                                return <Thumbnail
                                     key={ t.id }
                                     id={ t.id }
                                     name={ t.name }
                                     thumbnailLocation=""
                                     isImage={ true }
+                                    selected={ selected }
+                                    actions={[
+                                        {
+                                            label: 'select',
+                                            icon: selected ? <Deselect /> : <Check />,
+                                            show: true,
+                                            action: () => {
+                                                if (selected) {
+                                                    store.removeImageFromSelected(t.id);
+                                                } else {
+                                                    store.addImageToSelected(t.id);
+                                                    store.setSelecting(true);
+                                                }
+                                            },
+                                        },
+                                        {
+                                            label: 'preview',
+                                            icon: <Visibility />,
+                                            show: !store.selecting,
+                                            action: () => onPreviewClicked(t.id)
+                                        },
+                                        {
+                                            label: 'edit',
+                                            icon: <Edit />,
+                                            show: !store.selecting,
+                                            action: () => { console.log('Edit clicked') }
+                                        },
+                                        {
+                                            label: 'delete',
+                                            icon: <Delete />,
+                                            show: !store.selecting,
+                                            action: () => { console.log('Delete clicked') }
+                                        },
+                                    ]}
                                     onClick={
                                         onThumbnailClicked('', t.slug )
                                     } />
-                            )
+                            })
                         }
                     </WorkspaceGrid>
                     :
@@ -122,7 +166,10 @@ const Workspace = ():React.ReactElement => {
         }
 
         <WorkspaceFab />
+
+        <ImagePreview show={ showPreview } imageId={ previewId } />
     </div>;
 }
 
 export default Workspace;
+

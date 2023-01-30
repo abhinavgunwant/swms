@@ -76,7 +76,6 @@ pub async fn get_projects_for_user(req: HttpRequest) -> HttpResponse {
         });
     }
 
-    // TODO: Extract the user id here...
     // for now, since jwt setup is pending, i'm extracting it from the repo.
     let login_id = format!("{}", &auth_header[7..]);
     println!("Login ID: {}", login_id);

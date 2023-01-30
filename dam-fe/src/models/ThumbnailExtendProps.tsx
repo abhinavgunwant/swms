@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 
-import ThumbnailItemModel from "./ThumbnailItemModel";
+interface ThumbnailAction {
+    label: string,
+    icon: ReactNode,
+    show: boolean,
+    action: () => void,
+}
 
 /**
  * Prop type for `Thumbnail` and `ImageListItem`.
@@ -12,5 +17,8 @@ export default interface ThumbnailExtendedProps {
     thumbnailLocation: string,
     key: number,
     onClick?: React.MouseEventHandler<HTMLDivElement> | undefined;
+    actions?: ThumbnailAction[],
     isImage?: boolean;
+    selected?: boolean,
 };
+

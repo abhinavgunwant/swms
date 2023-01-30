@@ -157,9 +157,14 @@ impl ProjectRepository for MySQLProjectRepository {
             r"SELECT
                 P.ID, P.NAME, P.DESCRIPTION, P.CREATED_BY, P.MODIFIED_BY,
                 P.SLUG
+            FROM PROJECT P WHERE P.RESTRICT_USERS = FALSE
+            UNION
+            SELECT
+                P.ID, P.NAME, P.DESCRIPTION, P.CREATED_BY, P.MODIFIED_BY,
+                P.SLUG
             FROM PROJECT P, USER_PROJECT UP
-            WHERE P.RESTRICT_USERS = FALSE OR (
-                P.ID = UP.PROJECT_ID AND UP.USER_ID = :user_id)",
+            WHERE P.RESTRICT_USERS = TRUE AND P.ID = UP.PROJECT_ID
+                AND UP.USER_ID = :user_id",
             params! { "user_id" => user_id }
         ))
     }
@@ -245,14 +250,15 @@ impl ProjectRepository for MySQLProjectRepository {
     }
 
     fn update(&self, project: Project) {
-        println!("Updating an project");
+        println!("Updating a project");
     }
 
     fn remove(&self, id: Project) {
-        println!("Updating an project");
+        println!("Updating a project");
     }
 
     fn remove_item(&self, id: u32) {
-        println!("Updating an project");
+        println!("Updating a project");
     }
 }
+
