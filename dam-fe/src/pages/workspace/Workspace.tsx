@@ -60,7 +60,9 @@ const Workspace = ():React.ReactElement => {
         console.log('Preview Clicked!!!!');
         setShowPreview(true);
         setPreviewId(id);
-    })
+    });
+
+    const onPreviewClosed = () => startTransition(() => setShowPreview(false));
 
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
@@ -90,8 +92,7 @@ const Workspace = ():React.ReactElement => {
         getImages(projectSlug||'');
         setLoading(false);
     }, []);
-
-    return <div className="page page--workspace">
+return <div className="page page--workspace">
         <WorkspaceTopRow links={ breadcrumbLinks } />
 
         {
@@ -129,7 +130,7 @@ const Workspace = ():React.ReactElement => {
                                             label: 'preview',
                                             icon: <Visibility />,
                                             show: !store.selecting,
-                                            action: () => onPreviewClicked(t.id)
+                                            action: () => { onPreviewClicked(t.id) }
                                         },
                                         {
                                             label: 'edit',
@@ -167,7 +168,10 @@ const Workspace = ():React.ReactElement => {
 
         <WorkspaceFab />
 
-        <ImagePreview show={ showPreview } imageId={ previewId } />
+        <ImagePreview
+            show={ showPreview }
+            imageId={ previewId }
+            onClose={ onPreviewClosed } />
     </div>;
 }
 
