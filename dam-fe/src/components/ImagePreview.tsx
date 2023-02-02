@@ -1,7 +1,8 @@
 import { Fragment, useState, useEffect, useTransition, useRef } from 'react';
 import { Backdrop, IconButton, CircularProgress } from '@mui/material';
 import {
-    Image as ImageIcon, ImageNotSupported, ZoomIn, ZoomOut, Close
+    Image as ImageIcon, ImageNotSupported, ZoomIn, ZoomOut, Close, FitScreen,
+    PhotoSizeSelectActual,
 } from '@mui/icons-material';
 
 import styled from '@emotion/styled';
@@ -100,7 +101,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
         }
     }
 
-    const imageFitToWidth = () => {
+    const imageFitToScreen = () => {
         if (
             typeof imageRef === 'undefined'
             //&& typeof imageRef.current === 'undefined'
@@ -132,20 +133,24 @@ export const ImagePreview = (props: ImagePreviewProps) => {
 
         const wideImage = imgSectionAspectRatio >= 1;
 
+        let newZoom = 1;
+
         if (imgWidth < cWidth && imgHeight < cHeight) {
             if (wideImage) {
-                const newHeight = cHeight * 0.9;
-                if (imageRef && imageRef.current) {
-                    imageRef.current.width = (cWidth/cHeight) * newHeight;
-                    imageRef.current.height = newHeight;
-                }
+                newZoom = 1 + (((cHeight * 0.9) - imgHeight)/imgHeight);
             } else {
-                const newWidth = cWidth * 0.9
-                if (imageRef && imageRef.current) {
-                    imageRef.current.width = newWidth;
-                    imageRef.current.height = (newWidth/cWidth) * cHeight;
-                }
+                newZoom = 1 + (((cWidth * 0.9) - imgWidth)/imgWidth);
             }
+        } else {
+            if (wideImage) {
+                newZoom = 1 + ((imgHeight - (cHeight * 0.9))/imgHeight);
+            } else {
+                newZoom = 1 + ((imgWidth - (cWidth * 0.9))/imgWidth);
+            }
+        }
+
+        if (zoom < 0.95 * newZoom || zoom > 1.05 * newZoom) {
+            setZoom(newZoom);
         }
     };
 
@@ -208,15 +213,27 @@ export const ImagePreview = (props: ImagePreviewProps) => {
 
             <ControlSection>
                 <ControlButton
+                    aria-label="fit to screen"
+                    onClick={ imageFitToScreen }>
+                    <FitScreen style={{ fontSize: '2rem', color: '#ffffff' }} />
+                </ControlButton>
+
+                <ControlButton
                     aria-label="zoom in"
-                    onClick={ (e) => { console.log('Zoom In!'); onZoom('in'); } }>
+                    onClick={ (e) => onZoom('in') }>
                     <ZoomIn style={{ fontSize: '2rem', color: '#ffffff' }} />
                 </ControlButton>
 
                 <ControlButton
                     aria-label="zoom out"
-                    onClick={ (e) => { console.log('Zoom Out'); onZoom('out'); } }>
+                    onClick={ (e) => onZoom('out') }>
                     <ZoomOut style={{ fontSize: '2rem', color: '#ffffff' }} />
+                </ControlButton>
+                
+                <ControlButton
+                    aria-label="actual size"
+                    onClick={ () => setZoom(1) }>
+                    <PhotoSizeSelectActual style={{ fontSize: '2rem', color: '#ffffff' }} />
                 </ControlButton>
 
                 {/*
