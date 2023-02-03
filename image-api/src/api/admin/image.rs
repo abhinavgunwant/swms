@@ -1,7 +1,8 @@
 use actix_web::{
-    web::Json, HttpResponse, HttpRequest, post, get, http::header::ContentType,
+    web::{ Json, block }, HttpResponse, HttpRequest, post, get,
+    http::header::ContentType,
 };
-use std::fs::rename;
+use std::fs::{ File, create_dir_all, read, rename, remove_file };
 use serde::Serialize;
 use chrono::Utc;
 use crate::{
@@ -129,6 +130,43 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
             message: "There was some problem. Please try again.",
             image_id: None
         })
+    }
+}
+
+/**
+ * Gets the original image file for preview for admin user.
+ */
+#[get("/api/admin/image-file/{image_id}")]
+pub async fn get_image_file(req: HttpRequest) -> HttpResponse {
+    let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
+        .unwrap();
+
+    let img_repo = get_image_repository();
+
+    match img_repo.get(image_id) {
+        Ok (image) => {
+            let image_file_path = format!(
+                "image-uploads/{}{}",
+                image.id,
+                image.encoding.extension()
+            );
+
+            let image_file = block(
+                move || read(String::from(image_file_path))
+            ).await.unwrap().expect("Error whie downloading!");
+
+            HttpResponse::Ok()
+                .content_type(image.encoding.mime_type())
+                .body(image_file)
+        }
+
+        Err (e) => {
+            if e == DBError::NOT_FOUND {
+                return HttpResponse::NotFound().body("Image not found");
+            }
+
+            return HttpResponse::InternalServerError().body("Some error occured");
+        }
     }
 }
 

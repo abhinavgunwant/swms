@@ -104,9 +104,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     const imageFitToScreen = () => {
         if (
             typeof imageRef === 'undefined'
-            //&& typeof imageRef.current === 'undefined'
             && typeof imgSectionRef === 'undefined'
-            //&& typeof imgSectionRef.current === 'undefined'
         ) {
             return;
         }
@@ -126,7 +124,6 @@ export const ImagePreview = (props: ImagePreviewProps) => {
             return;
         }
 
-        const imgAspectRatio:number = imgWidth / imgHeight;
         const imgSectionAspectRatio:number = cWidth / cHeight;
 
         console.log('Image width:', imgWidth, ', Image height:', imgHeight);
@@ -174,7 +171,6 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     }, [ props.show ]);
 
     useEffect(() => {
-        console.log('resizing', zoom);
         if (
             typeof imageRef === 'undefined'
             && typeof imgSectionRef === 'undefined'
@@ -183,8 +179,6 @@ export const ImagePreview = (props: ImagePreviewProps) => {
         }
 
         if (imageRef.current && originalWidth && originalHeight) {
-            console.log(originalWidth * zoom);
-            console.log(originalHeight * zoom);
             imageRef.current.width = originalWidth * zoom;
             imageRef.current.height = originalHeight * zoom;
         }

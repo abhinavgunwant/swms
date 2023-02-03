@@ -52,6 +52,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::project::validate_slug)
             .service(api::admin::image::get_images_in_project)
             .service(api::admin::image::get_image)
+            .service(api::admin::image::get_image_file)
             .service(api::admin::image::add_image)
             .service(api::admin::rendition::get_renditions_for_image)
             .service(api::admin::rendition::get_rendition)
