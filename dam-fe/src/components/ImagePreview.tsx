@@ -195,7 +195,10 @@ export const ImagePreview = (props: ImagePreviewProps) => {
                     props.imageId ?
                     <Fragment>
                         <img
-                            src="http://localhost:8080/api/image/my-first-project/cute-doggo.jpg"
+                            src={
+                                'http://localhost:8080/api/admin/image-file/'
+                                + props.imageId
+                            }
                             onLoad={ onImageLoaded }
                             ref={ imageRef } />
                         { loading && <CircularProgress /> }
