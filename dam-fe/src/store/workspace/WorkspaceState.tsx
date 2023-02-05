@@ -1,6 +1,7 @@
 import ThumbnailItemModel from "../../models/ThumbnailItemModel";
 import ProjectListItemModel from "../../models/ProjectListItemModel";
 import Project from '../../models/Project';
+import LinkModel from '../../models/LinkModel';
 import Image from "../../models/Image";
 import Folder from "../../models/Folder";
 
@@ -26,6 +27,7 @@ export default interface WorkspaceState {
     currentFolder: Folder,
     currentProject: Project,
     currentPath: string,
+    breadcrumbList: Array<LinkModel | string>,
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
@@ -37,6 +39,7 @@ export default interface WorkspaceState {
     setCurrentFolder: (currentFolder: Folder) => void;
     setCurrentProject: (currentProject: Project) => void;
     setCurrentPath: (currentPath: string) => void;
+    setBreadcrumbList: (breadcrumbList: Array<LinkModel | string>) => void,
 
     /**
      * Whether the passed imageID matches the selected images.

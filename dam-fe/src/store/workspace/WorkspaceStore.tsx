@@ -2,6 +2,7 @@ import create from 'zustand';
 // import { devtools, persist } from 'zustand/middleware';
 
 import WorkspaceState from './WorkspaceState';
+import LinkModel from '../../models/LinkModel';
 import Folder from '../../models/Folder';
 import Project from '../../models/Project';
 
@@ -28,6 +29,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
                 modifiedOn: '',
             },
             currentPath: '',
+            breadcrumbList: [],
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(
@@ -76,6 +78,9 @@ const useWorkspaceStore = create<WorkspaceState>()(
             ),
             setCurrentPath: (currentPath: string) => set(
                 (state) => ({ ...state, currentPath: currentPath })
+            ),
+            setBreadcrumbList: (breadcrumbList: Array<LinkModel | string>) => set(
+                (state) => ({ ...state, breadcrumbList: breadcrumbList })
             ),
         })
 );

@@ -26,9 +26,6 @@ export const WorkspaceGrid = styled(Grid)`
 `;
 
 const Workspace = ():React.ReactElement => {
-    const [ breadcrumbLinks, setBreadcrumbLinks ]
-        = useState<Array<LinkModel | string>>(['Workspace']);
-    
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
 
@@ -49,11 +46,10 @@ const Workspace = ():React.ReactElement => {
 
     const { getImages } = useAPI();
 
-    const onThumbnailClicked = (path: string, slug: string) => {
-        return () => navigate(
-            '/workspace/tree/' + projectSlug +
-            (path && path !== '/' ? path : '') + '/' + slug
-        );
+    const onThumbnailClicked = (path: string, imageId: number) => {
+        console.log(store.currentPath);
+
+        navigate('/workspace/image/' + imageId);
     };
 
     const onPreviewClicked = (id: number) => startTransition(() => {
@@ -69,7 +65,7 @@ const Workspace = ():React.ReactElement => {
         if (projectSlug) {
             for(let i=0; i<store.projectList.length; ++i) {
                 if (projectSlug === store.projectList[i].slug) {
-                    setBreadcrumbLinks([
+                    store.setBreadcrumbList([
                         {
                             text: 'Workspace',
                             to: '/workspace',
@@ -92,8 +88,9 @@ const Workspace = ():React.ReactElement => {
         getImages(projectSlug||'');
         setLoading(false);
     }, []);
-return <div className="page page--workspace">
-        <WorkspaceTopRow links={ breadcrumbLinks } />
+
+    return <div className="page page--workspace">
+        <WorkspaceTopRow links={ store.breadcrumbList } />
 
         {
             loading ?
@@ -146,7 +143,7 @@ return <div className="page page--workspace">
                                         },
                                     ]}
                                     onClick={
-                                        onThumbnailClicked('', t.slug )
+                                        () => onThumbnailClicked(store.currentPath, t.id)
                                     } />
                             })
                         }

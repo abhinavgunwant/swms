@@ -205,6 +205,25 @@ const useAPI = () => {
         },
 
         /**
+         * Gets a single image.
+         *
+         * TODO: Verify that the response is a proper `Image` object.
+         */
+        getImage: async (imageId: number) => {
+            const response = await fetch(
+                `${HOST}/api/admin/image/${ imageId }`, {
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                }
+            });
+
+            if (response.status === 200) {
+                const json = await response.json();
+                return json;
+            }
+        },
+
+        /**
          * Adds a new project.
          */
         addProject: async (project: Project) => {
