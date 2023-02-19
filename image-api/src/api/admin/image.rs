@@ -1,9 +1,8 @@
 use actix_web::{
-    web::{ Json, block }, HttpResponse, HttpRequest, post, get,
-    http::header::ContentType,
+    web::{ Json, block }, HttpResponse, HttpRequest, post, get, put,
 };
 use std::fs::{ File, create_dir_all, read, rename, remove_file };
-use serde::Serialize;
+use serde::{ Serialize, Deserialize };
 use chrono::Utc;
 use crate::{
     db::DBError,
@@ -22,6 +21,13 @@ pub struct ImageSaveResponse<'a> {
     success: bool,
     message: &'a str,
     image_id: Option<u32>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageTitleUpdateRequest {
+    image_id: u32,
+    title: String,
 }
 
 #[get("/api/admin/project/{project_id}/images")]
@@ -158,6 +164,36 @@ pub async fn get_image_file(req: HttpRequest) -> HttpResponse {
             HttpResponse::Ok()
                 .content_type(image.encoding.mime_type())
                 .body(image_file)
+        }
+
+        Err (e) => {
+            if e == DBError::NOT_FOUND {
+                return HttpResponse::NotFound().body("Image not found");
+            }
+
+            return HttpResponse::InternalServerError().body("Some error occured");
+        }
+    }
+}
+
+/**
+ * Updates the title of an image.
+ */
+#[put("/api/admin/image/update-title/")]
+pub async fn update_image_title (req: Json<ImageTitleUpdateRequest>)
+    -> HttpResponse {
+    let img_repo = get_image_repository();
+
+    match img_repo.get(req.image_id) {
+        Ok (mut image) => {
+            image.title = req.title.clone();
+
+            match img_repo.update(image) {
+                Ok (msg) => HttpResponse::Ok().body(msg),
+
+                Err (msg) => HttpResponse::InternalServerError().body(msg),
+            }
+
         }
 
         Err (e) => {

@@ -272,8 +272,37 @@ impl ImageRepository for MySQLImageRepository {
         }
     }
 
-    fn update(&self, image: Image) {
+    fn update(&self, image: Image) -> Result<String, String>{
+        let mut conn = get_db_connection();
+
         println!("Updating an image");
+
+        match conn.exec_drop(r"UPDATE IMAGE SET
+                ORIGINAL_FILENAME = :original_filename, TITLE = :title,
+                HEIGHT = :height, WIDTH = :width, PUBLISHED = :published,
+                PROJECT_ID = :project_id, FOLDER_ID = :folder_id,
+                MODIFIED_BY = :modified_by, MODIFIED_ON = current_timestamp()
+            WHERE ID = :id",
+            params! {
+                "id" => &image.id,
+                "original_filename" => &image.name,
+                "title" => &image.title,
+                "height" => &image.height,
+                "width" => &image.width,
+                "published" => &image.is_published,
+                "project_id" => &image.project_id,
+                "folder_id" => &image.folder_id,
+                "modified_by" => &image.modified_by,
+            }
+        ) {
+            Ok(_) => Ok(String::from("Successfully updated image!")),
+
+            Err (e) => {
+                eprintln!("Error while updating image: {}", e);
+
+                Err(String::from("Unable to update image."))
+            }
+        }
     }
 
     fn remove(&self, id: Image) {

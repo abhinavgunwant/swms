@@ -54,6 +54,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::image::get_image)
             .service(api::admin::image::get_image_file)
             .service(api::admin::image::add_image)
+            .service(api::admin::image::update_image_title)
             .service(api::admin::rendition::get_renditions_for_image)
             .service(api::admin::rendition::get_rendition)
             .service(api::admin::rendition::set_rendition)
