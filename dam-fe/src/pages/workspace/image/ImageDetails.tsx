@@ -1,24 +1,22 @@
-import { useState, useEffect, useTransition, Fragment } from 'react';
+import { useState, useEffect, useTransition, Fragment, ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { WorkspaceGrid } from '../Workspace';
 import LinkModel from '../../../models/LinkModel';
 import Image from '../../../models/Image';
-import WorkspaceTopRow from "../WorkspaceTopRow";
-import { Thumbnail, Loading, ImageListItem, Breadcrumbs } from '../../../components';
+import { Loading, Breadcrumbs } from '../../../components';
 import {
-    List, TextField as MuiTextField, Typography, Grid, IconButton,
+    TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
+    InputAdornment, FormControl, InputLabel,
 } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete, Check, Close } from '@mui/icons-material';
 
-import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 import useAPI from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
 
 const TextField = styled(MuiTextField)`
     width: 100%;
-    margin: 0.5rem 0;
 `;
 
 const PageTitle = styled(Typography)`
@@ -27,26 +25,29 @@ const PageTitle = styled(Typography)`
     align-items: center;
 `;
 
-interface ImageDetailsProps {
-    projectSlug: string | undefined,
-    path: string | undefined,
-    imageSlug: string | undefined,
-}
-
 const ImageDetails = () => {
     const [ breadcrumbLinks, setBreadcrumbLinks ] =
         useState<Array<LinkModel | string>>(['Workspace']);
     const [ image, setImage ] = useState<Image>();
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ edit, setEdit ] = useState<boolean>(false);
+    const [ edited, setEdited ] = useState<boolean>(false);
+    const [ editedTitle, setEditedTitle ] = useState<string>('');
 
     const [ _, startTransition ] = useTransition();
 
-    const navigate = useNavigate();
-    const store = useWorkspaceStore();
-
     const { getImage } = useAPI();
     const { imageId } = useParams();
+
+    const onImageNameChanged = (e: ChangeEvent<HTMLInputElement>) => {
+        if (edit) {
+            if (!edited) {
+                setEdited(true);
+            }
+
+            setEditedTitle(e.target.value);
+        }
+    };
 
     const onEdit = () => {
         startTransition(() => setEdit(true));
@@ -54,6 +55,17 @@ const ImageDetails = () => {
 
     const onDelete = () => {
         // TODO: Implement!
+    };
+
+    const onEditSave = () => {
+        // TODO: Implement!
+    };
+
+    const onEditCancel = () => {
+        startTransition(() => {
+            setEdit(false);
+            setEdited(false);
+        });
     };
 
     useEffect(() => {
@@ -103,25 +115,50 @@ const ImageDetails = () => {
                 <Grid container spacing={ 2 }>
                     <Grid item xs={ 12 }>
                         <PageTitle variant="h5">
-                            {'Image Details'}
-
-                            <div>
-                                <IconButton onClick={ onEdit }>
-                                    <Edit />
-                                </IconButton>
-
-                                <IconButton color="error" onClick={ onDelete }>
-                                    <Delete />
-                                </IconButton>
-                            </div>
+                            Image Details
+                            
+                            <IconButton
+                                color="error"
+                                onClick={ onDelete }>
+                                <Delete />
+                            </IconButton>
                         </PageTitle>
                     </Grid>
 
                     <Grid item xs={ 12 } md={ 6 }>
-                        <TextField
-                            value={ image?.title }
-                            disabled={ !edit }
-                            label="Image Title" />
+                        <FormControl sx={{ width: '100%' }}>
+                            <InputLabel htmlFor="image-details--image-title">
+                                Image Title
+                            </InputLabel>
+
+                            <OutlinedInput
+                                id="image-details--image-title"
+                                value={ edited ? editedTitle : image?.title }
+                                disabled={ !edit }
+                                label="Image Title"
+                                onChange={ onImageNameChanged }
+                                endAdornment={
+                                    <InputAdornment position="end">
+                                        {
+                                            edit ?
+                                            <Fragment>
+                                                <IconButton
+                                                    onClick={ onEditSave }>
+                                                    <Check />
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={ onEditCancel }>
+                                                    <Close />
+                                                </IconButton>
+                                            </Fragment>
+                                            :
+                                            <IconButton onClick={ onEdit }>
+                                                <Edit />
+                                            </IconButton>
+                                        }
+                                    </InputAdornment>
+                                } />
+                        </FormControl>
                     </Grid>
 
                     <Grid item xs={ 12 } md={ 6 }>
@@ -134,14 +171,14 @@ const ImageDetails = () => {
                     <Grid item xs={ 12 } md={ 6 }>
                         <TextField
                             value={ image?.width }
-                            disabled={ !edit }
+                            disabled={ true }
                             label="Width" />
                     </Grid>
 
                     <Grid item xs={ 12 } md={ 6 }>
                         <TextField
                             value={ image?.height }
-                            disabled={ !edit }
+                            disabled={ true }
                             label="Height" />
                     </Grid>
 
