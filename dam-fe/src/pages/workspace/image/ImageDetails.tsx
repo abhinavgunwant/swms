@@ -1,13 +1,16 @@
-import { useState, useEffect, useTransition, Fragment, ChangeEvent } from 'react';
+import {
+    useState, useEffect, useTransition, Fragment, ChangeEvent, useRef,
+    KeyboardEvent
+} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { WorkspaceGrid } from '../Workspace';
 import LinkModel from '../../../models/LinkModel';
 import Image from '../../../models/Image';
-import { Loading, Breadcrumbs } from '../../../components';
+import { Loading, Breadcrumbs, Error } from '../../../components';
 import {
     TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
-    InputAdornment, FormControl, InputLabel,
+    InputAdornment, FormControl, InputLabel, CircularProgress,
 } from '@mui/material';
 import { Edit, Delete, Check, Close } from '@mui/icons-material';
 
@@ -33,10 +36,15 @@ const ImageDetails = () => {
     const [ edit, setEdit ] = useState<boolean>(false);
     const [ edited, setEdited ] = useState<boolean>(false);
     const [ editedTitle, setEditedTitle ] = useState<string>('');
+    const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
+    const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
+    const [ updatingName, setUpdatingName ] = useState<boolean>(false);
 
     const [ _, startTransition ] = useTransition();
 
-    const { getImage } = useAPI();
+    const imageTitleRef = useRef();
+
+    const { getImage, updateImageTitle } = useAPI();
     const { imageId } = useParams();
 
     const onImageNameChanged = (e: ChangeEvent<HTMLInputElement>) => {
@@ -49,16 +57,49 @@ const ImageDetails = () => {
         }
     };
 
+    const onImageNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            onEditSave();
+        }
+    };
+
     const onEdit = () => {
-        startTransition(() => setEdit(true));
+        startTransition(() => {
+            setEdit(true);
+            setShowErrPopup(false);
+        });
     };
 
     const onDelete = () => {
         // TODO: Implement!
     };
 
-    const onEditSave = () => {
-        // TODO: Implement!
+    const onEditSave = async () => {
+        if (image && image.id) {
+            startTransition(() => {
+                setUpdatingName(true);
+                setEdit(false);
+            });
+
+            updateImageTitle(image.id, editedTitle)
+                .then((resp) => {
+                    if (resp.success) {
+                        startTransition(() => {
+                            setUpdatingName(false);
+                            setShowErrPopup(false);
+                            setImage({ ...image, title: editedTitle });
+                            setEdited(false);
+                        });
+                    } else {
+                        startTransition(() => {
+                            setUpdatingName(false);
+                            setShowErrPopup(true);
+                            setErrPopupText(resp.message);
+                            setEdited(false);
+                        });
+                    }
+                });
+        }
     };
 
     const onEditCancel = () => {
@@ -92,7 +133,6 @@ const ImageDetails = () => {
                             setImage(imageResponse);
                             setLoading(false);
                         });
-                        console.log(imageResponse);
                     }
                 } catch (e) {
                     console.log(e);
@@ -103,8 +143,22 @@ const ImageDetails = () => {
         exec();
     }, []);
 
+    /**
+     * Effect hook to bring the image title text input into focus with text
+     * selected whenever edit button is clicked.
+     */
+    useEffect(() => {
+        if (imageTitleRef && imageTitleRef.current) {
+            const wrapper = imageTitleRef.current as HTMLDivElement;
+            const inputEl = wrapper.querySelector('input') as HTMLInputElement;
 
-    return <div className="page page--view-image">
+            if (inputEl) {
+                inputEl.select();
+            }
+        }
+    }, [ edit ]);
+
+    return <div className="page page--image-details">
         <Breadcrumbs links={ breadcrumbLinks } />
 
         <WorkspaceGrid>
@@ -137,27 +191,38 @@ const ImageDetails = () => {
                                 disabled={ !edit }
                                 label="Image Title"
                                 onChange={ onImageNameChanged }
+                                onKeyDown={ onImageNameKeyDown }
+                                ref={ imageTitleRef }
                                 endAdornment={
                                     <InputAdornment position="end">
                                         {
-                                            edit ?
-                                            <Fragment>
-                                                <IconButton
-                                                    onClick={ onEditSave }>
-                                                    <Check />
-                                                </IconButton>
-                                                <IconButton
-                                                    onClick={ onEditCancel }>
-                                                    <Close />
-                                                </IconButton>
-                                            </Fragment>
+                                            updatingName?
+                                                <CircularProgress size={ 32 } />
                                             :
-                                            <IconButton onClick={ onEdit }>
-                                                <Edit />
-                                            </IconButton>
+                                                edit ?
+                                                <Fragment>
+                                                    <IconButton
+                                                        onClick={ onEditSave }>
+                                                        <Check />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        onClick={
+                                                            onEditCancel
+                                                        }>
+                                                        <Close />
+                                                    </IconButton>
+                                                </Fragment>
+                                                :
+                                                <IconButton onClick={ onEdit }>
+                                                    <Edit />
+                                                </IconButton>
                                         }
                                     </InputAdornment>
                                 } />
+
+                            <Error on={ showErrPopup }>
+                                { errPopupText }
+                            </Error>
                         </FormControl>
                     </Grid>
 

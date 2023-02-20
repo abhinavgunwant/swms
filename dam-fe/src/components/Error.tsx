@@ -5,7 +5,7 @@ interface ErrorProps {
     children?: React.ReactNode,
 }
 
-const Error = (props: ErrorProps) => {
+export const Error = (props: ErrorProps) => {
     if (props.on) {
         return <Alert severity="error"> { props.children } </Alert>;
     }

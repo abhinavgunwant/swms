@@ -223,6 +223,29 @@ const useAPI = () => {
             }
         },
 
+        updateImageTitle: async (imageId: number, title: string) => {
+            const response = await fetch(
+                `${HOST}/api/admin/image/update-title/`, {
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+                method: 'PUT',
+                body: JSON.stringify({imageId, title}),
+            });
+
+            if (response.status === 200) {
+                const respText = await response.text();
+
+                return { success: true, message: respText };
+            }
+
+            return {
+                success: false,
+                message: 'Some error Occured! Please try again in some time!'
+            };
+        },
+
         /**
          * Adds a new project.
          */
