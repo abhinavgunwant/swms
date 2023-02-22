@@ -13,4 +13,6 @@ export * from './Typeahead';
 export * from './CustomDialog';
 export * from './RoleSelect';
 export * from './ImagePreview';
+export * from './RenditionsAccordion';
+export * from './RenditionDialog';
 

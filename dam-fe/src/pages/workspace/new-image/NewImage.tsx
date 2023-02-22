@@ -18,10 +18,9 @@ import UploadImage from '../../../models/UploadImage';
 import Rendition from '../../../models/Rendition';
 import useAPI from '../../../hooks/useAPI';
 
-import Breadcrumbs from "../../../components/Breadcrumbs";
-import
-    RenditionDialog, { RenditionDialogMode }
-from "../../../components/RenditionDialog";
+import {
+    Breadcrumbs, RenditionDialog, RenditionDialogMode, RenditionsAccordion,
+} from "../../../components";
 
 import { styled } from '@mui/material/styles';
 import emoStyled from '@emotion/styled';
@@ -312,78 +311,14 @@ const NewImage = () => {
                     value={ details }
                     onChange={ onDetailsChanged }
                     multiline />
-
-                <Accordion>
-                    <AccordionSummary
-                        expandIcon={ <ExpandMore /> }
-                        aria-controls="panel1a-content"
-                        sx={{ background: '#efefef' }}>
-                        <Typography variant="h6">Renditions</Typography>
-                    </AccordionSummary>
-
-                    <AccordionDetails>
-                        {
-                            renditionList.length ?
-                                <List>
-                                {
-                                    renditionList.map(
-                                        (rendition: Rendition, i) => <ListItem
-                                            key={ i }>
-                                            <ListItemText>
-                                                <Typography>
-                                                    { rendition.targetDevice }
-                                                    <SubText>
-                                                        ({ rendition.slug },
-                                                        {' '}
-                                                        {rendition.encoding },
-                                                        {' '}
-                                                        { rendition.width }x
-                                                        { rendition.height })
-                                                    </SubText>
-                                                </Typography>
-                                            </ListItemText>
-
-                                            <ListItemSecondaryAction>
-                                                <IconButton
-                                                    onClick={ () => {
-                                                        onEditRendition(i);
-                                                    }}>
-                                                    <Edit />
-                                                </IconButton>
-
-                                                <IconButton
-                                                    color="error"
-                                                    onClick={ () => {
-                                                        onDeleteRendition(i);
-                                                    }}>
-                                                    <Delete />
-                                                </IconButton>
-                                            </ListItemSecondaryAction>
-                                        </ListItem>
-                                    )
-                                }
-                                </List>
-                                :
-                                <Typography>No Renditions</Typography>
-                        }
-
-                        <IconButton
-                            color="secondary"
-                            onClick={ onRenditionClicked }>
-                            <Add />
-                        </IconButton>
-
-                        <FormGroup>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={ eagerRendition }
-                                        onChange={ onEagerRenditionChecked } />
-                                }
-                                label="Eagerly create renditions" />
-                        </FormGroup>
-                    </AccordionDetails>
-                </Accordion>
+                
+                <RenditionsAccordion
+                    renditionList={ renditionList }
+                    eagerRendition={ eagerRendition }
+                    onEditRendition={ onEditRendition }
+                    onDeleteRendition={ onDeleteRendition }
+                    onRenditionClicked={ onRenditionClicked }
+                    onEagerRenditionChecked={ onEagerRenditionChecked } />
             </Grid>
         </StyledGrid>
 
