@@ -330,8 +330,6 @@ const useAPI = () => {
 
         /**
          * API to create renditions.
-         *
-         * TODO: Implement error handling.
          */
         addRenditions: async (renditions: Rendition[], eager: boolean) => {
             const response = await fetch(

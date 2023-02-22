@@ -35,7 +35,7 @@ const TextField = styled(_TextField)`
     margin-top: 0.5rem;
 `;
 
-const RenditionDialog = (props: NewRenditionDialogProps) => {
+export const RenditionDialog = (props: NewRenditionDialogProps) => {
     const [ height, setHeight ] = useState<number>(0);
     const [ width, setWidth ] = useState<number>(0);
     const [ targetDevice, setTargetDevice ] = useState<string>('');

@@ -118,7 +118,6 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
                     }
 
                     Err (_e) => {
-                        // TODO: Push "Error Image not found" if image does not exist
                         unsuccessful_renditions.push(UnsuccessfulRendition {
                             id: rendition.id,
                             message: format!(
