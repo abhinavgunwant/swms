@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState, useTransition, MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Grid, List, CircularProgress } from '@mui/material';
@@ -114,7 +114,8 @@ const Workspace = ():React.ReactElement => {
                                             label: 'select',
                                             icon: selected ? <Deselect /> : <Check />,
                                             show: true,
-                                            action: () => {
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
                                                 if (selected) {
                                                     store.removeImageFromSelected(t.id);
                                                 } else {
@@ -127,19 +128,28 @@ const Workspace = ():React.ReactElement => {
                                             label: 'preview',
                                             icon: <Visibility />,
                                             show: !store.selecting,
-                                            action: () => { onPreviewClicked(t.id) }
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                onPreviewClicked(t.id);
+                                            }
                                         },
                                         {
                                             label: 'edit',
                                             icon: <Edit />,
                                             show: !store.selecting,
-                                            action: () => { console.log('Edit clicked') }
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                console.log('Edit clicked');
+                                            }
                                         },
                                         {
                                             label: 'delete',
                                             icon: <Delete />,
                                             show: !store.selecting,
-                                            action: () => { console.log('Delete clicked') }
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                console.log('Delete clicked');
+                                            }
                                         },
                                     ]}
                                     onClick={

@@ -1,10 +1,12 @@
 import React, { ReactNode } from 'react';
 
+type DefaultFunction = () => void;
+
 interface ThumbnailAction {
     label: string,
     icon: ReactNode,
     show: boolean,
-    action: () => void,
+    action: React.MouseEventHandler<HTMLDivElement> | DefaultFunction,
 }
 
 /**
