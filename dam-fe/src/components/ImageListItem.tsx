@@ -68,7 +68,7 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
                 </ListItemIcon>
             }
 
-            <ListItemButton>
+            <ListItemButton onClick={ props.onClick }>
                 <ListItemAvatar>
                     <StyledAvatar alt={ props.name } src={ props.thumbnailLocation } />
                 </ListItemAvatar>

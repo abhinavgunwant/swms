@@ -178,7 +178,10 @@ const Workspace = ():React.ReactElement => {
                                     id={ t.id }
                                     name={ t.name }
                                     thumbnailLocation=""
-                                    isImage={true} />
+                                    isImage={true}
+                                    onClick={
+                                        () => onThumbnailClicked(store.currentPath, t.id)
+                                    } />
                             )
                         }
                     </List>

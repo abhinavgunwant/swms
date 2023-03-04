@@ -107,7 +107,8 @@ const Project = () => {
                                     name={ t.name }
                                     thumbnailLocation=""
                                     key={t.id}
-                                    isImage={false} />
+                                    isImage={false}
+                                    onClick={ onThumbnailClicked( t) } />
                             )
                         }
                     </List>
