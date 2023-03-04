@@ -23,6 +23,17 @@ export const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 9.25rem);
     overflow: auto;
     margin-top: 1rem;
+
+    &::-webkit-scrollbar {
+        background-color: #dddddd;
+        width: 10px;
+        border-radius: 5px;
+
+        &-thumb {
+            background-color: #1976d2;
+            border-radius: 5px;
+        }
+    }
 `;
 
 const Workspace = ():React.ReactElement => {
