@@ -7,12 +7,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { WorkspaceGrid } from '../Workspace';
 import LinkModel from '../../../models/LinkModel';
 import Image from '../../../models/Image';
-import { Loading, Breadcrumbs, Error } from '../../../components';
+import {
+    Loading, Breadcrumbs, Error, ImagePreview
+} from '../../../components';
+
 import {
     TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
-    InputAdornment, FormControl, InputLabel, CircularProgress,
+    InputAdornment, FormControl, InputLabel, CircularProgress, Box,
 } from '@mui/material';
-import { Edit, Delete, Check, Close } from '@mui/icons-material';
+import { Edit, Delete, Check, Close, Visibility } from '@mui/icons-material';
 
 import useAPI from '../../../hooks/useAPI';
 
@@ -35,6 +38,7 @@ const ImageDetails = () => {
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ edit, setEdit ] = useState<boolean>(false);
     const [ edited, setEdited ] = useState<boolean>(false);
+    const [ showPreview, setShowPreview ] = useState<boolean>(false);
     const [ editedTitle, setEditedTitle ] = useState<string>('');
     const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
     const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
@@ -46,6 +50,16 @@ const ImageDetails = () => {
 
     const { getImage, updateImageTitle } = useAPI();
     const { imageId } = useParams();
+
+    const getImageNumber: () => number | undefined = () => {
+        try {
+            return parseInt(imageId);
+        } catch (e) {
+            console.log('Error while getting imageId as a number: ', e);
+        }
+
+        return undefined;
+    };
 
     const onImageNameChanged = (e: ChangeEvent<HTMLInputElement>) => {
         if (edit) {
@@ -63,6 +77,9 @@ const ImageDetails = () => {
         }
     };
 
+    /**
+     * Only edits image name!
+     */
     const onEdit = () => {
         startTransition(() => {
             setEdit(true);
@@ -73,6 +90,9 @@ const ImageDetails = () => {
     const onDelete = () => {
         // TODO: Implement!
     };
+
+    const onPreview = () => startTransition(() => setShowPreview(true));
+    const onPreviewClosed = () => startTransition(() => setShowPreview(false));
 
     const onEditSave = async () => {
         if (image && image.id) {
@@ -171,11 +191,18 @@ const ImageDetails = () => {
                         <PageTitle variant="h5">
                             Image Details
                             
-                            <IconButton
-                                color="error"
-                                onClick={ onDelete }>
-                                <Delete />
-                            </IconButton>
+                            <Box>
+                                <IconButton
+                                    onClick={ onPreview }>
+                                    <Visibility />
+                                </IconButton>
+
+                                <IconButton
+                                    color="error"
+                                    onClick={ onDelete }>
+                                    <Delete />
+                                </IconButton>
+                            </Box>
                         </PageTitle>
                     </Grid>
 
@@ -281,6 +308,11 @@ const ImageDetails = () => {
                 </Grid>
             }
         </WorkspaceGrid>
+
+        <ImagePreview
+            show={ showPreview }
+            imageId={ getImageNumber() }
+            onClose={ onPreviewClosed } />
     </div>
 }
 

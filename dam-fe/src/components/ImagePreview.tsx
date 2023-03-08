@@ -48,7 +48,7 @@ const CloseButton = muiStyled(ControlButton)`
 `;
 
 interface ImagePreviewProps {
-    imageId?: number,
+    imageId?: number | undefined,
     show: boolean,
     onClose: () => void,
 }
