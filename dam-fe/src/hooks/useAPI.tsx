@@ -7,6 +7,7 @@ import Rendition from '../models/Rendition';
 import CreateUserPayload from '../models/CreateUserPayload';
 import UserListing from '../models/UserListing';
 import Role from '../models/Role';
+import Image from '../models/Image';
 
 const HOST = 'http://localhost:8080';
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
@@ -326,6 +327,41 @@ const useAPI = () => {
                     message: 'Some unknown error occurred'
                 };
             }
+        },
+
+        deleteImage: async (image: number | Image) => {
+            let imageId: number = -1;
+
+            if (typeof image === 'number') {
+                imageId = image;
+            } else if (
+                image && image.id && typeof image.id === 'number'
+            ) {
+                imageId = image.id;
+            }
+
+            if (imageId === -1) {
+                return { success: false, message: 'Invalid Image!' };
+            }
+
+            const response = await fetch(
+                `${HOST}/api/admin/image/${ imageId }`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.status === 200) {
+                // return await response.json();
+                return {
+                    success: true,
+                    message: await response.text() || 'Success!'
+                };
+            }
+
+            return { success: false, message: 'Some Unknown Error Occured' };
         },
 
         /**

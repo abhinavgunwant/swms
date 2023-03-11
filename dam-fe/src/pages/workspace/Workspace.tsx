@@ -58,7 +58,7 @@ const Workspace = ():React.ReactElement => {
     const { getImages } = useAPI();
 
     const onThumbnailClicked = (path: string, imageId: number) => {
-        console.log(store.currentPath);
+        store.setCurrentPath(window.location.pathname as string);
 
         navigate('/workspace/image/' + imageId);
     };

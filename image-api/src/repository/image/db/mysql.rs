@@ -66,7 +66,7 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
             for row_ in rows.iter() {
                 let mut row = row_.clone();
 
-                let mut folder_id: u32;
+                let folder_id: u32;
 
                 println!("Getting image object...");
 
@@ -95,7 +95,7 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     is_published: true,
                     project_id: row.take("PROJECT_ID").unwrap(),
                     // folder_id: row.take("FOLDER_ID").unwrap(),
-                    folder_id: folder_id,
+                    folder_id,
                     //metadata_id: 0,
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_by: 0,
@@ -305,11 +305,32 @@ impl ImageRepository for MySQLImageRepository {
         }
     }
 
-    fn remove(&self, id: Image) {
+    fn remove(&self, image: Image) -> Result<String, String> {
         println!("Removing an image");
+
+        self.remove_item(image.id)
     }
 
-    fn remove_item(&self, id: u32) {
+    fn remove_item(&self, id: u32) -> Result<String, String> {
         println!("Removing an image item");
+        let mut conn = get_db_connection();
+
+        match conn.exec_drop(
+            r"DELETE FROM IMAGE WHERE ID = :id",
+            params! { "id" => id.clone() },
+        ) {
+            Ok (_) => {
+                println!("Image with ID: {} removed successfully!", id);
+
+                Ok (String::from("Successfully removed image."))
+            }
+
+            Err (e) => {
+                eprintln!("Unable to remove image with ID: {}\nError: {}", id, e);
+
+                Err (String::from("Unable to remove image."))
+            }
+        }
     }
 }
+

@@ -1,5 +1,5 @@
 use actix_web::{
-    web::{ Json, block }, HttpResponse, HttpRequest, post, get, put,
+    web::{ Json, block }, HttpResponse, HttpRequest, post, get, put, delete,
 };
 use std::fs::{ File, create_dir_all, read, rename, remove_file };
 use serde::{ Serialize, Deserialize };
@@ -105,6 +105,7 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
         req_image.upload_id,
         image.encoding.extension()
     );
+
     println!("source file path: {}", source_file_path);
 
     let raster_img = raster::open(source_file_path.as_str()).unwrap();
@@ -122,20 +123,51 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
                 image.encoding.extension()
             );
 
-            rename(source_file_path, dest_file_path);
+            match rename(source_file_path, dest_file_path) {
+                Ok (_) => HttpResponse::Ok().json(ImageSaveResponse {
+                    success: true,
+                    message: "Image Saved",
+                    image_id: Some(id)
+                }),
 
-            HttpResponse::Ok().json(ImageSaveResponse {
-                success: true,
-                message: "Image Saved",
-                image_id: Some(id)
-            })
+                Err (e) => {
+                    eprintln!(
+                        "An I/O error occured while adding an image: {}", e
+                    );
+
+                    return HttpResponse::InternalServerError().json(
+                        ImageSaveResponse {
+                            success: false,
+                            message:
+                                "There was some problem. Please try again.",
+                            image_id: None
+                    });
+                }
+            }
         }
 
-        Err (s) => HttpResponse::InternalServerError().json(ImageSaveResponse {
-            success: false,
-            message: "There was some problem. Please try again.",
-            image_id: None
+        Err (_s) => HttpResponse::InternalServerError().json(
+            ImageSaveResponse {
+                success: false,
+                message: "There was some problem. Please try again.",
+                image_id: None
         })
+    }
+}
+
+#[delete("/api/admin/image/{image_id}")]
+pub async fn remove_image(req: HttpRequest) -> HttpResponse {
+    let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
+        .unwrap();
+
+    match get_image_repository().remove_item(image_id) {
+        Ok (message) => {
+            HttpResponse::Ok().body(message)
+        }
+
+        Err (err_msg) => {
+            HttpResponse::InternalServerError().body(err_msg)
+        }
     }
 }
 

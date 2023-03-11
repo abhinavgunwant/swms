@@ -19,6 +19,8 @@ import { Edit, Delete, Check, Close, Visibility } from '@mui/icons-material';
 
 import useAPI from '../../../hooks/useAPI';
 
+import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+
 import { styled } from '@mui/material/styles';
 
 const TextField = styled(MuiTextField)`
@@ -48,12 +50,18 @@ const ImageDetails = () => {
 
     const imageTitleRef = useRef();
 
-    const { getImage, updateImageTitle } = useAPI();
+    const navigate = useNavigate();
+
+    const { getImage, updateImageTitle, deleteImage } = useAPI();
     const { imageId } = useParams();
 
-    const getImageNumber: () => number | undefined = () => {
+    const store = useWorkspaceStore();
+
+    const getImageId: () => number | undefined = () => {
         try {
-            return parseInt(imageId);
+            if (typeof imageId !== 'undefined') {
+                return parseInt(imageId);
+            }
         } catch (e) {
             console.log('Error while getting imageId as a number: ', e);
         }
@@ -87,8 +95,22 @@ const ImageDetails = () => {
         });
     };
 
-    const onDelete = () => {
-        // TODO: Implement!
+    const onDelete = async () => {
+        const imageId = getImageId();
+
+        if (typeof imageId === 'number') {
+            const resp = await deleteImage(imageId);
+
+            if (resp.success) {
+                if (store.currentPath) {
+                    navigate(store.currentPath);
+                } else {
+                    navigate('/workspace');
+                }
+
+                return;
+            }
+        }
     };
 
     const onPreview = () => startTransition(() => setShowPreview(true));
@@ -311,7 +333,7 @@ const ImageDetails = () => {
 
         <ImagePreview
             show={ showPreview }
-            imageId={ getImageNumber() }
+            imageId={ getImageId() }
             onClose={ onPreviewClosed } />
     </div>
 }
