@@ -9,9 +9,10 @@ import {
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import WorkspaceFab from './WorkspaceFab';
-import { Thumbnail, ImageListItem, ImagePreview } from '../../components';
+import {
+    Thumbnail, ImageListItem, ImagePreview, Error,
+} from '../../components';
 
-import LinkModel from '../../models/LinkModel';
 import useAPI from '../../hooks/useAPI';
 
 import useUserStore from '../../store/workspace/UserStore';
@@ -39,6 +40,8 @@ export const WorkspaceGrid = styled(Grid)`
 const Workspace = ():React.ReactElement => {
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
+    const [ showError, setShowError ] = useState<boolean>(false);
+    const [ errorText, setErrorText ] = useState<string>('');
 
     /**
      * ID of the image to be previewed
@@ -55,7 +58,7 @@ const Workspace = ():React.ReactElement => {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const { projectSlug, imageSlug } = useParams();
 
-    const { getImages } = useAPI();
+    const { getImages, deleteImage } = useAPI();
 
     const onThumbnailClicked = (path: string, imageId: number) => {
         store.setCurrentPath(window.location.pathname as string);
@@ -71,8 +74,30 @@ const Workspace = ():React.ReactElement => {
 
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
 
-    /* eslint-disable react-hooks/exhaustive-deps */
-    useEffect(() => {
+    /**
+     * Implements the action when user clicks on the 'Delete' button on an
+     * image thumbnail.
+     */
+    const onThumbnailDeleteClicked = async (imageId: number) => {
+        const resp = await deleteImage(imageId);
+
+        if (resp.success) {
+            setLoading(true);
+            loadImages();
+
+            return;
+        }
+
+        startTransition(() => {
+            setShowError(true);
+            setErrorText(
+                'Some error occurred while deleting image...'
+                + ' Please try again later.'
+            );
+        });
+    }
+
+    const loadImages = async () => {
         if (projectSlug) {
             for(let i=0; i<store.projectList.length; ++i) {
                 if (projectSlug === store.projectList[i].slug) {
@@ -88,17 +113,15 @@ const Workspace = ():React.ReactElement => {
             }
         }
 
-        //// TODO: query backend the path and see if it is valid
-        //// if valid, return the type of resource it is.
-//        if (imageSlug?.endsWith('.jpg')) {
-//            setPageType('IMAGE');
-//        }
-
         // TODO: pass the rquired slug (i.e. project slug if user is at root
         // of project and folder slug if user is in some project)
-        getImages(projectSlug||'');
-        setLoading(false);
-    }, []);
+        await getImages(projectSlug || '');
+
+        startTransition(() => setLoading(false));
+    };
+
+    /* eslint-disable react-hooks/exhaustive-deps */
+    useEffect(() => { loadImages(); }, []);
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ store.breadcrumbList } />
@@ -159,7 +182,8 @@ const Workspace = ():React.ReactElement => {
                                             show: !store.selecting,
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
-                                                console.log('Delete clicked');
+
+                                                onThumbnailDeleteClicked(t.id);
                                             }
                                         },
                                     ]}
@@ -193,6 +217,8 @@ const Workspace = ():React.ReactElement => {
             show={ showPreview }
             imageId={ previewId }
             onClose={ onPreviewClosed } />
+
+        <Error on={ showError }> { errorText } </Error>
     </div>;
 }
 
