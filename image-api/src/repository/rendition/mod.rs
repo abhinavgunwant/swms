@@ -21,8 +21,9 @@ pub trait RenditionRepository {
     fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Rendition>, DBError>;
     fn add(&self, rendition: Rendition) -> Result<u32, String>;
     fn update(&self, rendition: Rendition);
-    fn remove(&self, id: Rendition);
-    fn remove_item(&self, id: u32);
+    fn remove(&self, rendition: Rendition) -> Result<String, String>;
+    fn remove_item(&self, id: u32) -> Result<String, String>;
+    fn remove_all_from_image(&self, image_id: u32) -> Result<String, String>;
 }
 
 pub fn get_rendition_repository() -> impl RenditionRepository {

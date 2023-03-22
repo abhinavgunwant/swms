@@ -1,13 +1,18 @@
 use actix_web::{
     web::{ Json, block }, HttpResponse, HttpRequest, post, get, put, delete,
 };
-use std::fs::{ File, create_dir_all, read, rename, remove_file };
+use std::fs::{ read, rename, remove_file };
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
 use crate::{
     db::DBError,
-    repository::image::{ ImageRepository, get_image_repository },
-    model::{ image::Image, upload_image::UploadImage, encoding::Encoding },
+    repository::{
+        image::{ ImageRepository, get_image_repository },
+        rendition::{ RenditionRepository, get_rendition_repository },
+    },
+    model::{
+        image::Image, upload_image::UploadImage, rendition::Rendition,
+    },
 };
 
 #[derive(Serialize)]
@@ -155,13 +160,91 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
     }
 }
 
+/**
+ * Deletes the image data from the database and deletes the original image file
+ * and rendition files.
+ */
 #[delete("/api/admin/image/{image_id}")]
 pub async fn remove_image(req: HttpRequest) -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
+    let mut renditions_exist = false;
+    let renditions: Vec<Rendition>;
+    let image: Image;
+
+    // Get image object
+    match get_image_repository().get(image_id) {
+        Ok (img) => {
+            image = img;
+        }
+
+        Err (e) => {
+            if e == DBError::NOT_FOUND {
+                eprintln!("Error in delete image api while getting image object: Image not found");
+            } else {
+                eprintln!("Unknown error in delete image api while getting image object!");
+            }
+
+            return HttpResponse::NotFound().body("Image not found!");
+        }
+    }
+
+    // Get renditions
+    match get_rendition_repository().get_all_from_image(image_id) {
+        Ok(rens) => {
+            if !rens.is_empty() {
+                renditions_exist = true;
+                renditions = rens;
+            } else {
+                renditions = vec![];
+            }
+        }
+
+        Err(_) => {
+            renditions = vec![];
+        }
+    }
+
     match get_image_repository().remove_item(image_id) {
         Ok (message) => {
+            // Delete the image file if it exists
+            match remove_file (
+                format!(
+                    "image-uploads/{}{}",
+                    image_id,
+                    image.encoding.extension()
+            )) {
+                Ok (_) => {}
+
+                Err (e) => {
+                    eprintln!("Error while deleting image file for image id: {}: {}", image_id, e);
+                }
+            }
+
+            if renditions_exist {
+                // Delete the rendition files from rendition cache if they exist.
+                for rendition in renditions.iter() {
+                    match remove_file (
+                        format!(
+                            "image-rendition-cache/{}{}",
+                            rendition.id,
+                            rendition.encoding.extension(),
+                    )) {
+                        Ok (_) => {}
+
+                        Err (e) => {
+                            eprintln!(
+                                "Error while deleting rendition file (id: {}) for image id: {}: {}",
+                                rendition.id,
+                                image_id,
+                                e
+                            );
+                        }
+                    }
+                }
+            }
+
             HttpResponse::Ok().body(message)
         }
 

@@ -284,11 +284,53 @@ impl RenditionRepository for MySQLRenditionRepository {
         println!("Updating a rendition");
     }
 
-    fn remove(&self, id: Rendition) {
+    fn remove(&self, rendition: Rendition) -> Result<String, String> {
         println!("Removing a rendition");
+        self.remove_item(rendition.id)
     }
 
-    fn remove_item(&self, id: u32) {
-        println!("Removing a item");
+    fn remove_item(&self, id: u32) -> Result<String, String> {
+        println!("Removing a rendition item");
+        let mut conn = get_db_connection();
+
+        match conn.exec_drop(
+            r"DELETE FROM IMAGE_RENDITION WHERE ID = :id",
+            params! { "id" => id.clone() },
+        ) {
+            Ok (_) => {
+                println!("Rendition with ID: {} removed successfully!", id);
+
+                Ok (String::from("Successfully removed rendition."))
+            }
+
+            Err (e) => {
+                eprintln!("Unable to remove rendition with ID: {}\nError: {}", id, e);
+
+                Err (String::from("Unable to remove rendition."))
+            }
+        }
+    }
+
+    fn remove_all_from_image (&self, image_id: u32) -> Result<String, String> {
+        println!("Removing all renditions from image: {}", image_id);
+
+        let mut conn = get_db_connection();
+
+        match conn.exec_drop(
+            r"DELETE FROM IMAGE_RENDITION WHERE IMAGE_ID = :image_id",
+            params! { "image_id" => image_id }
+        ) {
+            Ok (_) => {
+                println!("Rendition with ID: {} removed successfully!", image_id);
+
+                Ok (String::from("Successfully removed rendition."))
+            }
+
+            Err (e) => {
+                eprintln!("Unable to remove rendition with ID: {}\nError: {}", image_id, e);
+
+                Err (String::from("Unable to remove rendition."))
+            }
+        }
     }
 }
