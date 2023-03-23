@@ -323,13 +323,13 @@ impl RenditionRepository for MySQLRenditionRepository {
             Ok (_) => {
                 println!("Rendition with ID: {} removed successfully!", image_id);
 
-                Ok (String::from("Successfully removed rendition."))
+                Ok (format!("Successfully removed renditions for image with id: {}.", image_id))
             }
 
             Err (e) => {
                 eprintln!("Unable to remove rendition with ID: {}\nError: {}", image_id, e);
 
-                Err (String::from("Unable to remove rendition."))
+                Err (format!("Unable to remove rendition for image with id: {}", image_id))
             }
         }
     }

@@ -169,8 +169,6 @@ pub async fn remove_image(req: HttpRequest) -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
-    let mut renditions_exist = false;
-    let renditions: Vec<Rendition>;
     let image: Image;
 
     // Get image object
@@ -190,19 +188,62 @@ pub async fn remove_image(req: HttpRequest) -> HttpResponse {
         }
     }
 
-    // Get renditions
-    match get_rendition_repository().get_all_from_image(image_id) {
-        Ok(rens) => {
-            if !rens.is_empty() {
-                renditions_exist = true;
-                renditions = rens;
-            } else {
-                renditions = vec![];
-            }
+    let ren_repo = get_rendition_repository();
+    let mut renditions: Vec<Rendition> = vec![];
+
+    match ren_repo.get_all_from_image(image_id) {
+        Ok (rens) => {
+            renditions = rens;
         }
 
-        Err(_) => {
-            renditions = vec![];
+        Err (_) => {}
+    }
+
+    if !renditions.is_empty() {
+        match ren_repo.remove_all_from_image (image_id) {
+            Ok (msg) => {
+                println!("{} from database!", msg);
+
+                for rendition in renditions.iter() {
+                    let file_name: String = format!(
+                        "image-rendition-cache/{}{}",
+                        rendition.id,
+                        rendition.encoding.extension(),
+                    );
+
+                    match remove_file (file_name.clone()) {
+                        Ok (_) => {}
+
+                        Err (e) => {
+                            eprintln!(
+                                "Error while deleting rendition file {} (id: {}) for image id: {}: {}",
+                                file_name,
+                                rendition.id,
+                                image_id,
+                                e
+                            );
+
+                            return HttpResponse::InternalServerError()
+                                .body(format!(
+                                    "Couldn't remove rendition (id: {}) for image (id: {})",
+                                    rendition.id,
+                                    image_id
+                                ));
+                        }
+                    }
+                }
+            }
+
+            Err (e_msg) => {
+                eprintln!("{}", e_msg);
+
+                return HttpResponse::InternalServerError()
+                    .body(format!(
+                        "Couldn't remove renditions for image (id: {})",
+                        image_id
+                    ));
+
+            }
         }
     }
 
@@ -219,29 +260,6 @@ pub async fn remove_image(req: HttpRequest) -> HttpResponse {
 
                 Err (e) => {
                     eprintln!("Error while deleting image file for image id: {}: {}", image_id, e);
-                }
-            }
-
-            if renditions_exist {
-                // Delete the rendition files from rendition cache if they exist.
-                for rendition in renditions.iter() {
-                    match remove_file (
-                        format!(
-                            "image-rendition-cache/{}{}",
-                            rendition.id,
-                            rendition.encoding.extension(),
-                    )) {
-                        Ok (_) => {}
-
-                        Err (e) => {
-                            eprintln!(
-                                "Error while deleting rendition file (id: {}) for image id: {}: {}",
-                                rendition.id,
-                                image_id,
-                                e
-                            );
-                        }
-                    }
                 }
             }
 
