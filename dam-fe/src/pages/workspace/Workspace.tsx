@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useTransition, MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Grid, List, CircularProgress } from '@mui/material';
+import { Box, Grid, List, CircularProgress } from '@mui/material';
 
 import {
     Check, Deselect, Visibility, Edit, Delete
@@ -35,6 +35,17 @@ export const WorkspaceGrid = styled(Grid)`
             border-radius: 5px;
         }
     }
+`;
+
+export const NothingMessage = styled(Box)`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #777777;
+
+    width: 100%;
+    height: 100%;
 `;
 
 const Workspace = ():React.ReactElement => {
@@ -133,6 +144,7 @@ const Workspace = ():React.ReactElement => {
                 store.displayStyle === 'GRID' ?
                     <WorkspaceGrid container spacing={2}>
                         {
+                            store.imageList.length ?
                             store.imageList.map(t => {
                                 const selected = store.isSelected(t.id);
 
@@ -191,6 +203,10 @@ const Workspace = ():React.ReactElement => {
                                         () => onThumbnailClicked(store.currentPath, t.id)
                                     } />
                             })
+                            :
+                            <NothingMessage>
+                                Nothing to show here. Click on "+ New" to get started!
+                            </NothingMessage>
                         }
                     </WorkspaceGrid>
                     :
