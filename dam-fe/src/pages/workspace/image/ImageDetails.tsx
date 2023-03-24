@@ -10,6 +10,7 @@ import Image from '../../../models/Image';
 import {
     Loading, Breadcrumbs, Error, ImagePreview
 } from '../../../components';
+import { DeleteImageDialog } from '../../../components/dialogs';
 
 import {
     TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
@@ -45,6 +46,7 @@ const ImageDetails = () => {
     const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
     const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
     const [ updatingName, setUpdatingName ] = useState<boolean>(false);
+    const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
 
     const [ _, startTransition ] = useTransition();
 
@@ -221,7 +223,7 @@ const ImageDetails = () => {
 
                                 <IconButton
                                     color="error"
-                                    onClick={ onDelete }>
+                                    onClick={ () => { setShowDeleteDialog(true) } }>
                                     <Delete />
                                 </IconButton>
                             </Box>
@@ -335,6 +337,12 @@ const ImageDetails = () => {
             show={ showPreview }
             imageId={ getImageId() }
             onClose={ onPreviewClosed } />
+
+        <DeleteImageDialog
+            open={ showDeleteDialog }
+            onClose={ () => { startTransition(() => setShowDeleteDialog(false)) } }
+            imageId={ getImageId() }
+            navigateToAfterSuccess="/workspace" />
     </div>
 }
 

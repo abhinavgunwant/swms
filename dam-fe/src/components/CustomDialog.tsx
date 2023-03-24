@@ -37,7 +37,7 @@ interface CustomDialogProps {
     /**
      * The text in the top title line.
      */
-    title: string,
+    title: string | ReactNode,
 
     /**
      * The "Body" part of the component.
@@ -73,7 +73,12 @@ export const CustomDialog = (props: CustomDialogProps) => {
     }
 
     return <Dialog open={ true } onClose={ props.onClose }>
-        <DialogTitle>{ props.title }</DialogTitle>
+        {
+            typeof props.title === 'string' ?
+                <DialogTitle>{ props.title }</DialogTitle>
+            :
+                props.title
+        }
 
         <DialogContent>
             { props.body }

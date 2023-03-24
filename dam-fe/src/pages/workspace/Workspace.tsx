@@ -12,6 +12,7 @@ import WorkspaceFab from './WorkspaceFab';
 import {
     Thumbnail, ImageListItem, ImagePreview, Error,
 } from '../../components';
+import { DeleteImageDialog } from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
 
@@ -53,6 +54,8 @@ const Workspace = ():React.ReactElement => {
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ errorText, setErrorText ] = useState<string>('');
+    const [ showDeleteDialog, setShowDeleteDialog ] = useState<booelan>(false);
+    const [ deleteImageId, setDeleteImageId ] = useState<number>(-1);
 
     /**
      * ID of the image to be previewed
@@ -84,29 +87,6 @@ const Workspace = ():React.ReactElement => {
     });
 
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
-
-    /**
-     * Implements the action when user clicks on the 'Delete' button on an
-     * image thumbnail.
-     */
-    const onThumbnailDeleteClicked = async (imageId: number) => {
-        const resp = await deleteImage(imageId);
-
-        if (resp.success) {
-            setLoading(true);
-            loadImages();
-
-            return;
-        }
-
-        startTransition(() => {
-            setShowError(true);
-            setErrorText(
-                'Some error occurred while deleting image...'
-                + ' Please try again later.'
-            );
-        });
-    }
 
     const loadImages = async () => {
         if (projectSlug) {
@@ -195,7 +175,8 @@ const Workspace = ():React.ReactElement => {
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
 
-                                                onThumbnailDeleteClicked(t.id);
+                                                startTransition(() => setDeleteImageId(t.id));
+                                                //onThumbnailDeleteClicked(t.id);
                                             }
                                         },
                                     ]}
@@ -235,6 +216,11 @@ const Workspace = ():React.ReactElement => {
             onClose={ onPreviewClosed } />
 
         <Error on={ showError }> { errorText } </Error>
+
+        <DeleteImageDialog
+            open={ deleteImageId != -1 }
+            onClose={ () => {startTransition(() => setDeleteImageId(-1))} }
+            imageId={ deleteImageId } />
     </div>;
 }
 
