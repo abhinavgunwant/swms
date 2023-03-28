@@ -72,12 +72,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ originalWidth, setOriginalWidth ] = useState<number>();
     const [ originalHeight, setOriginalHeight ] = useState<number>();
-    const [ imageFit, setImageFit ] = useState<ImageFit>('default');
-    const [ imagePath, setImagePath ] = useState<string>('');
-    const [ imageId, setImageId ] = useState<number>(props?.imageId || -1);
     const [ zoom, setZoom ] = useState<number>(1);
-
-    const [ _, startTransition ] = useTransition();
 
     const imageRef = useRef<HTMLImageElement>(null);
     const imgSectionRef = useRef<HTMLDivElement>(null);

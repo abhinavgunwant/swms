@@ -5,7 +5,7 @@ import {
     Divider, Box, Button, ListItemText, Typography,
 } from '@mui/material';
 
-import { DriveFileMoveIcon, DeleteIcon } from '@mui/icons-material';
+import { DriveFileMove, Delete } from '@mui/icons-material';
 
 import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
@@ -83,7 +83,7 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
                     props.isImage &&
                     <ButtonLeftMargin
                         variant="outlined"
-                        startIcon={ <DriveFileMoveIcon /> }>
+                        startIcon={ <DriveFileMove /> }>
                         Move
                     </ButtonLeftMargin>
                 }
@@ -91,7 +91,7 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
                 <ButtonLeftMargin
                     variant="contained"
                     color="error"
-                    startIcon={ <DeleteIcon /> }>
+                    startIcon={ <Delete /> }>
                     Delete
                 </ButtonLeftMargin>
             </ActionBox>
