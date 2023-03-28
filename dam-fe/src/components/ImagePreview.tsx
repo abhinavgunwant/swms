@@ -1,7 +1,9 @@
 import { Fragment, useState, useEffect, useTransition, useRef } from 'react';
-import { Backdrop, IconButton, CircularProgress } from '@mui/material';
 import {
-    Image as ImageIcon, ImageNotSupported, ZoomIn, ZoomOut, Close, FitScreen,
+    Backdrop, IconButton, CircularProgress, Tooltip
+} from '@mui/material';
+import {
+    ImageNotSupported, ZoomIn, ZoomOut, Close, FitScreen,
     PhotoSizeSelectActual,
 } from '@mui/icons-material';
 
@@ -209,38 +211,48 @@ export const ImagePreview = (props: ImagePreviewProps) => {
             </ImageSection>
 
             <ControlSection>
-                <ControlButton
-                    aria-label="fit to screen"
-                    onClick={ imageFitToScreen }>
-                    <FitScreen style={{ fontSize: '2rem', color: '#ffffff' }} />
-                </ControlButton>
+                <Tooltip title="Fit to Screen" arrow>
+                    <ControlButton
+                        aria-label="fit to screen"
+                        onClick={ imageFitToScreen }>
+                        <FitScreen style={{ fontSize: '2rem', color: '#ffffff' }} />
+                    </ControlButton>
+                </Tooltip>
 
-                <ControlButton
-                    aria-label="zoom in"
-                    onClick={ (e) => onZoom('in') }>
-                    <ZoomIn style={{ fontSize: '2rem', color: '#ffffff' }} />
-                </ControlButton>
+                <Tooltip title="Zoom In" arrow>
+                    <ControlButton
+                        aria-label="zoom in"
+                        onClick={ () => onZoom('in') }>
+                        <ZoomIn style={{ fontSize: '2rem', color: '#ffffff' }} />
+                    </ControlButton>
+                </Tooltip>
 
-                <ControlButton
-                    aria-label="zoom out"
-                    onClick={ (e) => onZoom('out') }>
-                    <ZoomOut style={{ fontSize: '2rem', color: '#ffffff' }} />
-                </ControlButton>
+                <Tooltip title="Zoom Out" arrow>
+                    <ControlButton
+                        aria-label="zoom out"
+                        onClick={ () => onZoom('out') }>
+                        <ZoomOut style={{ fontSize: '2rem', color: '#ffffff' }} />
+                    </ControlButton>
+                </Tooltip>
                 
-                <ControlButton
-                    aria-label="actual size"
-                    onClick={ () => setZoom(1) }>
-                    <PhotoSizeSelectActual style={{ fontSize: '2rem', color: '#ffffff' }} />
-                </ControlButton>
+                <Tooltip title="Actual Size" arrow>
+                    <ControlButton
+                        aria-label="actual size"
+                        onClick={ () => setZoom(1) }>
+                        <PhotoSizeSelectActual style={{ fontSize: '2rem', color: '#ffffff' }} />
+                    </ControlButton>
+                </Tooltip>
 
                 {/*
                     This button is rendered at the top-right of the screen
                 */}
-                <CloseButton
-                    aria-label="close preview"
-                    onClick={ (e) => { props.onClose(); } }>
-                    <Close style={{ fontSize: '2rem', color: '#ffffff' }} />
-                </CloseButton>
+                <Tooltip title="Close" arrow>
+                    <CloseButton
+                        aria-label="close preview"
+                        onClick={ () => { props.onClose(); } }>
+                        <Close style={{ fontSize: '2rem', color: '#ffffff' }} />
+                    </CloseButton>
+                </Tooltip>
             </ControlSection>
         </StyledBackdrop>
     </Fragment>;

@@ -1,19 +1,11 @@
 import { Fragment } from 'react';
 
-import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import Avatar from '@mui/material/Avatar';
-import Checkbox from '@mui/material/Checkbox';
-import Divider from '@mui/material/Divider';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import ListItemText from '@mui/material/ListItemText';
-import Typography from '@mui/material/Typography';
-import EditIcon from '@mui/icons-material/Edit';
-import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
-import DeleteIcon from '@mui/icons-material/Delete';
+import {
+    ListItem, ListItemIcon, ListItemButton, ListItemAvatar, Avatar, Checkbox,
+    Divider, Box, Button, ListItemText, Typography,
+} from '@mui/material';
+
+import { DriveFileMoveIcon, DeleteIcon } from '@mui/icons-material';
 
 import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
@@ -87,10 +79,6 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
             </ListItemButton>
             
             <ActionBox>
-                <Button variant="outlined" startIcon={ <EditIcon /> }>
-                    Edit
-                </Button>
-
                 {
                     props.isImage &&
                     <ButtonLeftMargin
@@ -114,3 +102,4 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
 }
 
 export default ImageListItem;
+

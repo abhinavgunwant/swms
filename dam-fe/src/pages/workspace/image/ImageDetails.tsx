@@ -341,7 +341,7 @@ const ImageDetails = () => {
         <DeleteImageDialog
             open={ showDeleteDialog }
             onClose={ () => { startTransition(() => setShowDeleteDialog(false)) } }
-            imageId={ getImageId() }
+            imageId={ getImageId() || -1 }
             navigateToAfterSuccess="/workspace" />
     </div>
 }

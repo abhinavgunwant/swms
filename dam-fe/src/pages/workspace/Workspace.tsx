@@ -160,15 +160,6 @@ const Workspace = ():React.ReactElement => {
                                             }
                                         },
                                         {
-                                            label: 'edit',
-                                            icon: <Edit />,
-                                            show: !store.selecting,
-                                            action: (e: MouseEvent<HTMLDivElement>) => {
-                                                e.stopPropagation();
-                                                console.log('Edit clicked');
-                                            }
-                                        },
-                                        {
                                             label: 'delete',
                                             icon: <Delete />,
                                             show: !store.selecting,
