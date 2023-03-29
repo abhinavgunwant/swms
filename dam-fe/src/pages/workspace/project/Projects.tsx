@@ -1,16 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Grid from '@mui/material/Grid';
-import List from '@mui/material/List';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
-import Box from '@mui/material/Box';
+import { Grid, List, Typography, CircularProgress, Box } from '@mui/material';
+import {
+    Check, Deselect, Visibility, Delete, SelectAll, DriveFileMove, Add,
+} from '@mui/icons-material';
 
 import WorkspaceTopRow from '../WorkspaceTopRow';
-import WorkspaceFab from '../WorkspaceFab';
-import Thumbnail from '../../../components/Thumbnail';
-import ImageListItem from '../../../components/ImageListItem';
+import { Thumbnail, ImageListItem, WorkspaceFab } from '../../../components';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 import ProjectModel from '../../../models/Project';
@@ -42,6 +39,9 @@ const StyledBox = styled(Box)`
 
 const Project = () => {
     const [ loading, setLoading ] = useState(true);
+    const [ selected, setSelected ] = useState<boolean[]>([]);
+
+    const [ _, startTransition ] = useTransition();
 
     const store = useWorkspaceStore();
     const userStore = useUserStore();
@@ -58,10 +58,45 @@ const Project = () => {
         };
     }
 
+    const selecting: () => boolean = () => {
+        for (let i=0; i<selected.length; ++i) {
+            if (selected[i]) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    const selectAll = () => {
+        if (store.projectList.length) {
+            setSelected(Array(store.projectList.length).fill(true));
+        }
+    }
+
+    const deselectAll = () => {
+        if (store.projectList.length) {
+            setSelected(Array(store.projectList.length).fill(false));
+        }
+    };
+
+    const newProject = () => {
+        startTransition(() => navigate("/workspace/new-image"));
+    };
+
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
-        getProjects();
-        setLoading(false);
+        const func = async () => {
+            await getProjects();
+
+            startTransition(() => {
+                setLoading(false);
+
+                deselectAll();
+            });
+        };
+
+        func();
     }, []);
 
     return <div className="page page--project">
@@ -87,14 +122,41 @@ const Project = () => {
                 store.displayStyle === 'GRID' ?
                     <WorkspaceGrid container spacing={2}>
                         {
-                            store.projectList.map(t =>
+                            store.projectList.map((t, i) =>
                                 <Thumbnail
                                     id= { t.id }
                                     name={ t.name }
                                     thumbnailLocation=""
                                     key={ t.id }
-                                    isImage={false}
-                                    onClick={ onThumbnailClicked( t) } />
+                                    selected={ selected[i] }
+                                    isImage={ false }
+                                    actions={[
+                                        {
+                                            label: 'select',
+                                            icon: selected[i] ? <Deselect /> : <Check />,
+                                            show: true,
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                const newSelected = [ ...selected ];
+
+                                                newSelected[i] = !selected[i];
+
+                                                setSelected(newSelected);
+                                            },
+                                        },
+                                        {
+                                            label: 'delete',
+                                            icon: <Delete />,
+                                            show: !selecting(),
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+
+                                                //startTransition(() => setDeleteImageId(t.id));
+                                                //onThumbnailDeleteClicked(t.id);
+                                            }
+                                        },
+                                    ]}
+                                    onClick={ onThumbnailClicked(t) } />
                             )
                         }
                     </WorkspaceGrid>
@@ -108,7 +170,7 @@ const Project = () => {
                                     thumbnailLocation=""
                                     key={t.id}
                                     isImage={false}
-                                    onClick={ onThumbnailClicked( t) } />
+                                    onClick={ onThumbnailClicked(t) } />
                             )
                         }
                     </List>
@@ -119,7 +181,46 @@ const Project = () => {
              * Only show new button if user has required permission
              */
             userStore.role.createProject &&
-            <WorkspaceFab inWorkspaceHome={ true } />
+            <WorkspaceFab
+                fabs={[
+                    {
+                        text: 'Select All',
+                        onClick: selectAll,
+                        variant: "extended",
+                        icon: <SelectAll />,
+                        show: !selected.reduce((acc, cur) => acc && cur, true),
+                    },
+                    {
+                        text: 'Deselect All',
+                        onClick: deselectAll,
+                        variant: "extended",
+                        icon: <Deselect />,
+                        show: selecting(),
+                    },
+                    {
+                        text: 'Move',
+                        onClick: () => { /* TODO: Implement! */ },
+                        variant: "extended",
+                        icon: <DriveFileMove />,
+                        show: selecting(),
+                    },
+                    {
+                        text: 'Delete',
+                        onClick: () => { /* TODO: Implement! */ },
+                        variant: "extended",
+                        color: "error",
+                        icon: <Delete />,
+                        show: selecting(),
+                    },
+                    {
+                        text: 'New',
+                        onClick: newProject,
+                        variant: "extended",
+                        color: 'secondary',
+                        icon: <Add />,
+                        show: !selecting(),
+                    },
+                ]} />
         }
     </div>
 }

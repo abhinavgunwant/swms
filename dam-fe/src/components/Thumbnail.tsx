@@ -48,7 +48,7 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
                         if (action.show) {
                             return <IconButton
                                 aria-label={ action.label }
-                                onClick={ action.action }
+                                onClick={ (e) => action?.action(e) }
                                 key={ i }>
                                 { action.icon }
                             </IconButton>;

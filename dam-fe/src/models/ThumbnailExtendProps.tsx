@@ -6,7 +6,9 @@ interface ThumbnailAction {
     label: string,
     icon: ReactNode,
     show: boolean,
-    action: React.MouseEventHandler<HTMLDivElement> | DefaultFunction,
+    action: React.MouseEventHandler<HTMLDivElement>
+        | React.MouseEventHandler<HTMLButtonElement>
+        | React.MouseEventHandler<HTMLElement> | DefaultFunction | ((e:any) => void),
 }
 
 /**

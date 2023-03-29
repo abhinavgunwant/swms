@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useTransition, MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Box, Grid, List, CircularProgress } from '@mui/material';
+import {
+    Box, Grid, List, CircularProgress, Dialog, DialogTitle, DialogContent,
+    ListItem, ListItemText, ListItemIcon,
+} from '@mui/material';
 
 import {
-    Check, Deselect, Visibility, Edit, Delete
+    Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove, Folder,
+    Image,
 } from '@mui/icons-material';
 
 import WorkspaceTopRow from './WorkspaceTopRow';
-import WorkspaceFab from './WorkspaceFab';
 import {
-    Thumbnail, ImageListItem, ImagePreview, Error,
-} from '../../components';
-import { DeleteImageDialog } from '../../components/dialogs';
+    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab, } from '../../components';
+import { DeleteImageDialog, NewImageDialog } from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
 
@@ -54,8 +56,8 @@ const Workspace = ():React.ReactElement => {
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ errorText, setErrorText ] = useState<string>('');
-    const [ showDeleteDialog, setShowDeleteDialog ] = useState<booelan>(false);
     const [ deleteImageId, setDeleteImageId ] = useState<number>(-1);
+    const [ openNewDialog, setOpenNewDialog ] = useState<boolean>(false);
 
     /**
      * ID of the image to be previewed
@@ -110,6 +112,28 @@ const Workspace = ():React.ReactElement => {
 
         startTransition(() => setLoading(false));
     };
+
+    const selectAll = () => {
+        store.setSelecting(true);
+        store.imageList.forEach(
+            img => store.addImageToSelected(img.id)
+        )
+    };
+
+    const deselectAll = () => {
+        store.setSelecting(false);
+        store.selectedImages.forEach(
+            img => store.removeImageFromSelected(img)
+        );
+    };
+
+    const onNewClicked = () => startTransition(
+        () => setOpenNewDialog(true)
+    );
+
+    const onNewDialogClosed = () => startTransition(
+        () => setOpenNewDialog(false)
+    );
 
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => { loadImages(); }, []);
@@ -199,7 +223,46 @@ const Workspace = ():React.ReactElement => {
                     </List>
         }
 
-        <WorkspaceFab />
+        <WorkspaceFab
+            fabs={[
+                {
+                    text: 'Select All',
+                    onClick: selectAll,
+                    variant: "extended",
+                    icon: <SelectAll />,
+                    show: store.imageList.length !== store.selectedImages.size,
+                },
+                {
+                    text: 'Deselect All',
+                    onClick: deselectAll,
+                    variant: "extended",
+                    icon: <Deselect />,
+                    show: store.selecting,
+                },
+                {
+                    text: 'Move',
+                    onClick: () => { /* TODO: Implement! */ },
+                    variant: "extended",
+                    icon: <DriveFileMove  />,
+                    show: store.selecting,
+                },
+                {
+                    text: 'Delete',
+                    onClick: () => { /* TODO: Implement! */ },
+                    variant: "extended",
+                    color: "error",
+                    icon: <Delete />,
+                    show: store.selecting,
+                },
+                {
+                    text: 'New',
+                    onClick: onNewClicked,
+                    variant: "extended",
+                    color: 'secondary',
+                    icon: <Add />,
+                    show: !store.selecting,
+                },
+            ]} />
 
         <ImagePreview
             show={ showPreview }
@@ -210,8 +273,10 @@ const Workspace = ():React.ReactElement => {
 
         <DeleteImageDialog
             open={ deleteImageId != -1 }
-            onClose={ () => {startTransition(() => setDeleteImageId(-1))} }
+            onClose={ () => startTransition(() => setDeleteImageId(-1)) }
             imageId={ deleteImageId } />
+
+        <NewImageDialog open={ openNewDialog } onClose={ onNewDialogClosed } />
     </div>;
 }
 

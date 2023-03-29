@@ -15,4 +15,5 @@ export * from './RoleSelect';
 export * from './ImagePreview';
 export * from './RenditionsAccordion';
 export * from './RenditionDialog';
+export * from './WorkspaceFab';
 
