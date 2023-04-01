@@ -21,11 +21,6 @@ const PageTopRow = styled.div`
     margin-bottom: 1rem;
 `;
 
-const DISPLAY_STYLES = {
-    GRID: 'GRID',
-    LIST: 'LIST',
-};
-
 /**
  * The top row containing breadcrumbs and view options
  * 
@@ -35,8 +30,8 @@ const DISPLAY_STYLES = {
 const WorkspaceTopRow = (props: BreadcrumbProps) => {
     const store = useWorkspaceStore();
 
-    const setGrid = () => store.setDisplayStyle(DISPLAY_STYLES.GRID);
-    const setList = () => store.setDisplayStyle(DISPLAY_STYLES.LIST);
+    const setDisplayStyle = (style: 'LIST' | 'GRID') =>
+        store.setDisplayStyle(style);
 
     return <PageTopRow>
         <Breadcrumbs {...props} />
@@ -44,18 +39,18 @@ const WorkspaceTopRow = (props: BreadcrumbProps) => {
         <ButtonGroup>
             <Button
                 variant={
-                    store.displayStyle === DISPLAY_STYLES.LIST
+                    store.displayStyle === 'LIST'
                         ? 'contained' : 'outlined'
                 }
-                onClick={ setList }>
+                onClick={ () => setDisplayStyle('LIST') }>
                 <ViewListIcon />
             </Button>
             <Button
                 variant={
-                    store.displayStyle === DISPLAY_STYLES.GRID
+                    store.displayStyle === 'GRID'
                         ? 'contained' : 'outlined'
                 }
-                onClick={ setGrid }>
+                onClick={ () => setDisplayStyle('GRID') }>
                 <GridViewIcon />
             </Button>
         </ButtonGroup>

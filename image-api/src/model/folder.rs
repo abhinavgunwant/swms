@@ -1,4 +1,5 @@
 use serde::{ Serialize, Deserialize };
+use serde_json;
 use chrono::{ DateTime, Utc };
 
 #[derive(Serialize, Deserialize)]
@@ -14,3 +15,10 @@ pub struct Folder {
     pub created_on: DateTime<Utc>,
     pub modified_on: DateTime<Utc>
 }
+
+impl std::fmt::Display for Folder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Folder {}", serde_json::to_string(&self).unwrap())
+    }
+}
+

@@ -12,8 +12,9 @@ use qstring::QString;
 use crate::{
     repository::{
         image::{ ImageRepository, get_image_repository },
+        folder::{ FolderRepository, get_folder_repository },
     },
-    model::image::Image,
+    model::{ image::Image, folder::Folder },
 };
 
 #[derive(Deserialize)]
@@ -25,12 +26,19 @@ pub struct GetChildrenRequest {
 
 #[derive(Serialize)]
 pub struct GetChildrenResponse {
-    folders: Vec<u32>, // TODO: replace this with vector of `Folder`
+    folders: Vec<Folder>, // TODO: replace this with vector of `Folder`
     images: Vec<Image>,
     success: bool,
     message: Vec<String>,
 }
 
+/**
+ * Returns the children of a project or a folder.
+ * 
+ * e.g.:
+ *
+ * /api/admin/get-children?folder=<folder-slug>
+ */
 #[get("/api/admin/get-children")]
 pub async fn get_children(req: HttpRequest) -> HttpResponse {
     let qs = QString::from(req.query_string());
@@ -39,10 +47,12 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     let slug = String::from(qs.get("slug").unwrap());
 
     let img_repo = get_image_repository();
-    let images_wrapped = img_repo.get_all_from_project_slug(slug);
+    let fol_repo = get_folder_repository();
+    let images_wrapped = img_repo.get_all_from_project_slug(slug.clone());
+    let folders_wrapped = fol_repo.get_all_from_project_slug(slug);
 
     let mut response_images: Vec<Image> = vec![];
-    let mut response_folders:Vec<u32> = vec![];
+    let mut response_folders: Vec<Folder> = vec![];
     let mut response_msg: Vec<String> = vec![];
 
     let mut images_found: bool = false;
@@ -66,16 +76,21 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     }
 
     // collect folders
-    // TODO: fetch folders under the current project/folder
+    match folders_wrapped {
+        Ok (folders) => {
+            response_folders = folders;
+            folders_found = true;
+        }
 
-    folders_found = true; // TODO: modify based on whether folder fetched or not.
+        Err (_e) => {
+            eprintln!("Some internal error occured while fetching project folders.");
 
-    if !images_found {
-        response_msg.push(String::from("IMAGES NOT FOUND"));
+            error = true;
+        }
     }
 
-    if !folders_found {
-        response_msg.push(String::from("FOLDERS NOT FOUND"));
+    if !(images_found || folders_found) {
+        response_msg.push(String::from("Found no content!"));
     }
     
     if images_found && folders_found {
@@ -107,3 +122,4 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
         message: response_msg,
     })
 }
+

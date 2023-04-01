@@ -1,4 +1,5 @@
 use serde::{ Serialize, Deserialize};
+use serde_json;
 use chrono::{ DateTime, Utc };
 use crate::model::encoding::Encoding;
 
@@ -17,5 +18,11 @@ pub struct Image {
     pub created_by: u16,
     pub modified_on: DateTime<Utc>,
     pub modified_by: u16,
+}
+
+impl std::fmt::Display for Image {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Image {}", serde_json::to_string(&self).unwrap())
+    }
 }
 

@@ -58,7 +58,7 @@ interface SelectedUserProps {
     title?: string,
 }
 
-const SelectUsers = (props: SelectedUserProps) => {
+export const SelectUsers = (props: SelectedUserProps) => {
     const [ userList, setUserList ] = useState<SelectUserModel[]>([]);
 
     const { userTypeahead } = useAPI();

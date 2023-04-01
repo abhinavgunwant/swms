@@ -20,7 +20,8 @@ export default interface WorkspaceState {
     /**
      * Whether to display list or grid.
      */
-    displayStyle: string,
+    displayStyle: "LIST" | "GRID",
+    itemList: Array<Image | Folder>,
     imageList: Image[],
     projectList: Project[],
     folderList: Folder[],

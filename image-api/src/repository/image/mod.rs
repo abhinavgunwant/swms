@@ -1,7 +1,5 @@
 pub mod db;
 
-use serde_json;
-
 use crate::db::{ DBImpl, get_db_context, DBError };
 use crate::model::{ encoding::Encoding, image::Image };
 use db::mysql::MySQLImageRepository;
@@ -27,12 +25,6 @@ pub fn get_image_repository() -> impl ImageRepository {
         DBImpl::MYSQL => {
             MySQLImageRepository {}
         }
-    }
-}
-
-impl std::fmt::Display for Image {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Image {}", serde_json::to_string(&self).unwrap())
     }
 }
 

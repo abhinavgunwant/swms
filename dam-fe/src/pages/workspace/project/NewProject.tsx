@@ -8,9 +8,7 @@ import {
 
 import { throttle } from 'lodash';
 
-import Breadcrumbs from "../../../components/Breadcrumbs";
-import SelectUsers from '../../../components/SelectUsers';
-import Error from '../../../components/Error';
+import { Breadcrumbs, SelectUsers, Error } from "../../../components";
 
 import useAPI from '../../../hooks/useAPI';
 
