@@ -7,8 +7,8 @@ import Folder from "../../models/Folder";
 
 export default interface WorkspaceState {
     /**
-     * Whether user is selecting one or more image (or the "Selection" mode is
-     * on)
+     * Whether user is selecting one or more image/folders (or the "Selection"
+     * mode is on).
      */
     selecting: boolean;
 
@@ -18,10 +18,14 @@ export default interface WorkspaceState {
     selectedImages: Set<number>,
 
     /**
+     * Array holding imageID of the thumbnail selected
+     */
+    selectedFolders: Set<number>,
+
+    /**
      * Whether to display list or grid.
      */
     displayStyle: "LIST" | "GRID",
-    itemList: Array<Image | Folder>,
     imageList: Image[],
     projectList: Project[],
     folderList: Folder[],
@@ -33,7 +37,7 @@ export default interface WorkspaceState {
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
     removeImageFromSelected: (imageID: number) => void;
-    setDisplayStyle: (dstyle: string) => void;
+    setDisplayStyle: (dstyle: "LIST" | "GRID") => void;
     setProjectList: (projectList: Project[]) => void;
     setImageList: (imageList: Image[]) => void;
     setFolderList: (folderList: Folder[]) => void;
@@ -46,5 +50,10 @@ export default interface WorkspaceState {
      * Whether the passed imageID matches the selected images.
      */
     isSelected: (imageID: number) => boolean;
+
+    /**
+     * Whether the passed imageID matches the selected images.
+     */
+    isFolderSelected: (folderID: number) => boolean;
 }
 

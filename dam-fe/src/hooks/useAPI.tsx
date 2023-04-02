@@ -206,6 +206,34 @@ const useAPI = () => {
         },
 
         /**
+         * Gets the list of all children from dam api and sets it in store.
+         */
+        getChildren: async (slug:string, type:string='PROJECT') => {
+            const response = await fetch(
+                `${HOST}/api/admin/get-children?type=${type}&slug=${slug}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                }
+            });
+
+            if (response.status === 200) {
+                const json = await response.json();
+
+                if (json.images) {
+                    wsStore.setImageList(json.images);
+                } else {
+                    wsStore.setImageList([]);
+                }
+
+                if (json.folders) {
+                    wsStore.setFolderList(json.folders);
+                } else {
+                    wsStore.setFolderList([]);
+                }
+            }
+        },
+
+        /**
          * Gets a single image.
          *
          * TODO: Verify that the response is a proper `Image` object.

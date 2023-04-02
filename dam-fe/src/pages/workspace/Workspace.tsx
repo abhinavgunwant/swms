@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useTransition, MouseEvent } from 'react';
+import React, {
+    useEffect, useState, useTransition, MouseEvent, Fragment
+} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -8,7 +10,7 @@ import {
 
 import {
     Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove, Folder,
-    Image,
+    Image, Description,
 } from '@mui/icons-material';
 
 import WorkspaceTopRow from './WorkspaceTopRow';
@@ -74,7 +76,7 @@ const Workspace = ():React.ReactElement => {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const { projectSlug, imageSlug } = useParams();
 
-    const { getImages, deleteImage } = useAPI();
+    const { getImages, deleteImage, getChildren } = useAPI();
 
     const onThumbnailClicked = (path: string, imageId: number) => {
         store.setCurrentPath(window.location.pathname as string);
@@ -108,7 +110,7 @@ const Workspace = ():React.ReactElement => {
 
         // TODO: pass the rquired slug (i.e. project slug if user is at root
         // of project and folder slug if user is in some project)
-        await getImages(projectSlug || '');
+        await getChildren(projectSlug || '');
 
         startTransition(() => setLoading(false));
     };
@@ -147,6 +149,63 @@ const Workspace = ():React.ReactElement => {
                 :
                 store.displayStyle === 'GRID' ?
                     <WorkspaceGrid container spacing={2}>
+                        <Fragment>
+                        {
+                            store.folderList.length && 
+                            store.folderList.map(t => {
+                                const selected = store.isSelected(t.id);
+                                console.log('folder info: ', t);
+
+                                return <Thumbnail
+                                    key={ t.id }
+                                    id={ t.id }
+                                    name={ t.title }
+                                    thumbnailLocation=""
+                                    type="FOLDER"
+                                    selected={ selected }
+                                    actions={[
+                                        {
+                                            label: 'select',
+                                            icon: selected ? <Deselect /> : <Check />,
+                                            show: true,
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                // if (selected) {
+                                                //     store.removeImageFromSelected(t.id);
+                                                // } else {
+                                                //     store.addImageToSelected(t.id);
+                                                //     store.setSelecting(true);
+                                                // }
+                                            },
+                                        },
+                                        {
+                                            label: 'description',
+                                            icon: <Description />,
+                                            show: !store.selecting,
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                //onPreviewClicked(t.id);
+                                            }
+                                        },
+                                        {
+                                            label: 'delete',
+                                            icon: <Delete />,
+                                            show: !store.selecting,
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+
+                                                //startTransition(() => setDeleteImageId(t.id));
+                                                //onThumbnailDeleteClicked(t.id);
+                                            }
+                                        },
+                                    ]}
+                                    onClick={
+                                        () => onThumbnailClicked(store.currentPath, t.id)
+                                    } />
+                            }) 
+                        }
+                        </Fragment>
+                        <Fragment>
                         {
                             store.imageList.length ?
                             store.imageList.map(t => {
@@ -204,6 +263,7 @@ const Workspace = ():React.ReactElement => {
                                 Nothing to show here. Click on "+ New" to get started!
                             </NothingMessage>
                         }
+                        </Fragment>
                     </WorkspaceGrid>
                     :
                     <List dense>

@@ -129,7 +129,7 @@ const Project = () => {
                                     thumbnailLocation=""
                                     key={ t.id }
                                     selected={ selected[i] }
-                                    isImage={ false }
+                                    type="PROJECT"
                                     actions={[
                                         {
                                             label: 'select',

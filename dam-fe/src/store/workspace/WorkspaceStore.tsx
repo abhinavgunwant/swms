@@ -12,6 +12,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
         (set, get) => ({
             selecting: false,
             selectedImages: new Set<number>(),
+            selectedFolders: new Set<number>(),
             displayStyle: 'GRID', //// TODO: Make a const file and replace this...
             imageList: [],
             folderList: [],
@@ -61,6 +62,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
                 (state) => ({ ...state, displayStyle: dstyle })
             ),
             isSelected: (imageID) => get().selectedImages.has(imageID),
+            isFolderSelected: (imageID) => get().selectedFolders.has(imageID),
             setProjectList: (projectList) => set((state) => ({
                 ...state, projectList
             })),
