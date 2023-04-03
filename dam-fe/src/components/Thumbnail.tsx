@@ -15,6 +15,13 @@ const ThumbnailSubtitle = styled(Typography)`color: #888888;`;
 const ThumbnailActions = styled(CardActions)`
     display: flex;
     justify-content: center;
+    padding-top: 0;
+    background: #ffffff;
+    transition: 0.25s background ease-out;
+
+    &:hover {
+        background: #f8f8f8;
+    }
 `;
 
 const CustomCardMedia = styled(CardMedia)`
@@ -25,9 +32,6 @@ const CustomCardMedia = styled(CardMedia)`
 `;
 
 export const Thumbnail = (props: ThumbnailExtendedProps) => {
-    const fileNameContent = props.thumbnailLocation.split('/');
-    const subtitle = fileNameContent[fileNameContent.length - 1];
-
     return <Grid item xs={12} sm={6} lg={3} xl={2}>
         <Card
             variant="outlined"
@@ -64,7 +68,7 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
                     { props.name }
                 </Typography>
                 <ThumbnailSubtitle>
-                    { subtitle }
+                    { props.subtitle }
                 </ThumbnailSubtitle>
             </CardContent>
 

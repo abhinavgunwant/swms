@@ -214,8 +214,8 @@ const Workspace = ():React.ReactElement => {
                                 return <Thumbnail
                                     key={ t.id }
                                     id={ t.id }
-                                    name={ t.name }
-                                    thumbnailLocation=""
+                                    name={ t.title }
+                                    subtitle={ t.name }
                                     isImage={ true }
                                     selected={ selected }
                                     actions={[

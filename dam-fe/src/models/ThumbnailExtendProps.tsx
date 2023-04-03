@@ -18,8 +18,9 @@ interface ThumbnailAction {
 export default interface ThumbnailExtendedProps {
     id: number,     // same as project id
     name: string,   // same as project name
-    thumbnailLocation: string,
     key: number,
+    subtitle?: string,
+    thumbnailLocation?: string,
     type?: "IMAGE" | "FOLDER" | "PROJECT",
     onClick?: React.MouseEventHandler<HTMLDivElement> | undefined;
     actions?: ThumbnailAction[],
