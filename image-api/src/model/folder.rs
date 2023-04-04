@@ -3,6 +3,7 @@ use serde_json;
 use chrono::{ DateTime, Utc };
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Folder {
     pub id: u32,
     pub title: String,
