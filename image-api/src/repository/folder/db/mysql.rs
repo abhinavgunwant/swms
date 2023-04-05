@@ -23,6 +23,7 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
                     let mut row = row_ref.clone();
 
                     let parent_folder_id: u32;
+                    let modified_by: u32;
                     println!("Getting folder object...");
 
                     match row.take_opt("PARENT_FOLDER_ID") {
@@ -40,6 +41,21 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
                         None => parent_folder_id = 0
                     }
 
+                    match row.take_opt("MODIFIED_BY") {
+                        Some (fi_result) => {
+                            match fi_result {
+                                Ok (fi) => {
+                                    modified_by = fi
+                                }
+
+                                Err (_e) => {
+                                    modified_by = 0;
+                                }
+                            }
+                        }
+                        None => modified_by = 0
+                    }
+
                     Ok(Folder {
                         id: row.take("ID").unwrap(),
                         title: row.take("TITLE").unwrap(),
@@ -48,7 +64,7 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
                         description: row.take("DESCRIPTION").unwrap(),
                         parent_folder_id,
                         created_by: row.take("CREATED_BY").unwrap(),
-                        modified_by: row.take("MODIFIED_BY").unwrap(),
+                        modified_by,
                         created_on: Utc::now(),
                         modified_on: Utc::now(),
                     })

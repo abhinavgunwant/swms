@@ -15,8 +15,11 @@ import {
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import {
-    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab, } from '../../components';
-import { DeleteImageDialog, NewImageDialog } from '../../components/dialogs';
+    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab,
+} from '../../components';
+import {
+    DeleteImageDialog, DeleteFolderDialog, NewImageDialog,
+} from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
 
@@ -59,6 +62,7 @@ const Workspace = ():React.ReactElement => {
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ errorText, setErrorText ] = useState<string>('');
     const [ deleteImageId, setDeleteImageId ] = useState<number>(-1);
+    const [ deleteFolderId, setDeleteFolderId ] = useState<number>(-1);
     const [ openNewDialog, setOpenNewDialog ] = useState<boolean>(false);
 
     /**
@@ -78,10 +82,16 @@ const Workspace = ():React.ReactElement => {
 
     const { getImages, deleteImage, getChildren } = useAPI();
 
-    const onThumbnailClicked = (path: string, imageId: number) => {
+    const onImageThumbnailClicked = (path: string, imageId: number) => {
         store.setCurrentPath(window.location.pathname as string);
 
         navigate('/workspace/image/' + imageId);
+    };
+
+    const onFolderThumbnailClicked = (path: string, folderId: number) => {
+        store.setCurrentPath(window.location.pathname as string);
+
+        navigate('/workspace/folder/' + folderId);
     };
 
     const onPreviewClicked = (id: number) => startTransition(() => {
@@ -116,17 +126,13 @@ const Workspace = ():React.ReactElement => {
     };
 
     const selectAll = () => {
-        store.setSelecting(true);
-        store.imageList.forEach(
-            img => store.addImageToSelected(img.id)
-        )
+        store.imageList.forEach((img) => store.addImageToSelected(img.id));
+        store.folderList.forEach((fol) => store.addFolderToSelected(fol.id));
     };
 
     const deselectAll = () => {
-        store.setSelecting(false);
-        store.selectedImages.forEach(
-            img => store.removeImageFromSelected(img)
-        );
+        store.resetSelectedImages();
+        store.resetSelectedFolders();
     };
 
     const onNewClicked = () => startTransition(
@@ -153,7 +159,7 @@ const Workspace = ():React.ReactElement => {
                         {
                             store.folderList.length && 
                             store.folderList.map(t => {
-                                const selected = store.isSelected(t.id);
+                                const selected = store.isFolderSelected(t.id);
                                 console.log('folder info: ', t);
 
                                 return <Thumbnail
@@ -170,12 +176,12 @@ const Workspace = ():React.ReactElement => {
                                             show: true,
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
-                                                // if (selected) {
-                                                //     store.removeImageFromSelected(t.id);
-                                                // } else {
-                                                //     store.addImageToSelected(t.id);
-                                                //     store.setSelecting(true);
-                                                // }
+
+                                                if (selected) {
+                                                    store.removeFolderFromSelected(t.id);
+                                                } else {
+                                                    store.addFolderToSelected(t.id);
+                                                }
                                             },
                                         },
                                         {
@@ -194,13 +200,13 @@ const Workspace = ():React.ReactElement => {
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
 
-                                                //startTransition(() => setDeleteImageId(t.id));
+                                                startTransition(() => setDeleteFolderId(t.id));
                                                 //onThumbnailDeleteClicked(t.id);
                                             }
                                         },
                                     ]}
                                     onClick={
-                                        () => onThumbnailClicked(store.currentPath, t.id)
+                                        () => onFolderThumbnailClicked(store.currentPath, t.id)
                                     } />
                             }) 
                         }
@@ -229,7 +235,6 @@ const Workspace = ():React.ReactElement => {
                                                     store.removeImageFromSelected(t.id);
                                                 } else {
                                                     store.addImageToSelected(t.id);
-                                                    store.setSelecting(true);
                                                 }
                                             },
                                         },
@@ -255,7 +260,7 @@ const Workspace = ():React.ReactElement => {
                                         },
                                     ]}
                                     onClick={
-                                        () => onThumbnailClicked(store.currentPath, t.id)
+                                        () => onImageThumbnailClicked(store.currentPath, t.id)
                                     } />
                             })
                             :
@@ -290,7 +295,8 @@ const Workspace = ():React.ReactElement => {
                     onClick: selectAll,
                     variant: "extended",
                     icon: <SelectAll />,
-                    show: store.imageList.length !== store.selectedImages.size,
+                    show: store.imageList.length !== store.selectedImages.size
+                        || store.folderList.length !== store.selectedFolders.size,
                 },
                 {
                     text: 'Deselect All',
@@ -335,6 +341,11 @@ const Workspace = ():React.ReactElement => {
             open={ deleteImageId != -1 }
             onClose={ () => startTransition(() => setDeleteImageId(-1)) }
             imageId={ deleteImageId } />
+
+        <DeleteFolderDialog
+            open={ deleteFolderId != -1 }
+            onClose={ () => startTransition(() => setDeleteFolderId(-1)) }
+            imageId={ deleteFolderId } />
 
         <NewImageDialog open={ openNewDialog } onClose={ onNewDialogClosed } />
     </div>;

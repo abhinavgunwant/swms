@@ -8,6 +8,7 @@ import Home from "../pages/Home";
 import NewFolder from "../pages/workspace/new-folder/NewFolder";
 import NewImage from "../pages/workspace/new-image/NewImage";
 import ImageDetails from "../pages/workspace/image/ImageDetails";
+import FolderDetails from "../pages/workspace/folder/FolderDetails";
 import Project from "../pages/workspace/project/Projects";
 import NewProject from "../pages/workspace/project/NewProject";
 import Workspace from "../pages/workspace/Workspace";
@@ -33,6 +34,7 @@ const Router = ():React.ReactElement => {
             <Route path="/workspace/tree/:projectSlug" element={ <Workspace /> } />
             {/*<Route path={`/workspace/tree/:projectSlug/${ imagePath + (imagePath ? '/' : '') }:imageSlug`} element={ <Workspace /> } />*/}
             <Route path={`/workspace/image/:imageId`} element={ <ImageDetails /> } />
+            <Route path={`/workspace/folder/:folderId`} element={ <FolderDetails /> } />
             <Route path="/workspace/new-image" element={ <NewImage /> } />
             <Route path="/workspace/new-folder" element={ <NewFolder /> } />
             <Route path="/workspace/new-project" element={ <NewProject /> } />

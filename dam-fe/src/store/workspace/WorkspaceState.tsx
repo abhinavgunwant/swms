@@ -36,7 +36,11 @@ export default interface WorkspaceState {
 
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
+    addFolderToSelected: (folderID: number) => void;
+    resetSelectedImages: () => void;
     removeImageFromSelected: (imageID: number) => void;
+    removeFolderFromSelected: (folderID: number) => void;
+    resetSelectedFolders: () => void;
     setDisplayStyle: (dstyle: "LIST" | "GRID") => void;
     setProjectList: (projectList: Project[]) => void;
     setImageList: (imageList: Image[]) => void;

@@ -17,7 +17,18 @@ const useWorkspaceStore = create<WorkspaceState>()(
             imageList: [],
             folderList: [],
             projectList: [],
-            currentFolder: { id: 0, slug: ''},
+            currentFolder: {
+                id: 0,
+                slug: '',
+                title: '',
+                description: '',
+                projectId: 0,
+                parentFolderId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                createdOn: '',
+                modifiedOn: '',
+            },
             currentProject: {
                 id: 0,
                 name: '',
@@ -37,9 +48,30 @@ const useWorkspaceStore = create<WorkspaceState>()(
                 (state) => {
                     const selImg = state.selectedImages;
                     selImg.add(imageID);
+
                     return {
                         ...state,
                         selectedImages: selImg,
+                        selecting: true,
+                    }
+                }),
+            addFolderToSelected: (folderID) => set(
+                (state) => {
+                    const selFold = state.selectedFolders;
+                    selFold.add(folderID);
+
+                    return {
+                        ...state,
+                        selectedFolders: selFold,
+                        selecting: true,
+                    }
+                }),
+            resetSelectedImages: () => set(
+                (state) => {
+                    return {
+                        ...state,
+                        selectedImages: new Set<number>(),
+                        selecting: state.selectedFolders.size > 0,
                     }
                 }),
             removeImageFromSelected: (imageID) => set(
@@ -52,17 +84,41 @@ const useWorkspaceStore = create<WorkspaceState>()(
                         return {
                             ...state,
                             selectedImages: new Set<number>(),
-                            selecting: false
+                            selecting: state.selectedFolders.size > 0,
                         };
                     }
 
                     return { ...state, selectedImages: selImgs }
                 }),
+            removeFolderFromSelected: (folderID) => set(
+                (state) => {
+                    const selFold = state.selectedFolders;
+
+                    selFold.delete(folderID);
+
+                    if (selFold.size === 0) {
+                        return {
+                            ...state,
+                            selectedFolders: new Set<number>(),
+                            selecting: state.selectedImages.size > 0,
+                        };
+                    }
+
+                    return { ...state, selectedFolders: selFold }
+                }),
+            resetSelectedFolders: () => set(
+                (state) => {
+                    return {
+                        ...state,
+                        selectedFolders: new Set<number>(),
+                        selecting: state.selectedImages.size > 0,
+                    }
+                }),
             setDisplayStyle: (dstyle) => set(
                 (state) => ({ ...state, displayStyle: dstyle })
             ),
             isSelected: (imageID) => get().selectedImages.has(imageID),
-            isFolderSelected: (imageID) => get().selectedFolders.has(imageID),
+            isFolderSelected: (folderID) => get().selectedFolders.has(folderID),
             setProjectList: (projectList) => set((state) => ({
                 ...state, projectList
             })),

@@ -250,6 +250,8 @@ const useAPI = () => {
                 const json = await response.json();
                 return json;
             }
+
+            return false;
         },
 
         updateImageTitle: async (imageId: number, title: string) => {
@@ -412,6 +414,22 @@ const useAPI = () => {
             }
 
             return { success: false, message: 'Some Unknown Error Occured' };
+        },
+
+        getFolder: async (folderId: number) => {
+            const response = await fetch(
+                `${HOST}/api/admin/folder/${folderId}/`, {
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                }
+            });
+
+            if (response.status === 200) {
+                const json = await response.json();
+                return { success: true, folder: json };
+            }
+
+            return { success: false, message: 'NOT_FOUND' };
         },
 
         /**
