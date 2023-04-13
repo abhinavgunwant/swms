@@ -16,11 +16,16 @@ import {
     Loading, Breadcrumbs, Error, ImagePreview,
 } from '../../../components';
 
+import { DeleteFolderDialog } from '../../../components/dialogs';
+
 import { WorkspaceGrid } from '../Workspace';
 
 import useAPI from '../../../hooks/useAPI';
 
+import LinkModel from '../../../models/LinkModel';
 import Folder from '../../../models/Folder';
+
+import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 
 import { styled } from '@mui/material/styles';
 
@@ -43,9 +48,11 @@ const FolderNotFound = styled(Typography)`
 `;
 
 const FolderDetails = () => {
+    const [ breadcrumbLinks, setBreadcrumbLinks ] =
+        useState<Array<LinkModel | string>>(['Workspace']);
     const [ folder, setFolder ] = useState<Folder>();
     const [ editedFolder, setEditedFolder ] = useState<Folder|null>(null);
-    const [ edit, setEdit ] = useState<boolean>(true);
+    const [ edit, setEdit ] = useState<boolean>();
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ folderNotFound, setFolderNotFound ] = useState<boolean>(false);
     const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
@@ -55,6 +62,8 @@ const FolderDetails = () => {
 
     const { getFolder } = useAPI();
     const { folderId } = useParams();
+
+    const store = useWorkspaceStore();
 
     const getFolderId: () => number | undefined = () => {
         try {
@@ -70,6 +79,10 @@ const FolderDetails = () => {
 
     const onEdit = () => startTransition(() => setEdit(true));
     const onCancel = () => startTransition(() => setEdit(false));
+
+    const onDeleteDialogClosed = () => startTransition(
+        () => setShowDeleteDialog(false)
+    );
 
     useEffect(() => {
         const loadFolder = async () => {
@@ -101,6 +114,8 @@ const FolderDetails = () => {
     }, []);
 
     return <div className="page page--folder-details">
+        <Breadcrumbs links={ breadcrumbLinks } />
+
         <WorkspaceGrid>
             {
                 loading ?
@@ -181,29 +196,37 @@ const FolderDetails = () => {
                                 disabled={ true }
                                 label="Last Modified On" />
                         </Grid>
+
+                        {
+                            edit &&
+                            <Grid item xs={12}>
+                                <Button
+                                    variant="contained"
+                                    style={{marginRight: '0.5rem'}}
+                                    disabled={ editedFolder == null }>
+                                    Save
+                                </Button>
+
+                                <Button variant="outlined" onClick={ onCancel }>
+                                    Cancel
+                                </Button>
+                            </Grid>
+                        }
                     </Grid>
                 :
                     <FolderNotFound variant="h4" color="error">
                         Error 404: Folder Not Found
                     </FolderNotFound>
             }
+            <Fragment>
+            
+            </Fragment>
         </WorkspaceGrid>
 
-        {
-            edit &&
-            <Fragment>
-                <Button
-                    variant="contained"
-                    style={{marginRight: '0.5rem'}}
-                    disabled={ editedFolder == null }>
-                    Save
-                </Button>
-
-                <Button variant="outlined" onClick={ onCancel }>
-                    Cancel
-                </Button>
-            </Fragment>
-        }
+        <DeleteFolderDialog
+            open={ showDeleteDialog }
+            onClose={ onDeleteDialogClosed }
+            folderId={ getFolderId() || -1 } />
     </div>
 };
 

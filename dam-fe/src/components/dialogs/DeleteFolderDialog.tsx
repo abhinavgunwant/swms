@@ -13,7 +13,7 @@ import { styled } from '@mui/material/styles';
 interface DeleteImageDialogProps {
     open: boolean,
     onClose: () => void,
-    imageId: number,
+    folderId: number,
     navigateToAfterSuccess?: string,
 }
 
@@ -36,11 +36,11 @@ export const DeleteFolderDialog = (props: DeleteImageDialogProps) => {
     const [ _, startTransition ] = useTransition();
 
     const navigate = useNavigate();
-    const { deleteImage } = useAPI();
+    const { deleteFolder } = useAPI();
 
     const onYes = async () => {
         startTransition(() => setDeleting(true));
-        const resp = await deleteImage(props.imageId);
+        const resp = await deleteFolder(props.folderId);
 
         console.log(resp);
 
@@ -92,9 +92,10 @@ export const DeleteFolderDialog = (props: DeleteImageDialogProps) => {
                     </Typography>
                 :
                     <Typography>
-                        Deleting this folder will delete all images, their
-                        renditions and files associated with this image.
-                        <br />
+                        Deleting this folder will delete all it&apos;s content
+                        including all images, their renditions and files
+                        associated with them.
+                        <br /><br />
                         Do you want to continue?
                     </Typography>
         }

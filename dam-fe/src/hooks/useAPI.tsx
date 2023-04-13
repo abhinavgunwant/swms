@@ -8,6 +8,7 @@ import CreateUserPayload from '../models/CreateUserPayload';
 import UserListing from '../models/UserListing';
 import Role from '../models/Role';
 import Image from '../models/Image';
+import Folder from '../models/Folder';
 
 const HOST = 'http://localhost:8080';
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
@@ -430,6 +431,41 @@ const useAPI = () => {
             }
 
             return { success: false, message: 'NOT_FOUND' };
+        },
+
+        deleteFolder: async (folder: number | Folder) => {
+            let folderId: number = -1;
+
+            if (typeof folder === 'number') {
+                folderId = folder;
+            } else if (
+                folder && folder.id && typeof folder.id === 'number'
+            ) {
+                folderId = folder.id;
+            }
+
+            if (folderId === -1) {
+                return { success: false, message: 'Invalid Image!' };
+            }
+
+            const response = await fetch(
+                `${HOST}/api/admin/folder/${ folderId }`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.status === 200) {
+                // return await response.json();
+                return {
+                    success: true,
+                    message: await response.text() || 'Success!'
+                };
+            }
+
+            return { success: false, message: 'Some Unknown Error Occured' };
         },
 
         /**

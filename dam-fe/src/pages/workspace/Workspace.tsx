@@ -89,10 +89,13 @@ const Workspace = ():React.ReactElement => {
     };
 
     const onFolderThumbnailClicked = (path: string, folderId: number) => {
+    };
+
+    const onFolderDescriptionClicked = (folderId: number) => {
         store.setCurrentPath(window.location.pathname as string);
 
         navigate('/workspace/folder/' + folderId);
-    };
+    }
 
     const onPreviewClicked = (id: number) => startTransition(() => {
         console.log('Preview Clicked!!!!');
@@ -190,7 +193,8 @@ const Workspace = ():React.ReactElement => {
                                             show: !store.selecting,
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
-                                                //onPreviewClicked(t.id);
+
+                                                onFolderDescriptionClicked(t.id);
                                             }
                                         },
                                         {
@@ -201,7 +205,6 @@ const Workspace = ():React.ReactElement => {
                                                 e.stopPropagation();
 
                                                 startTransition(() => setDeleteFolderId(t.id));
-                                                //onThumbnailDeleteClicked(t.id);
                                             }
                                         },
                                     ]}
@@ -345,7 +348,7 @@ const Workspace = ():React.ReactElement => {
         <DeleteFolderDialog
             open={ deleteFolderId != -1 }
             onClose={ () => startTransition(() => setDeleteFolderId(-1)) }
-            imageId={ deleteFolderId } />
+            folderId={ deleteFolderId } />
 
         <NewImageDialog open={ openNewDialog } onClose={ onNewDialogClosed } />
     </div>;
