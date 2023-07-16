@@ -110,13 +110,16 @@ const NewImage = () => {
             return;
         }
         if (file) {
+            console.log('project: ', store.currentProject);
+            console.log('folder: ', store.currentFolder);
+
             const uploadImg: UploadImage = {
                 uploadId: '',
                 name: file.name || '',
                 title,
                 encoding: 'JPG',
-                projectId: 1,
-                folderId: 1,
+                projectId: store.currentProject.id,
+                folderId: store.currentFolder.id,
             };
 
             setSaving(true);

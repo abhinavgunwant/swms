@@ -15,7 +15,7 @@ import Workspace from "../pages/workspace/Workspace";
 import Admin from "../pages/admin/Admin";
 import Users, { Create, Edit, UserRoles, NewEditRole } from "../pages/admin/users";
 
-import { getImagePathFromURL } from '../utils/PathUtils';
+//import { getImagePathFromURL } from '../utils/PathUtils';
 import SelectUsers from "./SelectUsers";
 
 const Router = ():React.ReactElement => {

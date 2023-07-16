@@ -52,7 +52,18 @@ const Project = () => {
         return () => {
             store.setImageList([]);
             store.setCurrentProject(p);
-            store.setCurrentFolder({ id: 0, slug: '/' });
+            store.setCurrentFolder({
+                id: 0,
+                slug: '/',
+                title: '',
+                projectId: p.id,
+                description: '',
+                parentFolderId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                createdOn: '',
+                modifiedOn: '',
+            });
 
             navigate('/workspace/tree/' + p.slug);
         };

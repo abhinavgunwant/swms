@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 
 import {
-    Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove, Folder,
+    Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove,
     Image, Description,
 } from '@mui/icons-material';
 
@@ -25,6 +25,8 @@ import useAPI from '../../hooks/useAPI';
 
 import useUserStore from '../../store/workspace/UserStore';
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
+
+import Folder from '../../models/Folder';
 
 import { styled } from '@mui/material/styles';
 
@@ -74,7 +76,7 @@ const Workspace = ():React.ReactElement => {
     const [ _, startTransition ] = useTransition();
 
     const store = useWorkspaceStore();
-    const userStore = useUserStore();
+    //const userStore = useUserStore();
 
     const navigate = useNavigate();
     /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -88,7 +90,10 @@ const Workspace = ():React.ReactElement => {
         navigate('/workspace/image/' + imageId);
     };
 
-    const onFolderThumbnailClicked = (path: string, folderId: number) => {
+    const onFolderThumbnailClicked = (path: string, folder: Folder) => {
+        store.setCurrentPath(window.location.pathname as string);
+        store.setCurrentFolder(folder);
+        navigate('/workspace/folder/' + folder.id);
     };
 
     const onFolderDescriptionClicked = (folderId: number) => {
@@ -163,7 +168,6 @@ const Workspace = ():React.ReactElement => {
                             store.folderList.length && 
                             store.folderList.map(t => {
                                 const selected = store.isFolderSelected(t.id);
-                                console.log('folder info: ', t);
 
                                 return <Thumbnail
                                     key={ t.id }
@@ -209,7 +213,7 @@ const Workspace = ():React.ReactElement => {
                                         },
                                     ]}
                                     onClick={
-                                        () => onFolderThumbnailClicked(store.currentPath, t.id)
+                                        () => onFolderThumbnailClicked(store.currentPath, t)
                                     } />
                             }) 
                         }
@@ -284,7 +288,7 @@ const Workspace = ():React.ReactElement => {
                                     thumbnailLocation=""
                                     isImage={true}
                                     onClick={
-                                        () => onThumbnailClicked(store.currentPath, t.id)
+                                        () => onImageThumbnailClicked(store.currentPath, t.id)
                                     } />
                             )
                         }
