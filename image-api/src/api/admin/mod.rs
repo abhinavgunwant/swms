@@ -11,6 +11,7 @@ use serde::{ Serialize, Deserialize };
 use qstring::QString;
 
 use crate::{
+    db::DBError,
     repository::{
         image::{ ImageRepository, get_image_repository },
         folder::{ FolderRepository, get_folder_repository },
@@ -38,39 +39,108 @@ pub struct GetChildrenResponse {
  * 
  * e.g.:
  *
- * /api/admin/get-children?folder=<folder-slug>
+ * /api/admin/get-children?type=<type>&slug=<slug>
  */
 #[get("/api/admin/get-children")]
 pub async fn get_children(req: HttpRequest) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
-    let _type = qs.get("type").unwrap();
-    let slug = String::from(qs.get("slug").unwrap());
-
-    let img_repo = get_image_repository();
-    let fol_repo = get_folder_repository();
-    let images_wrapped = img_repo.get_all_from_project_slug(slug.clone());
-    let folders_wrapped = fol_repo.get_all_from_project_slug(slug);
-
-    let mut response_images: Vec<Image> = vec![];
-    let mut response_folders: Vec<Folder> = vec![];
     let mut response_msg: Vec<String> = vec![];
 
     let mut images_found: bool = false;
     let mut folders_found: bool = false;
     let mut error: bool = false;
 
-    // TODO: Check _type here to decide which repo to pull children from
+    let _type: &str;
+    let slug: &str;
+
+    // Check if "type" parameter is supplied with the request, if not, return
+    // error.
+    match qs.get("type") {
+        Some(t) => {
+            match t.to_uppercase().as_str() {
+                "PROJECT" | "FOLDER" => { _type = t; }
+
+                _ => {
+                    _type = "";
+                    error = true;
+
+                    response_msg.push(String::from(
+                        "ERROR: Invalid \"type\" parameter."
+                    ));
+                }
+            }
+        }
+
+        None => {
+            _type = "";
+            error = true;
+
+            response_msg.push(String::from(
+                "ERROR: Request missing a \"type\" parameter."
+            ));
+        }
+    }
+
+    match qs.get("slug") {
+        Some(s) => { slug = s; }
+
+        None => {
+            slug = "";
+            error = true;
+
+            response_msg.push(String::from(
+                "ERROR: Request missing a \"slug\" parameter."
+            ));
+        }
+    }
+
+    // Any errors discovered before this point are due to bad requests.
+    if error {
+        return HttpResponse::BadRequest().json(GetChildrenResponse {
+            images: vec![],
+            folders: vec![],
+            success: false,
+            message: response_msg,
+        })
+    }
+
+    let img_repo = get_image_repository();
+    let fol_repo = get_folder_repository();
+
+    let images_wrapped: Result<Vec<Image>, DBError>;
+    let mut response_images: Vec<Image> = vec![];
+    let folders_wrapped: Result<Vec<Folder>, DBError>;
+    let mut response_folders: Vec<Folder> = vec![];
+
+    match _type.to_uppercase().as_str() {
+        "FOLDER" => {
+            images_wrapped = img_repo.get_all_from_folder_slug(String::from(slug));
+            folders_wrapped = fol_repo.get_all_from_folder_slug(String::from(slug));
+        }
+
+        "PROJECT" | _ => {
+            images_wrapped = img_repo.get_all_from_project_slug(String::from(slug));
+            folders_wrapped = fol_repo.get_all_from_project_slug(String::from(slug));
+        }
+    }
 
     // collect images
     match images_wrapped {
         Ok (images) => {
             response_images = images;
-            images_found = true;
+
+            if !response_images.is_empty() {
+                images_found = true;
+            }
         }
 
-        Err (_e) => {
-            eprintln!("Some internal error occured while fetching project images.");
+        Err (e) => {
+            eprintln!("Some internal error occured while fetching project images: {}", e);
+
+            response_msg.push(String::from(
+                "Some internal error occured while fetching images."
+            ));
 
             error = true;
         }
@@ -80,11 +150,18 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     match folders_wrapped {
         Ok (folders) => {
             response_folders = folders;
-            folders_found = true;
+
+            if !response_folders.is_empty() {
+                folders_found = true;
+            }
         }
 
-        Err (_e) => {
-            eprintln!("Some internal error occured while fetching project folders.");
+        Err (e) => {
+            eprintln!("Some internal error occured while fetching project folders: {}", e);
+
+            response_msg.push(String::from(
+                "Some internal error occured while fetching folders."
+            ));
 
             error = true;
         }

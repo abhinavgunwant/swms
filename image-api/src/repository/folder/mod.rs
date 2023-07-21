@@ -10,6 +10,8 @@ pub trait FolderRepository {
     fn get_all_from_project(&self, project_id: u32) -> Result<Vec<Folder>, DBError>;
     fn get_all_from_project_slug(&self, project_slug: String)
         -> Result<Vec<Folder>, DBError>;
+    fn get_all_from_folder_slug(&self, folder_slug: String)
+        -> Result<Vec<Folder>, DBError>;
     fn add(&self, folder: Folder) -> Result<String, String>;
     fn update(&self, folder: Folder) -> Result<String, String>;
     fn remove(&self, folder: Folder) -> Result<String, String>;

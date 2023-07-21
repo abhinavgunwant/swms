@@ -1,6 +1,7 @@
 pub mod dbcontext;
 pub mod utils;
 
+use std::fmt::{ Display, Formatter, Result as FmtResult };
 use mysql::{ PooledConn, Pool };
 use dbcontext::{ DBContext, MySQLContext };
 use cached::proc_macro::cached;
@@ -14,6 +15,20 @@ lazy_static! {
 pub enum DBError {
     NOT_FOUND,
     OtherError
+}
+
+impl Display for DBError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::NOT_FOUND => {
+                return write!(f, "DB: Not Found");
+            }
+
+            Self::OtherError => {
+                return write!(f, "DB: Some other error occured");
+            }
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Copy)]
@@ -53,3 +68,4 @@ pub fn get_db_connection() -> PooledConn {
 
     conn
 }
+

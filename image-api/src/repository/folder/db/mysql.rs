@@ -203,6 +203,19 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
+    fn get_all_from_folder_slug(&self, folder_slug: String)
+            -> Result<Vec<Folder>, DBError> {
+        get_folders_from_row(get_rows_from_query(
+            r"SELECT
+                F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
+                F.CREATED_ON, F.MODIFIED_ON, F.SLUG, F.PROJECT_ID,
+                F.PARENT_FOLDER_ID
+            FROM FOLDER F, FOLDER F2
+            WHERE F2.SLUG = :folder_slug AND F.PARENT_FOLDER_ID = F2.ID",
+            params! { "folder_slug" => folder_slug },
+        ))
+    }
+
     fn add(&self, folder: Folder) -> Result<String, String> {
         let mut conn: PooledConn = get_db_connection();
 
