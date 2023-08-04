@@ -109,6 +109,7 @@ const NewImage = () => {
             // TODO: Show error message here: "An image save is already in progress"
             return;
         }
+
         if (file) {
             console.log('project: ', store.currentProject);
             console.log('folder: ', store.currentFolder);
@@ -166,6 +167,10 @@ const NewImage = () => {
             setTimeout(() => setSaving(false), 100);
         }
     }
+
+    const onCancel = () => {
+        navigate('/workspace/tree' + store.currentPath);
+    };
 
     const onEagerRenditionChecked = (e: ChangeEvent<HTMLInputElement>) => {
         startTransition(() => setEagerRendition(e.target.checked));
@@ -233,7 +238,7 @@ const NewImage = () => {
         path = path.replaceAll('//', '/');
 
         setFolderPath(path);
-    }, [ store.currentProject.slug, store.currentFolder.slug ]);
+    }, []);
 
     return <div className="page page--new-image">
         <Breadcrumbs links={[
@@ -348,7 +353,7 @@ const NewImage = () => {
                 }
             </Button>
 
-            <Button variant="outlined">Cancel</Button>
+            <Button variant="outlined" onClick={ onCancel }>Cancel</Button>
         </Box>
 
         <RenditionDialog

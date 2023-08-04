@@ -100,6 +100,8 @@ const Project = () => {
         const func = async () => {
             await getProjects();
 
+            store.setCurrentPath('/workspace');
+
             startTransition(() => {
                 setLoading(false);
 

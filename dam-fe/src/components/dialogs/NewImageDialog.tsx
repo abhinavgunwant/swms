@@ -13,6 +13,11 @@ interface NewImageDialogProps {
     onClose: () => void,
 }
 
+/**
+ * Dialog that appears when user clicks "+ NEW" button on workspace.
+ *
+ * TODO: Update the component name to `NewItemDialog` or something similar.
+ */
 export const NewImageDialog = (props: NewImageDialogProps) => {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const [ _, startTransition ] = useTransition();

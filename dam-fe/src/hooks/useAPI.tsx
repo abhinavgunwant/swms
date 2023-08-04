@@ -194,7 +194,7 @@ const useAPI = () => {
          */
         getImages: async (slug:string, type:string='PROJECT') => {
             const response = await fetch(
-                `${HOST}/api/admin/get-children?type=${type}&slug=${slug}`, {
+                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`, {
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,
                 }
@@ -209,9 +209,11 @@ const useAPI = () => {
         /**
          * Gets the list of all children from dam api and sets it in store.
          */
-        getChildren: async (slug:string, type:string='PROJECT') => {
+        getChildren: async (slug:string, type:('folder' | 'project') ='project') => {
+            console.log('getChildren: slug: ', slug, 'type: ', type);
+
             const response = await fetch(
-                `${HOST}/api/admin/get-children?type=${type}&slug=${slug}`, {
+                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`, {
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,
                 }
@@ -231,6 +233,11 @@ const useAPI = () => {
                 } else {
                     wsStore.setFolderList([]);
                 }
+            }
+
+            if (response.status === 404) {
+                wsStore.setImageList([]);
+                wsStore.setFolderList([]);
             }
         },
 
@@ -415,6 +422,31 @@ const useAPI = () => {
             }
 
             return { success: false, message: 'Some Unknown Error Occured' };
+        },
+
+        addFolder: async (folder: Folder) => {
+            try {
+                console.log(folder);
+                const response = await fetch(
+                    `${HOST}/api/admin/folder/`, {
+                    method: 'POST',
+                    body: JSON.stringify(folder),
+                    headers: {
+                        'Authorization': 'Bearer ' + userStore.sessionToken,
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.status === 200) {
+                    return { success: true };
+                }
+
+                const message = await response.text();
+
+                return { success: false, message };
+            } catch (e) {
+                return { success: false };
+            }
         },
 
         getFolder: async (folderId: number) => {

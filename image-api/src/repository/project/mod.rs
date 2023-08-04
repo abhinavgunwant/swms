@@ -14,11 +14,24 @@ pub trait ProjectRepository {
     fn add_users_to_project(&self, project_id: u32, users: &Vec<u32>);
 
     /**
-     * Validates slug for new project.
+     * Validates if a project with the provided slug doesn't exists.
      *
-     * Checks if any project exists with supplied slug, if not, returns true.
+     * Used for providing real-time validation while the admin is typing the
+     * project name (or project slug) in "New Project" screen.
+     *
+     * `slug`: The slug provided (should be `lowercase`).
+     *
+     * Returns true if a project with the supplied slug doesn't exist.
+     */
+    fn validate_new_project_slug(&self, slug: String) -> Result<bool, DBError>;
+
+    /**
+     * Validates if a project with the provided slug exists.
+     *
+     * Behaves exactly opposite to `validate_new_project_slug`.
      */
     fn validate_project_slug(&self, slug: String) -> Result<bool, DBError>;
+
     fn update(&self, project: Project);
     fn remove(&self, id: Project);
     fn remove_item(&self, id: u32);

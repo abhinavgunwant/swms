@@ -6,6 +6,7 @@ use db::mysql::MySQLImageRepository;
 
 pub trait ImageRepository {
     fn get(&self, id: u32) -> Result<Image, DBError>;
+    fn get_from_slug(&self, slug: &str) -> Result<Image, DBError>;
     fn get_all(&self) -> Result<Vec<Image>, DBError>;
     fn get_all_from_project(&self, project_id: u32)
         -> Result<Vec::<Image>, DBError>;

@@ -129,6 +129,20 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
+    /**
+     * Gets a project from it's slug.
+     */
+    fn get_from_slug(&self, slug: &str) -> Result<Image, DBError> {
+        get_image_from_row(get_row_from_query(
+            r"SELECT
+                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
+                MODIFIED_ON
+            FROM IMAGE WHERE ID = :slug",
+            params! {"slug" => slug},
+        ))
+    }
+
     fn get_all(&self) -> Result<Vec<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
             r"SELECT

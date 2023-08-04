@@ -80,9 +80,11 @@ const Workspace = ():React.ReactElement => {
 
     const navigate = useNavigate();
     /* eslint-disable @typescript-eslint/no-unused-vars */
-    const { projectSlug, imageSlug } = useParams();
+    const { '*': path } = useParams();
+    
+    console.log(path);
 
-    const { getImages, deleteImage, getChildren } = useAPI();
+    const { getChildren } = useAPI();
 
     const onImageThumbnailClicked = (path: string, imageId: number) => {
         store.setCurrentPath(window.location.pathname as string);
@@ -93,7 +95,8 @@ const Workspace = ():React.ReactElement => {
     const onFolderThumbnailClicked = (path: string, folder: Folder) => {
         store.setCurrentPath(window.location.pathname as string);
         store.setCurrentFolder(folder);
-        navigate('/workspace/folder/' + folder.id);
+
+        navigate(window.location.pathname + '/' + folder.slug);
     };
 
     const onFolderDescriptionClicked = (folderId: number) => {
@@ -103,7 +106,6 @@ const Workspace = ():React.ReactElement => {
     }
 
     const onPreviewClicked = (id: number) => startTransition(() => {
-        console.log('Preview Clicked!!!!');
         setShowPreview(true);
         setPreviewId(id);
     });
@@ -111,24 +113,71 @@ const Workspace = ():React.ReactElement => {
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
 
     const loadImages = async () => {
-        if (projectSlug) {
-            for(let i=0; i<store.projectList.length; ++i) {
-                if (projectSlug === store.projectList[i].slug) {
-                    store.setBreadcrumbList([
-                        {
-                            text: 'Workspace',
-                            to: '/workspace',
-                        },
-                        store.projectList[i].name,
-                    ]);
-                    break;
+        console.log('current folder: ', store.currentFolder);
+        let slug;
+        let _type: ('project' | 'folder') = 'project';
+
+        let _path = window.location.pathname as string;
+        let breadcrumbList = [];
+
+        if (path) {
+            let pathEnd = path.substring(_path.lastIndexOf('/') + 1, _path.length);
+
+            console.log('pathEnd: ', pathEnd);
+
+            const pathSegments = path.split('/');
+
+            console.log('pathSegments', pathSegments);
+
+            const projectSlug = path ? pathSegments[0] : '';
+
+            if (pathEnd === store.currentFolder.slug) {
+                slug = pathEnd;
+                _type = 'folder';
+            } else {
+                slug = projectSlug || '';
+            }
+
+            if (projectSlug) {
+                // for(let i=0; i<store.projectList.length; ++i) {
+                //     if (projectSlug === store.projectList[i].slug) {
+                //         store.setBreadcrumbList([
+                //             {
+                //                 text: 'Workspace',
+                //                 to: '/workspace',
+                //             },
+                //             store.projectList[i].name,
+                //         ]);
+                //         break;
+                //     }
+                // }
+
+                breadcrumbList.push({
+                    text: 'Workspace',
+                    to: '/workspace',
+                });
+            }
+
+            let pathBuilder = [];
+
+            if (pathSegments.length > 0) {
+                for (let i=0; i<pathSegments.length; ++i) {
+                    const ps = pathSegments[i];
+                    pathBuilder.push(ps);
+
+                    breadcrumbList.push({
+                        text: ps,
+                        to: '/workspace/tree/' + pathBuilder.join('/'),
+                    });
                 }
             }
+
+            store.setBreadcrumbList(breadcrumbList);
         }
 
         // TODO: pass the rquired slug (i.e. project slug if user is at root
         // of project and folder slug if user is in some project)
-        await getChildren(projectSlug || '');
+        await getChildren(path || '', _type);
 
         startTransition(() => setLoading(false));
     };
@@ -143,16 +192,26 @@ const Workspace = ():React.ReactElement => {
         store.resetSelectedFolders();
     };
 
-    const onNewClicked = () => startTransition(
-        () => setOpenNewDialog(true)
-    );
+    const onNewClicked = () => startTransition(() => {
+        let currentPath = path || '';
+
+        setOpenNewDialog(true);
+
+        if (currentPath[0] != '/') {
+            currentPath = '/' + currentPath;
+        }
+
+        store.setCurrentPath(currentPath);
+    });
 
     const onNewDialogClosed = () => startTransition(
         () => setOpenNewDialog(false)
     );
 
     /* eslint-disable react-hooks/exhaustive-deps */
-    useEffect(() => { loadImages(); }, []);
+    useEffect(() => {
+        loadImages();
+    }, []);
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ store.breadcrumbList } />
@@ -215,7 +274,7 @@ const Workspace = ():React.ReactElement => {
                                     onClick={
                                         () => onFolderThumbnailClicked(store.currentPath, t)
                                     } />
-                            }) 
+                            })
                         }
                         </Fragment>
                         <Fragment>

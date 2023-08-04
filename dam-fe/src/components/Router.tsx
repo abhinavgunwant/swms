@@ -2,6 +2,7 @@ import React from "react";
 import {
   BrowserRouter,
   Route,
+  RouteProps,
   Routes,
 } from "react-router-dom";
 import Home from "../pages/Home";
@@ -18,7 +19,7 @@ import Users, { Create, Edit, UserRoles, NewEditRole } from "../pages/admin/user
 //import { getImagePathFromURL } from '../utils/PathUtils';
 import SelectUsers from "./SelectUsers";
 
-const Router = ():React.ReactElement => {
+const Router = ():React.ReactElement<RouteProps> => {
     //const imagePath = getImagePathFromURL();
     return <BrowserRouter>
         <Routes>
@@ -31,14 +32,17 @@ const Router = ():React.ReactElement => {
             <Route path="/admin/roles" element={ <UserRoles /> } />
             <Route path="/admin/roles/create" element={ <NewEditRole mode="new" /> } />
             <Route path="/admin/roles/edit" element={ <NewEditRole mode="edit" /> } />
-            <Route path="/workspace/tree/:projectSlug" element={ <Workspace /> } />
-            {/*<Route path={`/workspace/tree/:projectSlug/${ imagePath + (imagePath ? '/' : '') }:imageSlug`} element={ <Workspace /> } />*/}
-            <Route path={`/workspace/image/:imageId`} element={ <ImageDetails /> } />
-            <Route path={`/workspace/folder/:folderId`} element={ <FolderDetails /> } />
+            <Route path="/workspace/tree/*"
+                Component={ () => <Workspace key={Math.random()} /> }
+            />
+        {/*<Route path="/workspace/tree/:projectSlug/:imageSlug" element={ <Workspace key='2' /> } />*/}
+            <Route path="/workspace/image/:imageId" element={ <ImageDetails /> } />
+            <Route path="/workspace/folder/:folderId" element={ <FolderDetails /> } />
             <Route path="/workspace/new-image" element={ <NewImage /> } />
             <Route path="/workspace/new-folder" element={ <NewFolder /> } />
             <Route path="/workspace/new-project" element={ <NewProject /> } />
             <Route path="/test" element={ <SelectUsers /> } />
+            <Route path="*" element={ <h1>404: Page not found</h1> } />
         </Routes>
     </BrowserRouter>;
 }

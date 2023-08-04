@@ -177,7 +177,7 @@ pub async fn validate_slug(req: HttpRequest) -> HttpResponse {
 
             let repo = get_project_repository();
 
-            match repo.validate_project_slug(slug) {
+            match repo.validate_new_project_slug(slug) {
                 Ok (valid) => HttpResponse::Ok().json(valid),
                 Err (_e) => HttpResponse::InternalServerError()
                     .body("Internal Server Error")
