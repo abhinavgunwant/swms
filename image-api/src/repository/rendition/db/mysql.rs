@@ -280,6 +280,44 @@ impl RenditionRepository for MySQLRenditionRepository {
         }
     }
 
+    fn is_valid_new_slug(&self, image_id: u32, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+            r"SELECT NOT EXISTS (
+                SELECT ID FROM IMAGE_RENDITION WHERE SLUG = :slug
+            ) AS VALID",
+            params! { "slug" => slug }
+        );
+
+        match row_result {
+            Ok (row_option) => {
+                match row_option {
+                    Some (r) => {
+                        let mut row = r;
+
+                        let valid: bool = row.take("VALID").unwrap();
+
+                        Ok (valid)
+                    }
+
+                    None => {
+                        Ok (true)
+                    }
+                }
+            }
+
+            Err (_e) => {
+                Err (DBError::OtherError)
+            }
+        }
+    }
+
+    fn is_valid_slug(&self, image_id: u32, slug: String) -> Result<bool, DBError> {
+        match self.is_valid_new_slug(image_id, slug) {
+            Ok (valid) => { Ok (!valid) }
+            Err (e) => { Err(e) }
+        }
+    }
+
     fn update(&self, rendition: Rendition) {
         println!("Updating a rendition");
     }

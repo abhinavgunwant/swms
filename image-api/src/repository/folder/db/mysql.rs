@@ -4,7 +4,7 @@ use mysql::prelude::*;
 use std::result::Result;
 use crate::{
     db::{
-        utils::mysql::{ get_rows_from_query, get_row_from_query },
+        utils::mysql::{ get_rows_from_query, get_row_from_query, process_id_from_row_result },
         DBError, get_db_connection,
     },
     repository::folder::FolderRepository,
@@ -190,28 +190,33 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_all_from_project_slug(&self, project_slug: String)
+    fn get_from_project_slug(&self, project_slug: String, all: bool)
         -> Result<Vec<Folder>, DBError> {
         get_folders_from_row(get_rows_from_query(
-            r"SELECT
-                F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
-                F.CREATED_ON, F.MODIFIED_ON, F.SLUG, F.PROJECT_ID,
-                F.PARENT_FOLDER_ID
-            FROM FOLDER F, PROJECT P
-            WHERE P.SLUG = :project_slug AND F.PROJECT_ID = P.ID",
+            format!(
+                r"SELECT
+                    F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
+                    F.CREATED_ON, F.MODIFIED_ON, F.SLUG, F.PROJECT_ID,
+                    F.PARENT_FOLDER_ID
+                FROM FOLDER F, PROJECT P
+                WHERE P.SLUG = :project_slug AND F.PROJECT_ID = P.ID {}",
+                if all { "" } else { "AND F.PARENT_FOLDER_ID = 0" }
+            ).as_str(),
             params! { "project_slug" => project_slug },
         ))
     }
 
-    fn get_all_from_folder_slug(&self, folder_slug: String)
+    fn get_from_folder_slug(&self, folder_slug: String, all: bool)
             -> Result<Vec<Folder>, DBError> {
         get_folders_from_row(get_rows_from_query(
-            r"SELECT
-                F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
-                F.CREATED_ON, F.MODIFIED_ON, F.SLUG, F.PROJECT_ID,
-                F.PARENT_FOLDER_ID
-            FROM FOLDER F, FOLDER F2
-            WHERE F2.SLUG = :folder_slug AND F.PARENT_FOLDER_ID = F2.ID",
+            format!(
+                r"SELECT
+                    F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
+                    F.CREATED_ON, F.MODIFIED_ON, F.SLUG, F.PROJECT_ID,
+                    F.PARENT_FOLDER_ID
+                FROM FOLDER F, FOLDER F2
+                WHERE F2.SLUG = :folder_slug AND F.PARENT_FOLDER_ID = F2.ID",
+            ).as_str(),
             params! { "folder_slug" => folder_slug },
         ))
     }
@@ -244,6 +249,44 @@ impl FolderRepository for MySQLFolderRepository {
                 Err(String::from("Error creating new folder!"))
             }
         }
+    }
+
+    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+            r"SELECT NOT EXISTS (
+                SELECT ID FROM FOLDER WHERE SLUG = :slug
+            ) AS VALID",
+            params! { "slug" => slug }
+        );
+
+        match row_result {
+            Ok (row_option) => {
+                match row_option {
+                    Some (r) => {
+                        let mut row = r;
+
+                        let valid: bool = row.take("VALID").unwrap();
+
+                        Ok (valid)
+                    }
+
+                    None => {
+                        Ok (true)
+                    }
+                }
+            }
+
+            Err (_e) => {
+                Err (DBError::OtherError)
+            }
+        }
+    }
+
+    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError> {
+        process_id_from_row_result(get_row_from_query(
+            "SELECT ID FROM FOLDER WHERE SLUG = :slug",
+            params! { "slug" => slug }
+        ))
     }
 
     fn update(&self, folder: Folder) -> Result<String, String> {

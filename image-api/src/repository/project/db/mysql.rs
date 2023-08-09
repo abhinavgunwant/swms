@@ -210,7 +210,7 @@ impl ProjectRepository for MySQLProjectRepository {
         })).expect("Error while adding users to project");
     }
 
-    fn validate_new_project_slug(&self, slug: String) -> Result<bool, DBError> {
+    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError> {
         let row_result: Result<Option<Row>,Error> = get_row_from_query(
             r"SELECT NOT EXISTS (
                 SELECT ID FROM PROJECT WHERE SLUG = :slug
@@ -241,10 +241,31 @@ impl ProjectRepository for MySQLProjectRepository {
         }
     }
 
-    fn validate_project_slug(&self, slug: String) -> Result<bool, DBError> {
-        match self.validate_new_project_slug(slug) {
-            Ok (valid) => { Ok (!valid) }
-            Err (e) => { Err(e) }
+    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError> {
+        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+            r"SELECT ID FROM PROJECT WHERE SLUG = :slug",
+            params! { "slug" => slug }
+        );
+
+        match row_result {
+            Ok (row_option) => {
+                match row_option {
+                    Some (r) => {
+                        let mut row = r;
+
+                        match row.take("ID") {
+                            Some (id) => Ok(Some(id)),
+                            None => Ok(None),
+                        }
+                    }
+
+                    None => Ok(None),
+                }
+            }
+
+            Err (e) => {
+                Err (DBError::OtherError)
+            }
         }
     }
 

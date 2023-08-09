@@ -23,14 +23,14 @@ pub trait ProjectRepository {
      *
      * Returns true if a project with the supplied slug doesn't exist.
      */
-    fn validate_new_project_slug(&self, slug: String) -> Result<bool, DBError>;
+    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError>;
 
     /**
      * Validates if a project with the provided slug exists.
      *
      * Behaves exactly opposite to `validate_new_project_slug`.
      */
-    fn validate_project_slug(&self, slug: String) -> Result<bool, DBError>;
+    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError>;
 
     fn update(&self, project: Project);
     fn remove(&self, id: Project);

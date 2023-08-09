@@ -6,7 +6,9 @@ use mysql::prelude::*;
 use crate::{
     repository::image::{ Encoding, ImageRepository },
     db::{
-        utils::mysql::{ get_rows_from_query, get_row_from_query },
+        utils::mysql::{
+            get_rows_from_query, get_row_from_query, process_id_from_row_result
+        },
         DBError, get_db_connection
     },
     model::image::Image,
@@ -27,10 +29,8 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
                         width: row.take("WIDTH").unwrap(),
                         is_published: true,
                         // is_published: row.take("is_published").unwrap() == true,
-                        project_id: 0,
-                        // project_id: row.take("PROJECT_ID").unwrap_or_default(),
-                        folder_id: 0,
-                        // folder_id: row.take("FOLDER_ID").unwrap_or_default(),
+                        project_id: row.take("PROJECT_ID").unwrap_or_default(),
+                        folder_id: row.take("FOLDER_ID").unwrap_or_default(),
                         created_by: row.take("CREATED_BY").unwrap(),
                         modified_by: row.take("MODIFIED_BY").unwrap(),
                         created_on: Utc::now(),
@@ -169,19 +169,23 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn get_all_from_project_slug(&self, project_slug: String) -> Result<Vec::<Image>, DBError> {
+    fn get_from_project_slug(&self, project_slug: String, all: bool)
+        -> Result<Vec::<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
-            r"SELECT
-                I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
-                I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
-                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
-            FROM IMAGE I, PROJECT P
-            WHERE I.PROJECT_ID = P.ID AND P.SLUG = :project_slug",
+            format!(
+                r"SELECT
+                    I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
+                    I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
+                    I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
+                FROM IMAGE I, PROJECT P
+                WHERE I.PROJECT_ID = P.ID AND P.SLUG = :project_slug {}",
+                if all { "" } else { " AND I.FOLDER_ID = 0" },
+            ).as_str(),
             params! { "project_slug" => project_slug }
         ))
     }
 
-    fn get_all_from_folder_slug(&self, folder_slug: String)
+    fn get_from_folder_slug(&self, folder_slug: String, all: bool)
             -> Result<Vec<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
             r"SELECT
@@ -297,6 +301,44 @@ impl ImageRepository for MySQLImageRepository {
 
             Err (_e) => Err(String::from("Error initializing transaction"))
         }
+    }
+
+    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+            r"SELECT NOT EXISTS (
+                SELECT ID FROM IMAGE WHERE SLUG = :slug
+            ) AS VALID",
+            params! { "slug" => slug }
+        );
+
+        match row_result {
+            Ok (row_option) => {
+                match row_option {
+                    Some (r) => {
+                        let mut row = r;
+
+                        let valid: bool = row.take("VALID").unwrap();
+
+                        Ok (valid)
+                    }
+
+                    None => {
+                        Ok (true)
+                    }
+                }
+            }
+
+            Err (_e) => {
+                Err (DBError::OtherError)
+            }
+        }
+    }
+
+    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError> {
+        process_id_from_row_result(get_row_from_query(
+            "SELECT ID FROM IMAGE WHERE SLUG = :slug",
+            params! { "slug" => slug }
+        ))
     }
 
     fn update(&self, image: Image) -> Result<String, String>{

@@ -40,6 +40,7 @@ pub struct GetChildrenResponse {
 #[derive(PartialEq)]
 pub enum ResourceType {
     Project,
+    Image,
     Folder,
     Rendition,
     NONE,
@@ -51,6 +52,7 @@ pub enum ResourceType {
  * URL parameters:
  * - `type` - Optional. The type of resource.
  * - `path` - Required. The path of resource.
+ * - `show-all` - Optional. Default is `false`. Shows all children when `true`.
  *
  * e.g.:
  * /api/admin/get-children?type=<type>&path=<path>
@@ -68,6 +70,16 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     // URL parameter vars:
     let _type: ResourceType;
     let path: &str;
+    let show_all: bool;
+
+    if let Some(show_all_qs) = qs.get("show-all") {
+        match show_all_qs.to_uppercase().clone().as_str() {
+            "TRUE" => { show_all = true; }
+            _ => { show_all = false; }
+        }
+    } else {
+        show_all = false;
+    }
 
     // Check if "type" parameter is supplied with the request
     if let Some(t) = qs.get("type") {
@@ -149,74 +161,81 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
 
     let path_segments: Vec<&str> = path.split("/").collect();
     let project_name: String;
+    let project_id: u32;
+    let mut curr_folder_id: u32 = 0;
+    let mut image_id: u32 = 0;
 
     println!("Validating project slug: {}", path_segments[0]);
 
     // Validate project
-    match proj_repo.validate_project_slug(path_segments[0].to_owned()) {
-        Ok (valid) => {
-            if !valid {
-                error = true;
-                project_name = String::from("");
-                response_msg.push(String::from("Invalid project!"));
-            } else {
-                println!("\t-> Project Valid!");
-                project_name = String::from(path_segments[0]);
+    match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
+        Ok (valid_option) => {
+            match valid_option {
+                Some(id) => {
+                    println!("\t-> Project Valid!");
+                    project_name = String::from(path_segments[0]);
+                    project_id = id;
+                },
+
+                None => {
+                    return HttpResponse::NotFound().body("NOT FOUND");
+                }
             }
         }
 
         Err (err) => {
-            error = true;
-            project_name = String::from("");
-            response_msg.push(format!(
-                "Some error occured while getting project {}", err
-            ));
+            eprintln!("Some error occured while getting project {}", err);
 
-            eprintln!("Error: {}", err);
+            return HttpResponse::InternalServerError().body(
+                "Some error occured, please try again later!"
+            );
         }
     }
-
-    let mut images_wrapped: Result<Vec<Image>, DBError> = Err(DBError::NOT_FOUND);
-    let mut response_images: Vec<Image> = vec![];
-    let mut folders_wrapped: Result<Vec<Folder>, DBError> = Err(DBError::NOT_FOUND);
-    let mut response_folders: Vec<Folder> = vec![];
 
     // if only project slug is supplied, return project object, otherwise
     // iterate and verify until last path_segment and return the last object.
     if path_segments.len() == 1
         && (_type == ResourceType::Project || _type == ResourceType::NONE)
     {
-        images_wrapped = img_repo.get_all_from_project_slug(String::from(path));
-        folders_wrapped = fol_repo.get_all_from_project_slug(String::from(path));
-    } else {
-        let path_seg_len = path_segments.len();
+        println!("show_all: {}", show_all);
 
+        return generate_resource_response(
+            fol_repo.get_from_project_slug(String::from(path), show_all),
+            img_repo.get_from_project_slug(String::from(path), show_all),
+            ResourceType::Project,
+        );
+    } else {
         for (i, path_segment) in path_segments[1..path_segments.len()].into_iter().enumerate() {
             println!("i : {}", i);
+
+            let is_last = i == path_segments.len() - 2;
+            let path_seg_owned = String::from(*path_segment);
+            let mut resource_found = false;
+
+            println!("\tChecking folder with slug: {}", path_seg_owned.clone());
+
             // The last slug is usually the image rendition slug.
-            if i == path_seg_len - 2
+            if is_last && image_id != 0
                 && (
                     _type == ResourceType::Rendition
                     || _type == ResourceType::NONE
-                )
-            {
-                println!("Validating image slug: {}", path_segment);
+            ) {
+                // Check if rendition slug
+                println!("Validating rendition slug: {}", path_segment);
                 match ren_repo.get_from_project_rendition_slug(
                     project_name.clone(),
-                    String::from(*path_segment)
+                    path_seg_owned.clone()
                 ) {
                     Ok (rendition) => {
-                        println!("\t-> Returning Image!");
+                        println!("\t-> Returning Rendition!");
 
                         // TODO: Check if the user has access.
-                        response_msg.push(String::from("RENDITION"));
-
                         return HttpResponse::Ok().json(GetChildrenResponse {
-                            images: response_images,
-                            folders: response_folders,
+                            images: vec![],
+                            folders: vec![],
                             success: true,
                             rendition: Some(rendition),
-                            message: response_msg,
+                            message: vec![ String::from("RENDITION") ],
                         });
                     }
 
@@ -224,63 +243,131 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
                 }
             }
 
-            let path_seg_owned = String::from(*path_segment);
-            println!("Validating folder slug: {}", path_segment);
+            // Check if folder
+            match fol_repo.is_valid_slug(path_seg_owned.clone()) {
+                Ok (valid_option) => {
+                    match valid_option {
+                        Some(id) => {
+                            if is_last {
+                                return generate_resource_response(
+                                    fol_repo.get_from_folder_slug(
+                                        path_seg_owned.clone(),
+                                        show_all,
+                                    ),
+                                    img_repo.get_from_folder_slug(
+                                        path_seg_owned.clone(),
+                                        show_all
+                                    ),
+                                    ResourceType::Folder,
+                                );
+                            }
 
-            folders_wrapped = fol_repo.get_all_from_folder_slug(path_seg_owned.clone());
-            images_wrapped = img_repo.get_all_from_folder_slug(path_seg_owned.clone());
+                            curr_folder_id = id;
+                            resource_found = true;
+                        }
 
-//            match fol_repo.get_from_slug(path_seg_owned.clone()) {
-//                Ok (folder) => {
-//                    println!("\t-> Folder Valid!");
-//
-//                    // TODO: Check if the user has access.
-//                    response_msg.push(String::from("FOLDER"));
-//
-//                    if i == path_seg_len - 2
-//                        && (
-//                            _type == ResourceType::Folder
-//                            || _type == ResourceType::NONE
-//                        )
-//                    {
-//                        println!("\t-> Returning Folder!");
-//
-//                        return HttpResponse::Ok().json(GetChildrenResponse {
-//                            images: vec![],
-//                            folders: vec![folder],
-//                            success: true,
-//                            rendition: None,
-//                            message: response_msg,
-//                        });
-//                    }
-//                }
-//
-//                Err (e) => {
-//                    if e == DBError::NOT_FOUND {
-//                        response_msg.push(String::from("Not found"));
-//
-//                        return HttpResponse::NotFound().json(GetChildrenResponse {
-//                            images: vec![],
-//                            folders: vec![],
-//                            success: false,
-//                            rendition: None,
-//                            message: response_msg,
-//                        });
-//                    }
-//
-//                    response_msg.push(String::from("Some unknown error encountered."));
-//
-//                    return HttpResponse::InternalServerError().json(GetChildrenResponse {
-//                        images: vec![],
-//                        folders: vec![],
-//                        success: false,
-//                        rendition: None,
-//                        message: response_msg,
-//                    });
-//                }
-//            }
+                        None => {}
+                    }
+                }
+
+                Err (e) => {
+                    if e == DBError::OtherError {
+                        return HttpResponse::InternalServerError().json(GetChildrenResponse {
+                            images: vec![],
+                            folders: vec![],
+                            success: false,
+                            rendition: None,
+                            message: vec![
+                                String::from("Some error occured, please try again later!")
+                            ],
+                        });
+                    }
+                }
+            }
+
+            println!("\tChecking image with slug: {}", path_seg_owned.clone());
+
+            // Check if image
+            match img_repo.is_valid_slug(path_seg_owned.clone()) {
+                Ok (valid_option) => {
+                    match valid_option {
+                        Some(id) => {
+                            println!("\tFound image ({}), id: {}", path_seg_owned.clone(), id);
+                            if is_last {
+                                match img_repo.get(id) {
+                                    Ok (image) => {
+                                        return HttpResponse::Ok().json(GetChildrenResponse {
+                                            images: vec![ image ],
+                                            folders: vec![],
+                                            success: true,
+                                            rendition: None,
+                                            message: vec![ String::from("IMAGE") ],
+                                        });
+                                    }
+
+                                    Err (e) => { eprintln!("{}", e); }
+                                }
+                            }
+
+                            resource_found = true;
+                            image_id = id;
+                        }
+
+                        None => {}
+                    }
+                }
+
+                Err(e) => {
+                    if e == DBError::OtherError {
+                        return HttpResponse::InternalServerError().json(GetChildrenResponse {
+                            images: vec![],
+                            folders: vec![],
+                            success: false,
+                            rendition: None,
+                            message: vec![
+                                String::from("Some error occured, please try again later!")
+                            ],
+                        });
+                    }
+                }
+            }
+
+            if !resource_found {
+                return HttpResponse::NotFound().body("NOT FOUND");
+            }
         }
     }
+
+    HttpResponse::NotFound().json(GetChildrenResponse {
+        images: vec![],
+        folders: vec![],
+        success: false,
+        rendition: None,
+        message: vec![ String::from("Error: Not Found") ],
+    })
+}
+
+/// Generates a response based on the folders and images provided.
+///
+/// # Arguments
+///
+/// - `folders_wrapped` the result containing folder vector.
+/// - `images_wrapped` the result containing images vector.
+/// - `resource_type` the type of parent resource for which this response is
+///   being generated. Should only be `ResourceType::Folder` or
+///   `ResourceType::Project`.
+fn generate_resource_response(
+    folders_wrapped: Result<Vec<Folder>, DBError>,
+    images_wrapped: Result<Vec<Image>, DBError>,
+    resource_type: ResourceType,
+) -> HttpResponse {
+    let mut error: bool = false;
+    let mut images_found: bool = false;
+    let mut folders_found: bool = false;
+
+    let mut response_images: Vec<Image> = vec![];
+    let mut response_folders: Vec<Folder> = vec![];
+    let mut response_msg: Vec<String> = vec![];
 
     // collect images
     match images_wrapped {
@@ -294,13 +381,15 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
         }
 
         Err (e) => {
-            eprintln!("Some internal error occured while fetching project images: {}", e);
+            if e != DBError::NOT_FOUND {
+                eprintln!("Some internal error occured while fetching project images: {}", e);
 
-            response_msg.push(String::from(
-                "Some internal error occured while fetching images."
-            ));
+                response_msg.push(String::from(
+                    "Some internal error occured while fetching images."
+                ));
 
-            error = true;
+                error = true;
+            }
         }
     }
 
@@ -316,18 +405,30 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
         }
 
         Err (e) => {
-            eprintln!("Some internal error occured while fetching project folders: {}", e);
+            if e != DBError::NOT_FOUND {
+                eprintln!("Some internal error occured while fetching project folders: {}", e);
 
-            response_msg.push(String::from(
-                "Some internal error occured while fetching folders."
-            ));
+                response_msg.push(String::from(
+                    "Some internal error occured while fetching folders."
+                ));
 
-            error = true;
+                error = true;
+            }
         }
     }
 
     if !(images_found || folders_found) {
-        response_msg.push(String::from("Found no content!"));
+        let mut msg: String = String::from("");
+
+        if resource_type == ResourceType::Project {
+            msg.push_str("Project ");
+        } else {
+            msg.push_str("Folder ");
+        }
+
+        msg.push_str("is empty.");
+
+        response_msg.push(msg);
     } else {
         response_msg.push(String::from("SUCCESS"));
     }
@@ -353,11 +454,10 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     }
 
     HttpResponse::NotFound().json(GetChildrenResponse {
-        images: response_images,
-        folders: response_folders,
-        success: images_found || folders_found,
+        images: vec![],
+        folders: vec![],
+        success: true,
         rendition: None,
         message: response_msg,
     })
 }
-
