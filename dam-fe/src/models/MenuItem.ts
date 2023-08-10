@@ -1,9 +1,11 @@
-import { FC, ReactNode, ReactElement } from 'react';
+import { ReactElement } from 'react';
 
-export default interface MenuItem {
+export interface MenuItem {
     title: string,
     navigateTo: string,
     icon?: ReactElement,
     children: MenuItem[],
 }
+
+export default MenuItem;
 

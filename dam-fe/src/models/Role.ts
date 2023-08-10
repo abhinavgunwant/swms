@@ -1,6 +1,6 @@
 import UserPermissions, { UserPermissionsImpl } from './UserPermissions';
 
-export default interface Role {
+export interface Role {
     id: number,
     roleName: string,
     permissions: UserPermissions,
@@ -21,4 +21,6 @@ export class RoleImpl implements Role {
         this.permissions = permissions;
     }
 }
+
+export default Role;
 

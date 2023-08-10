@@ -1,4 +1,4 @@
-interface Folder {
+export interface Folder {
     id: number,
     slug: string,
     title: string,

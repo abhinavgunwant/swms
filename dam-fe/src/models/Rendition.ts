@@ -1,4 +1,4 @@
-export default interface Rendition {
+export interface Rendition {
     id: number,
     imageId: number,
     height: number,
@@ -12,4 +12,6 @@ export default interface Rendition {
     modifiedOn: string,
     modifiedBy: number,
 }
+
+export default Rendition;
 

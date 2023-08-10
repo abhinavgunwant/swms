@@ -1,4 +1,4 @@
-interface UploadImage {
+export interface UploadImage {
     uploadId: string,
     name: string,
     title: string,

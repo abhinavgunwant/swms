@@ -1,4 +1,4 @@
-export default interface UserRole {
+export interface UserRole {
     id: number,
     roleName: string,
     createImage: boolean,
@@ -21,4 +21,6 @@ export default interface UserRole {
     publishAll: boolean,
     accessAllProjects: boolean,
 }
+
+export default UserRole;
 

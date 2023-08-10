@@ -1,4 +1,4 @@
-export default interface User {
+export interface User {
     id: number,
     name: string,
     loginId: string,
@@ -10,4 +10,6 @@ export default interface User {
     modifiedOn: string,
     lastLoginOn: string,
 }
+
+export default User;
 

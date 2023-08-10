@@ -1,4 +1,4 @@
-export default interface Project {
+export interface Project {
     id: number,
     name: string,
     slug: string,
@@ -9,3 +9,6 @@ export default interface Project {
     createdOn: string,
     modifiedOn: string,
 }
+
+export default Project;
+

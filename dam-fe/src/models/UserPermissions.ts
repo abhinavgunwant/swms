@@ -1,4 +1,4 @@
-export default interface UserPermissions {
+export interface UserPermissions {
     createImage: boolean,
     readImage: boolean,
     modifyImage: boolean,
@@ -85,4 +85,6 @@ export class UserPermissionsImpl implements UserPermissions {
         this.accessAllProjects = false;
     }
 }
+
+export default UserPermissions;
 

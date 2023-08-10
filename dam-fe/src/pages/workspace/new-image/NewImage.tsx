@@ -5,25 +5,26 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Typography, Grid, TextField, Button, IconButton, Tooltip, Box, Accordion,
-    AccordionSummary, AccordionDetails, CircularProgress, Checkbox, FormGroup,
-    FormControlLabel, List, ListItem, ListItemText, ListItemSecondaryAction
+    Typography, Grid, TextField, Button, IconButton, Tooltip, Box,
+    CircularProgress,
 } from '@mui/material';
-import {
-    UploadFile, Edit, Undo, Add, ExpandMore, Delete,
-} from '@mui/icons-material';
+
+import { UploadFile, Edit, Undo } from '@mui/icons-material';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 import UploadImage from '../../../models/UploadImage';
 import Rendition from '../../../models/Rendition';
 import useAPI from '../../../hooks/useAPI';
 
+import { Breadcrumbs } from "../../../components";
+
 import {
-    Breadcrumbs, RenditionDialog, RenditionDialogMode, RenditionsAccordion,
-} from "../../../components";
+    RenditionDialog, RenditionDialogMode
+} from '../../../components/dialogs';
+
+import { Accordion } from '../../../components/rendition';
 
 import { styled } from '@mui/material/styles';
-import emoStyled from '@emotion/styled';
 
 const StyledTextField = styled(TextField)`
     width: 100%;
@@ -39,11 +40,6 @@ const CenterGrid = styled(Grid)`
     display: flex;
     justify-content: center;
     align-items: center;
-`;
-
-const SubText = emoStyled.span`
-    color: #888888;
-    margin-left: 1rem;
 `;
 
 const NewImage = () => {
@@ -106,7 +102,6 @@ const NewImage = () => {
 
     const onSave = async () => {
         if (saving) {
-            // TODO: Show error message here: "An image save is already in progress"
             return;
         }
 
@@ -177,8 +172,8 @@ const NewImage = () => {
     }
 
     const onRenditionClicked = () => startTransition(
-            () => setShowRenditionDialog(true)
-        );
+        () => setShowRenditionDialog(true)
+    );
 
     const onRenditionDialogClosed = () =>
         startTransition(() => setShowRenditionDialog(false));
@@ -320,7 +315,7 @@ const NewImage = () => {
                     onChange={ onDetailsChanged }
                     multiline />
                 
-                <RenditionsAccordion
+                <Accordion
                     renditionList={ renditionList }
                     eagerRendition={ eagerRendition }
                     onEditRendition={ onEditRendition }

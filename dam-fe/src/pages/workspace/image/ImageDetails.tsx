@@ -5,12 +5,17 @@ import {
 import { useParams } from 'react-router-dom';
 
 import { WorkspaceGrid } from '../Workspace';
-import LinkModel from '../../../models/LinkModel';
-import Image from '../../../models/Image';
+import { LinkModel, Image, Rendition } from '../../../models';
+
 import {
     Loading, Breadcrumbs, Error, ImagePreview,
 } from '../../../components';
-import { DeleteImageDialog } from '../../../components/dialogs';
+
+import { Accordion } from '../../../components/rendition';
+
+import {
+    DeleteImageDialog, RenditionDialog, RenditionDialogMode
+} from '../../../components/dialogs';
 
 import {
     TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
@@ -44,6 +49,8 @@ const ImageDetails = () => {
     const [ breadcrumbLinks, setBreadcrumbLinks ] =
         useState<Array<LinkModel | string>>(['Workspace']);
     const [ image, setImage ] = useState<Image>();
+    const [ renditionList, setRenditionList ] = useState<Rendition[]>([]);
+    const [ eagerRendition, setEagerRendition ] = useState<boolean>(true);
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ imageNotFound, setImageNotFound ] = useState<boolean>(false);
     const [ edit, setEdit ] = useState<boolean>(false);
@@ -54,6 +61,12 @@ const ImageDetails = () => {
     const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
     const [ updatingName, setUpdatingName ] = useState<boolean>(false);
     const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
+    const [ showRenditionDialog, setShowRenditionDialog ] = useState<boolean>(false);
+    const [ renditionListUpdated, setRenditionListUpdated ] = useState<boolean>(false);
+    // Rendition Dialog Mode
+    const [ renDiagMode, setRenDiagMode ] = useState<RenditionDialogMode>('new');
+    // Rendition Selection Index
+    const [ renSelIndex, setRenSelIndex ] = useState<number>(-1);
 
     const [ _, startTransition ] = useTransition();
 
@@ -89,6 +102,66 @@ const ImageDetails = () => {
             onEditSave();
         }
     };
+
+    /**
+     * When the edit button against a rendition is clicked.
+     */
+    const onEditRendition = (indx: number) => {
+        startTransition(() => {
+            setRenDiagMode('edit');
+            setRenSelIndex(indx);
+            setShowRenditionDialog(true);
+        });
+    }
+
+    /**
+     * When the delete button against a rendition is clicked.
+     */
+    const onDeleteRendition = (indx: number) => {
+        if (renditionList.length) {
+            const list = [ ...renditionList ];
+            list.splice(indx, 1);
+
+            startTransition(() => setRenditionList(list));
+        }
+    }
+
+    const onRenditionClicked = () => startTransition(
+        () => setShowRenditionDialog(true)
+    );
+
+    const onEagerRenditionChecked = (e: ChangeEvent<HTMLInputElement>) => {
+        startTransition(() => setEagerRendition(e.target.checked));
+    }
+
+    const onRenditionDialogClosed = () =>
+        startTransition(() => setShowRenditionDialog(false));
+
+    const onRenditionSaved = (rendition: Rendition) => {
+        if (rendition) {
+            startTransition(() => {
+                setRenditionList([...renditionList, rendition]);
+                setShowRenditionDialog(false);
+                setRenditionListUpdated(true);
+            });
+        }
+    }
+
+    /**
+     * After the rendition has been edited using the dialog.
+     */
+    const onRenditionUpdated = (rendition: Rendition) => {
+        if (rendition) {
+            const list = [ ...renditionList ];
+
+            list.splice(renSelIndex, 1, rendition);
+
+            startTransition(() => {
+                setRenditionList(list);
+                setShowRenditionDialog(false);
+            });
+        }
+    }
 
     /**
      * Only edits image name!
@@ -316,7 +389,14 @@ const ImageDetails = () => {
                         </Grid>
 
                         <Grid item xs={ 12 } md={ 6 }>
-                            <Typography>Renditions</Typography>
+                            <Accordion
+                                renditionList={ renditionList }
+                                eagerRendition={ eagerRendition }
+                                showEagerCheckbox={ renditionListUpdated }
+                                onEditRendition={ onEditRendition }
+                                onDeleteRendition={ onDeleteRendition }
+                                onRenditionClicked={ onRenditionClicked }
+                                onEagerRenditionChecked={ onEagerRenditionChecked } />
                         </Grid>
                     </Grid>
                 :
@@ -336,6 +416,19 @@ const ImageDetails = () => {
             onClose={ () => startTransition(() => setShowDeleteDialog(false)) }
             imageId={ getImageId() || -1 }
             navigateToAfterSuccess="/workspace" />
+
+        <RenditionDialog
+            open={ showRenditionDialog }
+            onDialogClosed={ onRenditionDialogClosed }
+            onRenditionSaved={ onRenditionSaved }
+            onRenditionUpdated={ onRenditionUpdated }
+            mode={ renDiagMode }
+            renditionToEdit={
+                renSelIndex > -1 && renditionList.length ?
+                    renditionList[renSelIndex]
+                :
+                    undefined
+            } />
     </div>
 }
 

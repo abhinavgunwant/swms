@@ -9,7 +9,7 @@ import {
 
 import { SelectChangeEvent } from '@mui/material/Select';
 
-import Rendition from '../models/Rendition';
+import Rendition from '../../models/Rendition';
 
 import { styled } from '@mui/material/styles';
 

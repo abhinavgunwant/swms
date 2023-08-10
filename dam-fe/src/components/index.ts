@@ -4,7 +4,6 @@ export * from './EmailTextField';
 export * from './Error';
 export * from './ImageListItem';
 export * from './Loading';
-export * from './RenditionDialog';
 export * from './Router';
 export * from './Search';
 export * from './SelectUsers';
@@ -13,7 +12,5 @@ export * from './Typeahead';
 export * from './CustomDialog';
 export * from './RoleSelect';
 export * from './ImagePreview';
-export * from './RenditionsAccordion';
-export * from './RenditionDialog';
 export * from './WorkspaceFab';
 
