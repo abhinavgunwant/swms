@@ -67,12 +67,18 @@ const ImageDetails = () => {
     const [ renDiagMode, setRenDiagMode ] = useState<RenditionDialogMode>('new');
     // Rendition Selection Index
     const [ renSelIndex, setRenSelIndex ] = useState<number>(-1);
+    const [ renditionSaveError, setRenditionSaveError ] = useState<boolean>(false);
+    const [ renditionErrorMessage, setRenditionErrorMessage ] = useState<string>('');
+    const [ renditionErrorField, setRenditionErrorField ] = useState<string>('');
 
     const [ _, startTransition ] = useTransition();
 
     const imageTitleRef = useRef();
 
-    const { getImage, updateImageTitle } = useAPI();
+    const {
+        getImage, updateImageTitle, getRenditions, addRenditions,
+        deleteRendition,
+    } = useAPI();
     const { imageId } = useParams();
 
     const getImageId: () => number | undefined = () => {
@@ -117,12 +123,14 @@ const ImageDetails = () => {
     /**
      * When the delete button against a rendition is clicked.
      */
-    const onDeleteRendition = (indx: number) => {
+    const onDeleteRendition = async (indx: number) => {
         if (renditionList.length) {
-            const list = [ ...renditionList ];
-            list.splice(indx, 1);
+            const deleteResp = await deleteRendition(renditionList[indx].id);
 
-            startTransition(() => setRenditionList(list));
+            refreshRenditions();
+            // const list = [ ...renditionList ];
+            // list.splice(indx, 1);
+            // startTransition(() => setRenditionList(list));
         }
     }
 
@@ -134,16 +142,50 @@ const ImageDetails = () => {
         startTransition(() => setEagerRendition(e.target.checked));
     }
 
-    const onRenditionDialogClosed = () =>
-        startTransition(() => setShowRenditionDialog(false));
+    const onRenditionDialogClosed = () => startTransition(() => {
+        setShowRenditionDialog(false);
+        setRenditionSaveError(false);
+        setRenditionErrorMessage('');
+        setRenditionErrorField('');
+        setRenSelIndex(-1);
+    });
 
-    const onRenditionSaved = (rendition: Rendition) => {
+    const onRenditionSaved = async (rendition: Rendition) => {
         if (rendition) {
-            startTransition(() => {
-                setRenditionList([...renditionList, rendition]);
-                setShowRenditionDialog(false);
-                setRenditionListUpdated(true);
-            });
+            const saveResp = await addRenditions([rendition], eagerRendition);
+
+            if (saveResp.success) {
+                startTransition(() => {
+                    setRenditionList([...renditionList, rendition]);
+                    setShowRenditionDialog(false);
+                    setRenditionListUpdated(true);
+                });
+
+                refreshRenditions();
+            } else {
+                console.log('ren messages: ', saveResp.renditionMessages);
+                if (saveResp.renditionMessages) {
+                    const message = saveResp.renditionMessages[0].message;
+                    let field = '';
+
+                    if (/slug/i.test(message)) {
+                        field = 'slug';
+                    }
+
+                    startTransition(() => {
+                        setRenditionSaveError(true);
+                        setRenditionErrorMessage(message);
+
+                        if (field) {
+                            setRenditionErrorField(field);
+                        }
+                    });
+                } else {
+                    startTransition(() => {
+                        setRenditionSaveError(true);
+                    });
+                }
+            }
         }
     }
 
@@ -211,9 +253,48 @@ const ImageDetails = () => {
         });
     };
 
+    const getImageDetails = () => {
+        const imgId = getImageId();
+        if (imgId) {
+            try {
+                Promise.all([getImage(imgId), getRenditions(imgId)]).then((results) => {
+                    const imageResponse = results[0];
+                    let renditions: Rendition[];
+
+                    if (results[1].renditions) {
+                        renditions = results[1].renditions;
+                    }
+
+                    if (imageResponse) {
+                        startTransition(() => {
+                            setImage(imageResponse);
+                            setLoading(false);
+                            setRenditionList(renditions);
+                        });
+                    } else {
+                        startTransition(() => {
+                            setImageNotFound(true);
+                            setLoading(false);
+                        });
+                    }
+                })
+            } catch (e) { console.log(e); }
+        }
+    };
+
+    const refreshRenditions = async () => {
+        console.log('refreshing rendition list');
+
+        const renditionResp = await getRenditions(getImageId() || -1);
+
+        if (renditionResp.success) {
+            startTransition(() =>
+                setRenditionList(renditionResp.renditions || [])
+            );
+        }
+    }
+
     useEffect(() => {
-        //// TODO: query backend and get the full details of the image from
-        //// the image id passed into the props
         setBreadcrumbLinks([
             {
                 text: 'Workspace',
@@ -226,26 +307,7 @@ const ImageDetails = () => {
             'Scrumtools.io Logo!',
         ]);
 
-        const exec = async () => {
-            if (imageId) {
-                try {
-                    const imageResponse = await getImage(parseInt(imageId));
-                    if (imageResponse) {
-                        startTransition(() => {
-                            setImage(imageResponse);
-                            setLoading(false);
-                        });
-                    } else {
-                        startTransition(() => {
-                            setImageNotFound(true);
-                            setLoading(false);
-                        });
-                    }
-                } catch (e) { console.log(e); }
-            }
-        }
-
-        exec();
+        getImageDetails();
     }, []);
 
     /**
@@ -390,6 +452,7 @@ const ImageDetails = () => {
 
                         <Grid item xs={ 12 } md={ 6 }>
                             <Accordion
+                                expand={ true }
                                 renditionList={ renditionList }
                                 eagerRendition={ eagerRendition }
                                 showEagerCheckbox={ renditionListUpdated }
@@ -419,6 +482,10 @@ const ImageDetails = () => {
 
         <RenditionDialog
             open={ showRenditionDialog }
+            error={ renditionSaveError }
+            errorMessage={ renditionErrorMessage }
+            errorField={ renditionErrorField }
+            imageId={ getImageId() || -1 }
             onDialogClosed={ onRenditionDialogClosed }
             onRenditionSaved={ onRenditionSaved }
             onRenditionUpdated={ onRenditionUpdated }

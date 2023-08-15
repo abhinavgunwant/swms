@@ -63,6 +63,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::rendition::get_renditions_for_image)
             .service(api::admin::rendition::get_rendition)
             .service(api::admin::rendition::set_rendition)
+            .service(api::admin::rendition::delete_rendition)
             .service(api::image::upload)
             .service(api::image::download)
             .service(ResourceFiles::new("/", generated))

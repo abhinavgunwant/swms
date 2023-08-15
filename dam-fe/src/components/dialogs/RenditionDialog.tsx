@@ -4,7 +4,7 @@ import {
 
 import {
     Dialog, DialogTitle, DialogContent, Button, Grid, TextField as _TextField,
-    FormControl, Select, MenuItem, InputLabel
+    FormControl, Select, MenuItem, InputLabel, Alert,
 } from '@mui/material';
 
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -17,6 +17,10 @@ export type RenditionDialogMode = 'new' | 'edit';
 
 interface NewRenditionDialogProps {
     open: boolean,
+    imageId?: number,
+    error?:boolean,
+    errorMessage?: string,
+    errorField?: string,
     mode?: RenditionDialogMode, // default mode to be considered `new`
     renditionToEdit?: Rendition,
     onDialogClosed: (e: MouseEvent<HTMLButtonElement>) => void,
@@ -45,20 +49,24 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
-    const createRendition: () => Rendition = () => ({
-        id: 0,
-        imageId: 0,
-        height,
-        width,
-        targetDevice,
-        slug,
-        isPublished: false,
-        encoding,
-        createdOn: '',
-        createdBy: 0,
-        modifiedOn: '',
-        modifiedBy: 0,
-    });
+    const createRendition: () => Rendition = () => {
+        const now = (new Date()).toISOString();
+
+        return {
+            id: 0,
+            imageId: props.imageId || 0,
+            height,
+            width,
+            targetDevice,
+            slug,
+            isPublished: false,
+            encoding,
+            createdOn: now,
+            createdBy: 0,
+            modifiedOn: now,
+            modifiedBy: 0,
+        }
+    };
 
     const onSaveClicked = () => {
         if (typeof width !== 'number' || typeof height !== 'number') {
@@ -85,6 +93,18 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
     const onEncodingChanged = (e: SelectChangeEvent<string>) =>
         setEncoding(e.target.value);
 
+    const onClose = (e: any) => {
+        props.onDialogClosed(e);
+
+        startTransition(() => {
+            setHeight(0);
+            setWidth(0);
+            setTargetDevice('');
+            setSlug('');
+            setEncoding('');
+        });
+    };
+
     useEffect(() => {
         // Refresh the state every time the dialog is opened
         startTransition(() => {
@@ -97,7 +117,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                 setSlug(rte.slug);
                 setEncoding(rte.encoding);
 
-                return 
+                return;
             }
 
             setHeight(0);
@@ -109,7 +129,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
     }, [ props.open, props.renditionToEdit, props.mode ]);
 
     return <Dialog
-        onClose={ props.onDialogClosed }
+        onClose={ (e) => onClose(e) }
         open={ props.open }>
 
         <DialogTitle>New Rendition</DialogTitle>
@@ -129,7 +149,18 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                         label="Slug"
                         variant="standard"
                         value={ slug }
-                        onChange={ onSlugChanged } />
+                        onChange={ onSlugChanged }
+                        error={ props.error && props.errorField == 'slug' }
+                        helperText={
+                            props.error && (
+                                props.errorField == 'slug'
+                                && props.errorMessage ?
+                                    props.errorMessage
+                                :
+                                    'Slug should not be empty'
+                            ) || 'Choose a unique slug for this image'
+                        }
+                        required />
                 </Grid>
 
                 <Grid item xs={ 12 } sx={{ marginTop: '1rem' }}>
@@ -172,6 +203,13 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                         onChange={ onHeightChanged } />
                 </Grid>
 
+                {
+                    props.error &&
+                    <Grid item xs={12} sx={{ marginTop: '1rem' }}>
+                        <Alert severity="error"> Some error occured! </Alert>
+                    </Grid>
+                }
+
                 <Grid item sx={{ marginTop: '1rem' }}>
                     {
                         props.mode === 'edit' ?
@@ -189,7 +227,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                     }
 
                     <Button
-                        onClick={ props.onDialogClosed }
+                        onClick={ (e) => onClose(e) }
                         sx={{ marginLeft: '1rem' }}>
                         Cancel
                     </Button>

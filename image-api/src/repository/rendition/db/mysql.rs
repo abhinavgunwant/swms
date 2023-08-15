@@ -188,16 +188,15 @@ impl RenditionRepository for MySQLRenditionRepository {
             Ok (mut tx) => {
                 let res = tx.exec_drop(
                     r"INSERT INTO IMAGE_RENDITION (
-                        ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
+                        IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
                         PUBLISHED, CREATED_BY, MODIFIED_BY, CREATED_ON,
                         MODIFIED_ON
                     ) VALUES (
-                        :id, :image_id, :height, :width, :target_device, :slug,
+                        :image_id, :height, :width, :target_device, :slug,
                         :published, :created_by, :modified_by,
                         current_timestamp(), current_timestamp()
                     )",
                     params! {
-                        "id" => &rendition.id,
                         "image_id" => &rendition.image_id,
                         "height" => &rendition.height,
                         "width" => &rendition.width,
@@ -265,13 +264,29 @@ impl RenditionRepository for MySQLRenditionRepository {
                         }
                     }
 
-                    Err (_) => {
+                    Err (e) => {
                         let c_res = tx.rollback();
-                        
+                        eprintln!("{}", e);
+
                         match c_res {
-                            Ok (_) => Err(error_msg),
+                            Ok (_) => {
+                                match e {
+                                    Error::MySqlError(mysql_error) => {
+                                        if mysql_error.code == 1062 {
+                                            return Err (String::from("Duplicate slug"));
+                                        }
+
+                                        Err(error_msg)
+                                    }
+
+                                    _ => Err(error_msg)
+                                }
+                            }
+
                             Err (_) => Err(error_msg)
                         }
+
+                        
                     }
                 }
             }

@@ -1,6 +1,7 @@
-use actix_web::{ HttpResponse, HttpRequest, get, post, web::Json };
+use actix_web::{ HttpResponse, HttpRequest, get, post, delete, web::Json };
 use serde::{ Serialize, Deserialize };
 use raster::Image as RasterImage;
+use qstring::QString;
 
 use crate::{
     db::DBError,
@@ -10,6 +11,12 @@ use crate::{
     },
     model::{ rendition::Rendition, image::Image },
 };
+
+#[derive(Serialize)]
+pub struct StandardResponse<'a> {
+    success: bool,
+    message: &'a str,
+}
 
 #[derive(Serialize)]
 pub struct RenditionResponse {
@@ -36,14 +43,33 @@ pub struct UnsuccessfulRendition {
     message: String,
 }
 
-#[get("/api/admin/renditions/{image_id}")]
+/// Returns renditions for an image
+///
+/// ## URL Parameters
+/// - `image-id` - (Required) The image id the renditions belong to.
+#[get("/api/admin/renditions")]
 pub async fn get_renditions_for_image(req: HttpRequest) -> HttpResponse {
-    let image_id: String = String::from(req.match_info().get("image_id")
-        .unwrap());
-    let repo = get_rendition_repository();
-    let renditions_wrapped = repo.get_all_from_image(image_id.parse::<u32>().unwrap());
+    let qs = QString::from(req.query_string());
 
-    match renditions_wrapped {
+    let image_id: Option<u32>;
+
+
+    if let Some(img_id_str) = qs.get("image-id") {
+        match img_id_str.parse::<u32>() {
+            Ok(id) => { image_id = Some(id); }
+            Err(_) => { image_id = None; }
+        }
+    } else {
+        image_id = None;
+    }
+
+    if image_id == None {
+        return HttpResponse::BadRequest().body("BAD REQUEST");
+    }
+
+    let repo = get_rendition_repository();
+
+    match repo.get_all_from_image(image_id.unwrap()) {
         Ok (renditions) => {
             HttpResponse::Ok().json(RenditionResponse { renditions })
         }
@@ -196,22 +222,22 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
             if internal_error {
                 return HttpResponse::InternalServerError()
                     .json(SetRenditionsResponse {
-                    success,
+                    success: false,
                     message: String::from("No renditions saved!"),
                     unsuccessful_renditions,
                 });
             }
 
             return HttpResponse::BadRequest().json(SetRenditionsResponse {
-                success,
+                success: false,
                 message: String::from("No renditions saved!"),
                 unsuccessful_renditions,
             });
         }
 
         return HttpResponse::BadRequest().json(SetRenditionsResponse {
-            success,
-            message: String::from("Some renditions not saved!"),
+            success: false,
+            message: String::from("Some or all renditions not saved!"),
             unsuccessful_renditions,
         });
     }
@@ -221,5 +247,33 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
         message: String::from("All renditions saved successfully"),
         unsuccessful_renditions,
     })
+}
+
+/// Creates multiple renditions for a single image.
+#[delete("/api/admin/rendition/{rendition_id}")]
+pub async fn delete_rendition(req: HttpRequest) -> HttpResponse {
+    if let Some(rid) = req.match_info().get("rendition_id") {
+        let repo = get_rendition_repository();
+
+        if let Ok(rendition_id) = rid.parse::<u32>() {
+            match repo.remove_item(rendition_id) {
+                Ok (_) => {
+                    return HttpResponse::Ok().json(StandardResponse {
+                        success: true,
+                        message: "Rendition deleted",
+                    });
+                }
+
+                Err (_e) => {
+                    return HttpResponse::InternalServerError().json(StandardResponse {
+                        success: false,
+                        message: "Some error occured while deleting rendition",
+                    });
+                }
+            }
+        }
+    }
+
+    HttpResponse::BadRequest().body("BAD REQUEST")
 }
 

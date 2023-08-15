@@ -134,5 +134,6 @@ Here are some high-level data definitions for the image api.
     | CREATED_ON    | DATETIME          |      |          | DEFAULT NOW()
     | MODIFIED_ON   | DATETIME          | YES  |          | 
 
+    UNIQUE KEY (SLUG, IMAGE_ID)
     FOREIGN KEY IMAGE_ID:IMAGE.ID
 

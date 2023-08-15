@@ -421,7 +421,60 @@ const useAPI = () => {
                 return { success: true, message: 'Success!' };
             }
 
+            const rJson = await response.json();
+
+            console.log('rJson', rJson);
+
+            let renditionMessages: { id: number, message:string }[] = [];
+
+            if (rJson.unsuccessful_renditions) {
+                renditionMessages = rJson.unsuccessful_renditions;
+            }
+
+            return {
+                success: false,
+                message: 'Some Unknown Error Occured',
+                renditionMessages,
+            };
+        },
+
+        getRenditions: async (imageId: number) => {
+            const response = await fetch(
+                `${HOST}/api/admin/renditions?image-id=${ imageId }`, {
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.status === 200) {
+                const { renditions }: ({ renditions: Rendition[]}) = await response.json();
+
+                return {
+                    success: true,
+                    message: 'Success!',
+                    renditions: renditions,
+                };
+            }
+
             return { success: false, message: 'Some Unknown Error Occured' };
+        },
+
+        deleteRendition: async(renditionId: number) => {
+            const response = await fetch(
+                `${HOST}/api/admin/rendition/${ renditionId }`, {
+                headers: {
+                    'Authorization': 'Bearer ' + userStore.sessionToken,
+                    'Content-Type': 'application/json',
+                },
+                method: 'DELETE',
+            });
+
+            try {
+                return await response.json();
+            } catch (e) {
+                return { success: false, message: 'Some error occured!' };
+            }
         },
 
         addFolder: async (folder: Folder) => {

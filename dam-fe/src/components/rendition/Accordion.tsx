@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import { useEffect, useState, ChangeEvent } from 'react';
 
 import {
     Typography, IconButton, Accordion as AccordionMat, AccordionSummary,
@@ -12,6 +12,7 @@ import { Item as RenditionItem } from '.';
 import Rendition from '../../models/Rendition';
 
 interface AccordionProps {
+    expand?: boolean,
     renditionList: Rendition[],
     showEagerCheckbox?: boolean,
     eagerRendition: boolean,
@@ -24,11 +25,20 @@ interface AccordionProps {
 
 export const Accordion = (
     {
-        renditionList, showEagerCheckbox, eagerRendition, onEditRendition,
-        onDeleteRendition, onRenditionClicked, onEagerRenditionChecked,
+        expand, renditionList, showEagerCheckbox, eagerRendition,
+        onEditRendition, onDeleteRendition, onRenditionClicked,
+        onEagerRenditionChecked,
     } : AccordionProps
 ) => {
-    return <AccordionMat>
+    const [ expanded, setExpanded ] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (expand) {
+            setExpanded(true);
+        }
+    }, []);
+
+    return <AccordionMat expanded={ expanded }>
         <AccordionSummary
             expandIcon={ <ExpandMore /> }
             aria-controls="panel1a-content"
