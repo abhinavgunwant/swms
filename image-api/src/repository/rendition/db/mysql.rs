@@ -148,7 +148,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Rendition>, DBError> {
+    fn get_all_paged(&self, _page: u32, _page_length: u32) -> Result<Vec<Rendition>, DBError> {
+        // TODO: Implement
         self.get_all()
     }
 
@@ -299,8 +300,9 @@ impl RenditionRepository for MySQLRenditionRepository {
         let row_result: Result<Option<Row>,Error> = get_row_from_query(
             r"SELECT NOT EXISTS (
                 SELECT ID FROM IMAGE_RENDITION WHERE SLUG = :slug
+                AND IMAGE_ID = :image_id
             ) AS VALID",
-            params! { "slug" => slug }
+            params! { "slug" => slug, "image_id" => image_id }
         );
 
         match row_result {
@@ -333,7 +335,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         }
     }
 
-    fn update(&self, rendition: Rendition) {
+    fn update(&self, _rendition: Rendition) {
+        // TODO: Implement
         println!("Updating a rendition");
     }
 

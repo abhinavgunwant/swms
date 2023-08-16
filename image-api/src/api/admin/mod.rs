@@ -7,7 +7,7 @@ pub mod role;
 pub mod folder;
 
 use actix_web::{ HttpResponse, HttpRequest, get };
-use serde::{ Serialize, Deserialize };
+use serde::Serialize;
 use qstring::QString;
 
 use crate::{
@@ -21,16 +21,9 @@ use crate::{
     model::{ image::Image, folder::Folder, rendition::Rendition },
 };
 
-#[derive(Deserialize)]
-pub struct GetChildrenRequest {
-    #[serde(rename = "type")]
-    _type: String,
-    slug: String,
-}
-
 #[derive(Serialize)]
 pub struct GetChildrenResponse {
-    folders: Vec<Folder>, // TODO: replace this with vector of `Folder`
+    folders: Vec<Folder>,
     images: Vec<Image>,
     rendition: Option<Rendition>,
     success: bool,
@@ -40,7 +33,7 @@ pub struct GetChildrenResponse {
 #[derive(PartialEq)]
 pub enum ResourceType {
     Project,
-    Image,
+    //Image,
     Folder,
     Rendition,
     NONE,
@@ -63,8 +56,6 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
 
     let mut response_msg: Vec<String> = vec![];
 
-    let mut images_found: bool = false;
-    let mut folders_found: bool = false;
     let mut error: bool = false;
 
     // URL parameter vars:
@@ -109,7 +100,6 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
             let mut chars = s.chars();
             let mut updated = false;
 
-            //if s.chars().last().unwrap() == '/' {
             if chars.clone().last().unwrap() == '/' {
                 chars.next_back();
                 updated = true;
@@ -160,9 +150,8 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     println!("Path is: {}", path);
 
     let path_segments: Vec<&str> = path.split("/").collect();
-    let project_name: String;
-    let project_id: u32;
-    let mut curr_folder_id: u32 = 0;
+    let project_slug: String;
+    let _project_id: u32;
     let mut image_id: u32 = 0;
 
     println!("Validating project slug: {}", path_segments[0]);
@@ -173,8 +162,8 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
             match valid_option {
                 Some(id) => {
                     println!("\t-> Project Valid!");
-                    project_name = String::from(path_segments[0]);
-                    project_id = id;
+                    project_slug = String::from(path_segments[0]);
+                    _project_id = id;
                 },
 
                 None => {
@@ -206,8 +195,6 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
         );
     } else {
         for (i, path_segment) in path_segments[1..path_segments.len()].into_iter().enumerate() {
-            println!("i : {}", i);
-
             let is_last = i == path_segments.len() - 2;
             let path_seg_owned = String::from(*path_segment);
             let mut resource_found = false;
@@ -223,7 +210,7 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
                 // Check if rendition slug
                 println!("Validating rendition slug: {}", path_segment);
                 match ren_repo.get_from_project_rendition_slug(
-                    project_name.clone(),
+                    project_slug.clone(),
                     path_seg_owned.clone()
                 ) {
                     Ok (rendition) => {
@@ -247,7 +234,7 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
             match fol_repo.is_valid_slug(path_seg_owned.clone()) {
                 Ok (valid_option) => {
                     match valid_option {
-                        Some(id) => {
+                        Some(_id) => {
                             if is_last {
                                 return generate_resource_response(
                                     fol_repo.get_from_folder_slug(
@@ -262,7 +249,6 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
                                 );
                             }
 
-                            curr_folder_id = id;
                             resource_found = true;
                         }
 
@@ -461,3 +447,4 @@ fn generate_resource_response(
         message: response_msg,
     })
 }
+

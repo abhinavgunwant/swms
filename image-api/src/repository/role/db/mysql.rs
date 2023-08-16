@@ -3,7 +3,7 @@ use mysql::*;
 use mysql::prelude::*;
 
 use crate::{
-    db::{ DBError, DBImpl, get_db_connection },
+    db::{ DBError, get_db_connection },
     model::{ role::Role, user_permissions::UserPermissions },
     repository::role::RoleRepository,
 };

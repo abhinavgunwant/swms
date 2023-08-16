@@ -206,7 +206,7 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_from_folder_slug(&self, folder_slug: String, all: bool)
+    fn get_from_folder_slug(&self, folder_slug: String, _all: bool)
             -> Result<Vec<Folder>, DBError> {
         get_folders_from_row(get_rows_from_query(
             format!(

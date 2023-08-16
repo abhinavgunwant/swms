@@ -1,4 +1,4 @@
-use actix_web::{ web::{ Json }, HttpResponse, HttpRequest, post, get };
+use actix_web::{ web::Json, HttpResponse, HttpRequest, post, get };
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
 use crate::{
@@ -15,11 +15,6 @@ pub struct ProjectResponse {
     success: bool,
     message: Vec::<String>,
     projects: Vec::<Project>
-}
-
-#[derive(Deserialize)]
-pub struct UserProjectRequest {
-    user_id: u32,
 }
 
 #[derive(Deserialize)]

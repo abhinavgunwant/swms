@@ -5,8 +5,7 @@ use qstring::QString;
 
 use crate::{
     repository::user::{ get_user_repository, UserRepository },
-    db::DBError,
-    model::{ user::User, user_listing::UserListing },
+    db::DBError, model::user::User,
 };
 
 #[derive(Deserialize)]
@@ -170,7 +169,7 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/api/admin/users")]
-pub async fn get_user_list(req: HttpRequest) -> HttpResponse {
+pub async fn get_user_list() -> HttpResponse {
     match get_user_repository().get_all() {
         Ok (users) => {
             let mut user_list: Vec<EditUserRequest> = vec![];

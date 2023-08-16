@@ -1,29 +1,24 @@
 // use std::path::PathBuf;
 use std::io::Write;
-use std::fs::{ File, create_dir_all, read, rename, remove_file };
+use std::fs::{ File, read };
 use std::path::Path;
 //use std::time::{ Duration, Instant };
-use actix_multipart::{ Multipart, Field };
+use actix_multipart::Multipart;
 use actix_web::{
-    get, post, web::{ Bytes, block, Form }, HttpResponse, HttpRequest,
-    http::header::ContentType,
+    get, post, web::block, HttpResponse, HttpRequest,
 };
 // use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
-use serde::{ Serialize, Deserialize };
+use serde::Serialize;
 use raster;
 use regex::Regex;
-use chrono::Utc;
 use crate::{
-    db::DBError,
     repository::{
-        rendition::{
-            RenditionRepository, get_rendition_repository
-        },
+        rendition::{ RenditionRepository, get_rendition_repository },
         image::{ ImageRepository, get_image_repository },
     },
-    model::{ image::Image, rendition::Rendition, encoding::Encoding },
+    model::rendition::Rendition, db::DBError,
 };
 
 #[derive(Serialize)]
@@ -112,16 +107,15 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
 
     let img_ext_pat = Regex::new(r"\.(jpg|jpeg|gif|png|bmp)$").unwrap();
 
-    let mut rendition_slug: String = String::new();
 
     // Tells whether the requested image has extension
-    let mut img_has_ext: bool = false;
 
     let repo = get_rendition_repository();
     let img_repo = get_image_repository();
 
     if path_list_len.clone() == 2 {
-        img_has_ext = img_ext_pat.is_match(path_list[1]);
+        let img_has_ext: bool = img_ext_pat.is_match(path_list[1]);
+        let rendition_slug: String;
 
         if img_has_ext {
             rendition_slug = String::from(

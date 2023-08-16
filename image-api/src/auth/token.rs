@@ -69,6 +69,6 @@ pub fn create_session_token_from_refresh (refresh_token: String) -> String {
 }
 
 // TODO: modify to verify a jwt token
-pub fn verify_session_token (token: String) -> bool {
+pub fn verify_session_token (_token: String) -> bool {
     true
 }

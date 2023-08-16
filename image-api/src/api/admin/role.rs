@@ -1,18 +1,12 @@
-use actix_web::{
-    get, post, put, delete, web::Json, HttpRequest, HttpResponse
-};
-use serde::{ Serialize, Deserialize };
-use chrono::Utc;
+use actix_web::{ get, post, put, delete, web::Json, HttpResponse };
 
 use crate::{
     repository::role::{ get_role_repository, RoleRepository },
-    db::DBError,
-    model::role::Role,
+    db::DBError, model::role::Role,
 };
 
-/**
- * Gets all roles.
- */
+
+/// Gets all roles.
 #[get("/api/admin/roles")]
 pub async fn get_all_roles() -> HttpResponse {
     match get_role_repository().get_all() {

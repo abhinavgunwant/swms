@@ -3,7 +3,7 @@ pub mod utils;
 
 use std::fmt::{ Display, Formatter, Result as FmtResult };
 use mysql::{ PooledConn, Pool };
-use dbcontext::{ DBContext, MySQLContext };
+use dbcontext::DBContext;
 use cached::proc_macro::cached;
 use lazy_static::lazy_static;
 
@@ -34,7 +34,7 @@ impl Display for DBError {
 #[derive(PartialEq, Eq, Hash, Copy)]
 pub enum DBImpl {
     MYSQL = 1// ,
-    // Implementation pending for below DBs:
+    // TODO: Implement for below DBs:
     // MONGODB = 2,
     // ORACLE = 3,
 }
@@ -54,6 +54,7 @@ impl Clone for DBImpl {
  */
 #[cached]
 pub fn get_db_context() -> DBContext {
+    // TODO: Change for other DBs
     DBContext::new(
         DBImpl::MYSQL,
         "mysql://root:Welcome1@localhost:3306/dam".to_string(),

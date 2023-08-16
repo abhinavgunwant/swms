@@ -263,21 +263,24 @@ impl ProjectRepository for MySQLProjectRepository {
                 }
             }
 
-            Err (e) => {
+            Err (_e) => {
                 Err (DBError::OtherError)
             }
         }
     }
 
-    fn update(&self, project: Project) {
+    fn update(&self, _project: Project) {
+        // TODO: Implement
         println!("Updating a project");
     }
 
-    fn remove(&self, id: Project) {
+    fn remove(&self, _id: Project) {
+        // TODO: Implement
         println!("Updating a project");
     }
 
-    fn remove_item(&self, id: u32) {
+    fn remove_item(&self, _id: u32) {
+        // TODO: Implement
         println!("Updating a project");
     }
 }

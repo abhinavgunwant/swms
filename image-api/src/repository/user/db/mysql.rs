@@ -8,7 +8,7 @@ use crate::model::{
 use crate::repository::user::{ User, UserRepository };
 use crate::db::{
     utils::mysql::{ get_row_from_query, get_rows_from_query },
-    DBError, get_db_context, dbcontext::DBContext, get_db_connection
+    DBError, get_db_connection
 };
 use crate::auth::pwd_hash::generate_password_hash;
 
@@ -92,7 +92,7 @@ impl UserRepository for MySQLUserRepository {
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY,
                 MODIFIED_BY, CREATED_ON, MODIFIED_ON, NAME
             FROM USER WHERE ID = :id",
-            Params::Empty,
+            params! { "id" => id },
         ))
     }
 
@@ -241,7 +241,6 @@ impl UserRepository for MySQLUserRepository {
                             match id_res {
                                 Ok (user_search_id) => {
                                     id = user_search_id;
-                                    add = true;
                                 }
 
                                 Err (_e) => {
@@ -255,22 +254,23 @@ impl UserRepository for MySQLUserRepository {
                         }
                     }
 
-                    match row.take_opt("NAME") {
-                        Some(name_res) => {
-                            match name_res {
-                                Ok (user_search_name) => {
-                                    name = user_search_name;
-                                    add = true;
-                                }
+                    if add {
+                        match row.take_opt("NAME") {
+                            Some(name_res) => {
+                                match name_res {
+                                    Ok (user_search_name) => {
+                                        name = user_search_name;
+                                    }
 
-                                Err (_e) => {
-                                    add = false;
+                                    Err (_e) => {
+                                        add = false;
+                                    }
                                 }
                             }
-                        }
 
-                        None => {
-                            add = false;
+                            None => {
+                                add = false;
+                            }
                         }
                     }
 
@@ -414,11 +414,13 @@ impl UserRepository for MySQLUserRepository {
         }
     }
 
-    fn remove(&self, id: User) {
+    fn remove(&self, _id: User) {
+        // TODO: Implement
         println!("Removing an user");
     }
 
-    fn remove_item(&self, id: u32) {
+    fn remove_item(&self, _id: u32) {
+        // TODO: Implement
         println!("Removing an user item");
     }
 }
