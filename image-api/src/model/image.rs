@@ -8,6 +8,7 @@ pub struct Image {
     pub id: u32,
     pub name: String, // Original Filename
     pub title: String,
+    pub slug: String,
     pub encoding: Encoding,
     pub height: u16,
     pub width: u16,

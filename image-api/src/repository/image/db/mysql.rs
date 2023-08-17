@@ -25,6 +25,7 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
                         id: row.take("ID").unwrap(),
                         name: row.take("ORIGINAL_FILENAME").unwrap(),
                         title: row.take("TITLE").unwrap(),
+                        slug: row.take("SLUG").unwrap(),
                         height: row.take("HEIGHT").unwrap(),
                         width: row.take("WIDTH").unwrap(),
                         is_published: true,
@@ -89,6 +90,7 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     id: row.take("ID").unwrap(),
                     name: row.take("ORIGINAL_FILENAME").unwrap(),
                     title: row.take("TITLE").unwrap(),
+                    slug: row.take("SLUG").unwrap(),
                     encoding: Encoding::JPG,
                     height: row.take("HEIGHT").unwrap(),
                     width: row.take("WIDTH").unwrap(),
@@ -121,7 +123,7 @@ impl ImageRepository for MySQLImageRepository {
     fn get(&self, id: u32) -> Result<Image, DBError> {
         get_image_from_row(get_row_from_query(
             r"SELECT
-                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             FROM IMAGE WHERE ID = :id",
@@ -135,7 +137,7 @@ impl ImageRepository for MySQLImageRepository {
     fn get_from_slug(&self, slug: &str) -> Result<Image, DBError> {
         get_image_from_row(get_row_from_query(
             r"SELECT
-                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             FROM IMAGE WHERE ID = :slug",
@@ -146,7 +148,7 @@ impl ImageRepository for MySQLImageRepository {
     fn get_all(&self) -> Result<Vec<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
             r"SELECT
-                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             FROM IMAGE",
@@ -161,7 +163,7 @@ impl ImageRepository for MySQLImageRepository {
     fn get_all_from_project(&self, project_id: u32) -> Result<Vec::<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
             r"SELECT
-                ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
+                ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON
             FROM IMAGE WHERE PROJECT_ID = :project_id",
@@ -174,7 +176,7 @@ impl ImageRepository for MySQLImageRepository {
         get_images_from_row(get_rows_from_query(
             format!(
                 r"SELECT
-                    I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
+                    I.ID, I.SLUG, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
                     I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
                     I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
                 FROM IMAGE I, PROJECT P
@@ -189,7 +191,7 @@ impl ImageRepository for MySQLImageRepository {
             -> Result<Vec<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
             r"SELECT
-                I.ID, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
+                I.ID, I.SLUG, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
                 I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
                 I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
             FROM IMAGE I, FOLDER F
@@ -210,18 +212,20 @@ impl ImageRepository for MySQLImageRepository {
             Ok (mut tx) => {
                 let res = tx.exec_drop(
                     r"INSERT INTO IMAGE (
-                        ID, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
-                        PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                        MODIFIED_ON
+                        ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH,
+                        PUBLISHED, PROJECT_ID, FOLDER_ID, CREATED_BY,
+                        MODIFIED_BY, CREATED_ON, MODIFIED_ON
                     ) VALUES (
-                        :id, :original_filename, :title, :height, :width, :published,
-                        :project_id, :folder_id, :created_by, :modified_by,
-                        current_timestamp(), current_timestamp()
+                        :id, :slug, :original_filename, :title, :height,
+                        :width, :published, :project_id, :folder_id,
+                        :created_by, :modified_by, current_timestamp(),
+                        current_timestamp()
                     )",
                     params! {
                         "id" => &image.id,
                         "original_filename" => &image.name,
                         "title" => &image.title,
+                        "slug" => &image.slug,
                         "height" => &image.height,
                         "width" => &image.width,
                         "published" => &image.is_published,

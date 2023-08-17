@@ -13,4 +13,5 @@ export * from './CustomDialog';
 export * from './RoleSelect';
 export * from './ImagePreview';
 export * from './WorkspaceFab';
+export * from './SemiEditableTextField';
 

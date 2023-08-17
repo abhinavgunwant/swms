@@ -1,5 +1,5 @@
 import {
-    ChangeEvent, useState, useEffect, useRef, useTransition, Fragment,
+    useEffect, useState, useRef, useTransition, ChangeEvent, Fragment,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -16,13 +16,15 @@ import UploadImage from '../../../models/UploadImage';
 import Rendition from '../../../models/Rendition';
 import useAPI from '../../../hooks/useAPI';
 
-import { Breadcrumbs } from "../../../components";
+import { Breadcrumbs, SemiEditableTextField } from "../../../components";
 
 import {
     RenditionDialog, RenditionDialogMode
 } from '../../../components/dialogs';
 
 import { Accordion } from '../../../components/rendition';
+
+import { generateSlug } from '../../../utils/validations';
 
 import { styled } from '@mui/material/styles';
 
@@ -36,18 +38,11 @@ const StyledGrid = styled(Grid)`
     margin-top: 1rem;
 `;
 
-const CenterGrid = styled(Grid)`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`;
-
 const NewImage = () => {
-    const [ folderPath, setFolderPath ] = useState<string>('/');
+    const [ slug, setSlug ] = useState<string>('');
+    const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
     const [ title, setTitle ] = useState<string>('');
     const [ details, setDetails ] = useState<string>('');
-    const [ showEditFolderField, setShowEditFolderField ]
-        = useState<boolean>(false);
     const [ file, setFile ] = useState<File>();
     const [ renditionList, setRenditionList ] = useState<Rendition[]>([]);
     // Rendition Selection Index
@@ -71,23 +66,17 @@ const NewImage = () => {
 
     const store = useWorkspaceStore();
 
+    const folderPath = (
+        store.currentProject.slug+ '/' + store.currentFolder.slug
+    ).replaceAll('//', '/');
+
+    const onSlugEdited = (val: boolean) => setSlugEdited(val);
+
     const onTitleChanged = (e: ChangeEvent<HTMLInputElement>) =>
         setTitle(e.target.value);
 
     const onDetailsChanged = (e: ChangeEvent<HTMLInputElement>) =>
         setDetails(e.target.value);
-
-    const onEditFolderButtonClicked = () => {
-        if (showEditFolderField) {
-            startTransition(() => setShowEditFolderField(false));
-        } else {
-            startTransition(() => setShowEditFolderField(true));
-        }
-    }
-
-    const onFolderPathChanged = (e: ChangeEvent<HTMLInputElement>) => {
-        setFolderPath(e.target.value);
-    }
 
     const onFileChanged = (e: ChangeEvent<HTMLInputElement>) => {
         if (e && e.target && e.target.files && e.target.files.length) {
@@ -113,6 +102,7 @@ const NewImage = () => {
                 uploadId: '',
                 name: file.name || '',
                 title,
+                slug,
                 encoding: 'JPG',
                 projectId: store.currentProject.id,
                 folderId: store.currentFolder.id,
@@ -227,13 +217,12 @@ const NewImage = () => {
     }
 
     useEffect(() => {
-        let path = store.currentProject.slug
-            + '/' + store.currentFolder.slug;
-
-        path = path.replaceAll('//', '/');
-
-        setFolderPath(path);
-    }, []);
+        if (!slugEdited) {
+            startTransition(() => {
+                setSlug(generateSlug(title));
+            });
+        }
+    }, [ title, slugEdited ]);
 
     return <div className="page page--new-image">
         <Breadcrumbs links={[
@@ -251,27 +240,10 @@ const NewImage = () => {
         <StyledGrid container>
             <Grid item xs={12} lg={6}>
                 <Grid container>
-                    <Grid item xs={11}>
-                        <StyledTextField
-                            label="Path"
-                            disabled={ !showEditFolderField }
-                            onChange={ onFolderPathChanged }
-                            value={ folderPath }
-                            required />
-                    </Grid>
-
-                    <CenterGrid item xs={1}>
-                        <Tooltip title={
-                            (showEditFolderField ? 'Undo ' : '')
-                            + 'Edit Folder Path'
-                            }>
-                            <IconButton
-                                color="secondary"
-                                onClick={ onEditFolderButtonClicked }>
-                                { showEditFolderField ? <Undo /> : <Edit /> }
-                            </IconButton>
-                        </Tooltip>
-                    </CenterGrid>
+                    <StyledTextField
+                        label="Path"
+                        value={ folderPath }
+                        disabled />
                 </Grid>
 
                 <Grid container>
@@ -302,6 +274,12 @@ const NewImage = () => {
                     }
                 </Grid>
 
+                <SemiEditableTextField
+                    label="Slug"
+                    value={ slug }
+                    onEdited={ onSlugEdited }
+                    onSave={ (updatedVal) => setSlug(updatedVal) } />
+
                 <StyledTextField
                     label="Image Title"
                     onChange={ onTitleChanged }
@@ -329,7 +307,7 @@ const NewImage = () => {
             <Button
                 variant="contained"
                 style={{ marginRight: '0.5rem' }}
-                disabled={ folderPath === '' || title === '' || !file }
+                disabled={ title === '' || slug === '' || !file }
                 onClick={ onSave }>
                 {
                     saving ?

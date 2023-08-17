@@ -92,6 +92,7 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
         id: 0,
         name: req_image.name.clone(),
         title: req_image.title.clone(),
+        slug: req_image.slug.clone(),
         encoding: req_image.encoding,
         height: 0,
         width: 0,

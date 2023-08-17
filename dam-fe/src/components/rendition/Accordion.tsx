@@ -1,4 +1,4 @@
-import { useEffect, useState, ChangeEvent } from 'react';
+import { useEffect, useState, ChangeEvent, useTransition } from 'react';
 
 import {
     Typography, IconButton, Accordion as AccordionMat, AccordionSummary,
@@ -32,6 +32,12 @@ export const Accordion = (
 ) => {
     const [ expanded, setExpanded ] = useState<boolean>(false);
 
+    const [ _, startTransition ] = useTransition();
+
+    const onSummaryClicked = () => startTransition(
+        () => setExpanded(!expanded)
+    );
+
     useEffect(() => {
         if (expand) {
             setExpanded(true);
@@ -42,7 +48,8 @@ export const Accordion = (
         <AccordionSummary
             expandIcon={ <ExpandMore /> }
             aria-controls="panel1a-content"
-            sx={{ background: '#efefef' }}>
+            sx={{ background: '#efefef' }}
+            onClick={ onSummaryClicked }>
             <Typography variant="h6">Renditions</Typography>
         </AccordionSummary>
 

@@ -11,6 +11,7 @@ pub struct UploadImage {
     pub upload_id: String,
     pub name: String,
     pub title: String,
+    pub slug: String,
     pub encoding: Encoding,
     pub project_id: u32,
     pub folder_id: u32,
