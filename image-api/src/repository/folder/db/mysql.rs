@@ -282,10 +282,16 @@ impl FolderRepository for MySQLFolderRepository {
         }
     }
 
-    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError> {
+    fn is_valid_slug(&self, project_id: u32, folder_id: u32, slug: String) ->
+        Result<Option<u32>, DBError> {
         process_id_from_row_result(get_row_from_query(
-            "SELECT ID FROM FOLDER WHERE SLUG = :slug",
-            params! { "slug" => slug }
+            "SELECT ID FROM FOLDER WHERE SLUG = :slug AND
+            PROJECT_ID = :project_id AND PARENT_FOLDER_ID = :folder_id",
+            params! {
+                "project_id" => project_id,
+                "folder_id" => folder_id,
+                "slug" => slug,
+            }
         ))
     }
 

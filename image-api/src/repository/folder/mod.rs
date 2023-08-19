@@ -47,7 +47,8 @@ pub trait FolderRepository {
      *
      * Behaves exactly opposite to `validate_new_project_slug`.
      */
-    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError>;
+    fn is_valid_slug(&self, project_id: u32, folder_id: u32, slug: String) ->
+        Result<Option<u32>, DBError>;
 
     fn update(&self, folder: Folder) -> Result<String, String>;
     fn remove(&self, folder: Folder) -> Result<String, String>;

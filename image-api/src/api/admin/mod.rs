@@ -151,7 +151,8 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
 
     let path_segments: Vec<&str> = path.split("/").collect();
     let project_slug: String;
-    let _project_id: u32;
+    let project_id: u32;
+    let mut folder_id: u32 = 0;
     let mut image_id: u32 = 0;
 
     println!("Validating project slug: {}", path_segments[0]);
@@ -163,7 +164,7 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
                 Some(id) => {
                     println!("\t-> Project Valid!");
                     project_slug = String::from(path_segments[0]);
-                    _project_id = id;
+                    project_id = id;
                 },
 
                 None => {
@@ -231,10 +232,12 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
             }
 
             // Check if folder
-            match fol_repo.is_valid_slug(path_seg_owned.clone()) {
+            match fol_repo.is_valid_slug(
+                project_id, folder_id, path_seg_owned.clone()
+            ) {
                 Ok (valid_option) => {
                     match valid_option {
-                        Some(_id) => {
+                        Some(id) => {
                             if is_last {
                                 return generate_resource_response(
                                     fol_repo.get_from_folder_slug(
@@ -249,6 +252,7 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
                                 );
                             }
 
+                            folder_id = id;
                             resource_found = true;
                         }
 
@@ -274,7 +278,9 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
             println!("\tChecking image with slug: {}", path_seg_owned.clone());
 
             // Check if image
-            match img_repo.is_valid_slug(path_seg_owned.clone()) {
+            match img_repo.is_valid_slug(
+                project_id, folder_id, path_seg_owned.clone()
+            ) {
                 Ok (valid_option) => {
                     match valid_option {
                         Some(id) => {

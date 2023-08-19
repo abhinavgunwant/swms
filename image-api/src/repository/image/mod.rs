@@ -53,7 +53,8 @@ pub trait ImageRepository {
      *
      * Behaves exactly opposite to `validate_new_project_slug`.
      */
-    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError>;
+    fn is_valid_slug(&self, project_id: u32, folder_id: u32, slug: String) ->
+        Result<Option<u32>, DBError>;
 
     fn update(&self, image: Image) -> Result<String, String>;
     fn remove(&self, id: Image) -> Result<String, String>;
