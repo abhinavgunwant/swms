@@ -63,7 +63,7 @@ const Workspace = ():React.ReactElement => {
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ errorText, setErrorText ] = useState<string>('');
-    const [ deleteImageId, setDeleteImageId ] = useState<number>(-1);
+    const [ deleteImageIDs, setDeleteImageIDs ] = useState<Array<number>>([]);
     const [ deleteFolderId, setDeleteFolderId ] = useState<number>(-1);
     const [ openNewDialog, setOpenNewDialog ] = useState<boolean>(false);
 
@@ -139,19 +139,6 @@ const Workspace = ():React.ReactElement => {
             }
 
             if (projectSlug) {
-                // for(let i=0; i<store.projectList.length; ++i) {
-                //     if (projectSlug === store.projectList[i].slug) {
-                //         store.setBreadcrumbList([
-                //             {
-                //                 text: 'Workspace',
-                //                 to: '/workspace',
-                //             },
-                //             store.projectList[i].name,
-                //         ]);
-                //         break;
-                //     }
-                // }
-
                 breadcrumbList.push({
                     text: 'Workspace',
                     to: '/workspace',
@@ -192,6 +179,10 @@ const Workspace = ():React.ReactElement => {
         store.resetSelectedFolders();
     };
 
+    const onDeleteSelected = () => {
+        setDeleteImageIDs(Array.from(store.selectedImages.values()));
+    };
+
     const onNewClicked = () => startTransition(() => {
         let currentPath = path || '';
 
@@ -209,9 +200,7 @@ const Workspace = ():React.ReactElement => {
     );
 
     /* eslint-disable react-hooks/exhaustive-deps */
-    useEffect(() => {
-        loadImages();
-    }, []);
+    useEffect(() => { loadImages(); }, [ deleteImageIDs, deleteFolderId ]);
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ store.breadcrumbList } />
@@ -320,8 +309,7 @@ const Workspace = ():React.ReactElement => {
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
 
-                                                startTransition(() => setDeleteImageId(t.id));
-                                                //onThumbnailDeleteClicked(t.id);
+                                                startTransition(() => setDeleteImageIDs([t.id]));
                                             }
                                         },
                                     ]}
@@ -353,8 +341,7 @@ const Workspace = ():React.ReactElement => {
                         }
                     </List>
         }
-
-        <WorkspaceFab
+<WorkspaceFab
             fabs={[
                 {
                     text: 'Select All',
@@ -380,7 +367,7 @@ const Workspace = ():React.ReactElement => {
                 },
                 {
                     text: 'Delete',
-                    onClick: () => { /* TODO: Implement! */ },
+                    onClick: () => { onDeleteSelected() },
                     variant: "extended",
                     color: "error",
                     icon: <Delete />,
@@ -404,12 +391,12 @@ const Workspace = ():React.ReactElement => {
         <Error on={ showError }> { errorText } </Error>
 
         <DeleteImageDialog
-            open={ deleteImageId != -1 }
-            onClose={ () => startTransition(() => setDeleteImageId(-1)) }
-            imageId={ deleteImageId } />
+            open={ deleteImageIDs.length > 0  }
+            onClose={ () => startTransition(() => setDeleteImageIDs([])) }
+            imageIDs={ deleteImageIDs } />
 
         <DeleteFolderDialog
-            open={ deleteFolderId != -1 }
+            open={ deleteFolderId !== -1 }
             onClose={ () => startTransition(() => setDeleteFolderId(-1)) }
             folderId={ deleteFolderId } />
 

@@ -161,114 +161,144 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
     }
 }
 
-/**
- * Deletes the image data from the database and deletes the original image file
- * and rendition files.
- */
+
+/// Deletes the image data from the database and deletes the original image file
+/// and rendition files.
 #[delete("/api/admin/image/{image_id}")]
 pub async fn remove_image(req: HttpRequest) -> HttpResponse {
-    let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
-        .unwrap();
+    let image_ids: Vec<u32>;
 
-    let image: Image;
-
-    // Get image object
-    match get_image_repository().get(image_id) {
-        Ok (img) => {
-            image = img;
+    match req.match_info().get("image_id") {
+        Some (image_id_str) => {
+            image_ids = image_id_str.split(',').map(|s| s.parse().unwrap()).collect();
         }
 
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                eprintln!("Error in delete image api while getting image object: Image not found");
-            } else {
-                eprintln!("Unknown error in delete image api while getting image object!");
+        None => {
+            return HttpResponse::BadRequest().body("No image supplied");
+        }
+    }
+
+    let mut image: Option<Image>;
+    let mut error: bool = false;
+
+    let img_repo = get_image_repository();
+    let ren_repo = get_rendition_repository();
+
+    for image_id in image_ids.iter() {
+        // Get image object
+        match img_repo.get(*image_id) {
+            Ok (img) => {
+                image = Some(img);
             }
 
-            return HttpResponse::NotFound().body("Image not found!");
+            Err (e) => {
+                error = true;
+
+                if e == DBError::NOT_FOUND {
+                    eprintln!("Error in delete image api while getting image object: Image not found");
+                } else {
+                    eprintln!("Unknown error in delete image api while getting image object!");
+                }
+
+                image = None;
+            }
         }
-    }
 
-    let ren_repo = get_rendition_repository();
-    let mut renditions: Vec<Rendition> = vec![];
+        let mut renditions: Vec<Rendition> = vec![];
 
-    match ren_repo.get_all_from_image(image_id) {
-        Ok (rens) => {
-            renditions = rens;
+        match ren_repo.get_all_from_image(*image_id) {
+            Ok (rens) => {
+                renditions = rens;
+            }
+
+            Err (_) => {}
         }
 
-        Err (_) => {}
-    }
+        if !renditions.is_empty() {
+            match ren_repo.remove_all_from_image(*image_id) {
+                Ok (msg) => {
+                    println!("{} from database!", msg);
 
-    if !renditions.is_empty() {
-        match ren_repo.remove_all_from_image (image_id) {
-            Ok (msg) => {
-                println!("{} from database!", msg);
+                    for rendition in renditions.iter() {
+                        let file_name: String = format!(
+                            "image-rendition-cache/{}{}",
+                            rendition.id,
+                            rendition.encoding.extension(),
+                        );
 
-                for rendition in renditions.iter() {
-                    let file_name: String = format!(
-                        "image-rendition-cache/{}{}",
-                        rendition.id,
-                        rendition.encoding.extension(),
-                    );
+                        match remove_file(file_name.clone()) {
+                            Ok (_) => {}
 
-                    match remove_file (file_name.clone()) {
-                        Ok (_) => {}
-
-                        Err (e) => {
-                            eprintln!(
-                                "Error while deleting rendition file {} (id: {}) for image id: {}: {}",
-                                file_name,
-                                rendition.id,
-                                image_id,
-                                e
-                            );
-
-                            return HttpResponse::InternalServerError()
-                                .body(format!(
-                                    "Couldn't remove rendition (id: {}) for image (id: {})",
+                            Err (e) => {
+                                eprintln!(
+                                    "Error while deleting rendition file {} (id: {}) for image id: {}: {}",
+                                    file_name,
                                     rendition.id,
-                                    image_id
-                                ));
+                                    image_id,
+                                    e
+                                );
+
+                                error = true;
+                            }
                         }
                     }
                 }
+
+                Err (e_msg) => {
+                    eprintln!("{}", e_msg);
+
+                    return HttpResponse::InternalServerError()
+                        .body(format!(
+                            "Couldn't remove renditions for image (id: {})",
+                            image_id
+                        ));
+                }
+            }
+        }
+
+        match get_image_repository().remove_item(*image_id) {
+            Ok (_message) => {
+                // Delete the image file if it exists
+                match image {
+                    Some (img) => {
+                        match remove_file (
+                            format!(
+                                "image-uploads/{}{}",
+                                image_id,
+                                img.encoding.extension()
+                        )) {
+                            Ok (_) => {}
+
+                            Err (e) => {
+                                eprintln!("Error while deleting image file for image id: {}: {}", image_id, e);
+                                error = true;
+                            }
+                        }
+                    }
+
+                    None => {}
+                }
             }
 
-            Err (e_msg) => {
-                eprintln!("{}", e_msg);
-
-                return HttpResponse::InternalServerError()
-                    .body(format!(
-                        "Couldn't remove renditions for image (id: {})",
-                        image_id
-                    ));
-
+            Err (_err_msg) => {
+                error = true;
             }
         }
     }
 
-    match get_image_repository().remove_item(image_id) {
-        Ok (message) => {
-            // Delete the image file if it exists
-            match remove_file (
-                format!(
-                    "image-uploads/{}{}",
-                    image_id,
-                    image.encoding.extension()
-            )) {
-                Ok (_) => {}
-
-                Err (e) => {
-                    eprintln!("Error while deleting image file for image id: {}: {}", image_id, e);
-                }
-            }
-
-            HttpResponse::Ok().body(message)
+    if error {
+        if image_ids.len() > 1 {
+            return HttpResponse::InternalServerError()
+                .body("Some images could not be deleted successfully");
+        } else {
+            return HttpResponse::InternalServerError()
+                .body("An error occurred while deleting image.");
         }
-
-        Err (err_msg) => {
-            HttpResponse::InternalServerError().body(err_msg)
+    } else {
+        if image_ids.len() > 1 {
+            return HttpResponse::Ok().body("Images deleted successfully");
+        } else {
+            return HttpResponse::Ok().body("Image deleted successfully");
         }
     }
 }

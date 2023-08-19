@@ -367,23 +367,13 @@ const useAPI = () => {
             }
         },
 
-        deleteImage: async (image: number | Image) => {
-            let imageId: number = -1;
-
-            if (typeof image === 'number') {
-                imageId = image;
-            } else if (
-                image && image.id && typeof image.id === 'number'
-            ) {
-                imageId = image.id;
-            }
-
-            if (imageId === -1) {
-                return { success: false, message: 'Invalid Image!' };
+        deleteImages: async (imageIDs: Array<number>) => {
+            if (imageIDs.length === 0) {
+                return { success: false, message: 'No image selected!' };
             }
 
             const response = await fetch(
-                `${HOST}/api/admin/image/${ imageId }`, {
+                `${HOST}/api/admin/image/${ imageIDs.join(',') }`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,

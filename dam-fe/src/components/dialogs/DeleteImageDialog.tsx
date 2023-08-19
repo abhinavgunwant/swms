@@ -13,7 +13,7 @@ import { styled } from '@mui/material/styles';
 interface DeleteImageDialogProps {
     open: boolean,
     onClose: () => void,
-    imageId: number,
+    imageIDs: Array<number>,
     navigateToAfterSuccess?: string,
 }
 
@@ -36,11 +36,11 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
     const [ _, startTransition ] = useTransition();
 
     const navigate = useNavigate();
-    const { deleteImage } = useAPI();
+    const { deleteImages } = useAPI();
 
     const onYes = async () => {
         startTransition(() => setDeleting(true));
-        const resp = await deleteImage(props.imageId);
+        const resp = await deleteImages(props.imageIDs);
 
         console.log(resp);
 
@@ -66,6 +66,10 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
     useEffect(() => {
         if (props.open && error) {
             setError(false);
+        }
+
+        if (!props.open) {
+            startTransition(() => setDeleting(false));
         }
     }, [ props.open ]);
 
