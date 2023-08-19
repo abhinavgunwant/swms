@@ -13,5 +13,10 @@ export default defineConfig({
         viteTsconfigPaths(),
         svgrPlugin(),
     ],
+    test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './src/setupTests.ts',
+    },
 });
 

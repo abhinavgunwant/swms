@@ -7,7 +7,6 @@ import Rendition from '../models/Rendition';
 import CreateUserPayload from '../models/CreateUserPayload';
 import UserListing from '../models/UserListing';
 import Role from '../models/Role';
-import Image from '../models/Image';
 import Folder from '../models/Folder';
 
 const HOST = 'http://localhost:8080';
@@ -279,10 +278,15 @@ const useAPI = () => {
                 return { success: true, message: respText };
             }
 
-            return {
-                success: false,
-                message: 'Some error Occured! Please try again in some time!'
-            };
+            let respText;
+
+            try {
+                respText = await response.text();
+            } catch (e) {
+                respText = 'Some error Occured! Please try again in some time!';
+            }
+
+            return { success: false, message: respText };
         },
 
         /**

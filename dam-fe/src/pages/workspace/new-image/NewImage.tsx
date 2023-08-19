@@ -5,15 +5,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Typography, Grid, TextField, Button, IconButton, Tooltip, Box,
+    Typography, Grid, TextField, Button, Box,
     CircularProgress,
 } from '@mui/material';
 
-import { UploadFile, Edit, Undo } from '@mui/icons-material';
+import { UploadFile } from '@mui/icons-material';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
-import UploadImage from '../../../models/UploadImage';
-import Rendition from '../../../models/Rendition';
+import { UploadImage, Rendition } from '../../../models';
 import useAPI from '../../../hooks/useAPI';
 
 import { Breadcrumbs, SemiEditableTextField } from "../../../components";

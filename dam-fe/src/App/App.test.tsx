@@ -1,9 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { expect, test } from 'vitest';
+import { render, screen } from '../utils/test-utils';
+
 import App from './App';
 
-test('Renders app', () => {
-//    render(<App />);
-//
-//    expect(screen.getByText(/Dam/i)).toBeInTheDocument();
+it('Renders app', () => {
+    render(<App />);
+
+    expect(
+        screen.getByText("In order to use DAM, you must login.")
+    ).toBeInTheDocument();
 });
 

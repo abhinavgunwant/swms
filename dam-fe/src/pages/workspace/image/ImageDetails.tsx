@@ -1,6 +1,5 @@
 import {
-    useState, useEffect, useTransition, Fragment, ChangeEvent, useRef,
-    KeyboardEvent
+    useState, useEffect, useTransition, ChangeEvent, useRef,
 } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -8,7 +7,7 @@ import { WorkspaceGrid } from '../Workspace';
 import { LinkModel, Image, Rendition } from '../../../models';
 
 import {
-    Loading, Breadcrumbs, Error, ImagePreview,
+    Loading, Breadcrumbs, ImagePreview, SemiEditableTextField,
 } from '../../../components';
 
 import { Accordion } from '../../../components/rendition';
@@ -18,10 +17,9 @@ import {
 } from '../../../components/dialogs';
 
 import {
-    TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
-    InputAdornment, FormControl, InputLabel, CircularProgress, Box,
+    TextField as MuiTextField, Typography, Grid, IconButton, Box,
 } from '@mui/material';
-import { Edit, Delete, Check, Close, Visibility } from '@mui/icons-material';
+import { Delete, Visibility } from '@mui/icons-material';
 
 import useAPI from '../../../hooks/useAPI';
 
@@ -56,7 +54,6 @@ const ImageDetails = () => {
     const [ edit, setEdit ] = useState<boolean>(false);
     const [ edited, setEdited ] = useState<boolean>(false);
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
-    const [ editedTitle, setEditedTitle ] = useState<string>('');
     const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
     const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
     const [ updatingName, setUpdatingName ] = useState<boolean>(false);
@@ -93,21 +90,9 @@ const ImageDetails = () => {
         return undefined;
     };
 
-    const onImageNameChanged = (e: ChangeEvent<HTMLInputElement>) => {
-        if (edit) {
-            if (!edited) {
-                setEdited(true);
-            }
-
-            setEditedTitle(e.target.value);
-        }
-    };
-
-    const onImageNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            onEditSave();
-        }
-    };
+    const onImageNameChanged = (changed: boolean) => startTransition(
+        () => setEdited(changed)
+    );
 
     /**
      * When the edit button against a rendition is clicked.
@@ -205,20 +190,10 @@ const ImageDetails = () => {
         }
     }
 
-    /**
-     * Only edits image name!
-     */
-    const onEdit = () => {
-        startTransition(() => {
-            setEdit(true);
-            setShowErrPopup(false);
-        });
-    };
-
     const onPreview = () => startTransition(() => setShowPreview(true));
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
 
-    const onEditSave = async () => {
+    const onEditSave = async (editedTitle: string) => {
         if (image && image.id) {
             startTransition(() => {
                 setUpdatingName(true);
@@ -244,13 +219,6 @@ const ImageDetails = () => {
                     }
                 });
         }
-    };
-
-    const onEditCancel = () => {
-        startTransition(() => {
-            setEdit(false);
-            setEdited(false);
-        });
     };
 
     const getImageDetails = () => {
@@ -355,50 +323,14 @@ const ImageDetails = () => {
                         </Grid>
 
                         <Grid item xs={ 12 } md={ 6 }>
-                            <FormControl sx={{ width: '100%' }}>
-                                <InputLabel htmlFor="image-details--image-title">
-                                    Image Title
-                                </InputLabel>
-
-                                <OutlinedInput
-                                    id="image-details--image-title"
-                                    value={ edited ? editedTitle : image?.title }
-                                    disabled={ !edit }
-                                    label="Image Title"
-                                    onChange={ onImageNameChanged }
-                                    onKeyDown={ onImageNameKeyDown }
-                                    ref={ imageTitleRef }
-                                    endAdornment={
-                                        <InputAdornment position="end">
-                                            {
-                                                updatingName?
-                                                    <CircularProgress size={ 32 } />
-                                                :
-                                                    edit ?
-                                                    <Fragment>
-                                                        <IconButton
-                                                            onClick={ onEditSave }>
-                                                            <Check />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            onClick={
-                                                                onEditCancel
-                                                            }>
-                                                            <Close />
-                                                        </IconButton>
-                                                    </Fragment>
-                                                    :
-                                                    <IconButton onClick={ onEdit }>
-                                                        <Edit />
-                                                    </IconButton>
-                                            }
-                                        </InputAdornment>
-                                    } />
-
-                                <Error on={ showErrPopup }>
-                                    { errPopupText }
-                                </Error>
-                            </FormControl>
+                            <SemiEditableTextField
+                                label="Slug"
+                                value={ image?.title }
+                                onEdited={ onImageNameChanged }
+                                showErrPopup={ showErrPopup }
+                                errPopupText={ errPopupText }
+                                updating={ updatingName }
+                                onSave={ onEditSave } />
                         </Grid>
 
                         <Grid item xs={ 12 } md={ 6 }>
@@ -477,7 +409,7 @@ const ImageDetails = () => {
         <DeleteImageDialog
             open={ showDeleteDialog }
             onClose={ () => startTransition(() => setShowDeleteDialog(false)) }
-            imageId={ getImageId() || -1 }
+            imageIDs={ [getImageId() || -1] }
             navigateToAfterSuccess="/workspace" />
 
         <RenditionDialog

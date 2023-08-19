@@ -3,17 +3,15 @@ import {
     KeyboardEvent,
 } from 'react';
 import {
-    TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
-    InputAdornment, FormControl, InputLabel, CircularProgress, Box,
+    IconButton, OutlinedInput, InputAdornment, FormControl, InputLabel,
+    CircularProgress,
 } from '@mui/material';
 
 import { useTheme } from '@mui/material'
 
-import { Edit, Delete, Check, Close, Visibility } from '@mui/icons-material';
+import { Edit, Check, Close } from '@mui/icons-material';
 
-import {
-    Loading, Breadcrumbs, Error, ImagePreview,
-} from '.';
+import { Error } from '.';
 
 import { generateId } from '../utils/misc';
 
@@ -22,16 +20,15 @@ interface SemiEditableTextFieldProps {
     value?: string,
     onSave?: (updatedVal: string) => void,
     updating?: boolean,
+    showErrPopup?: boolean,
+    errPopupText?: string,
     onEdited?: (val: boolean) => void,
-    onChange?: (e: ChangeEvent<HTMLInputElement>) => void,
 }
 
 export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
     const [ edit, setEdit ] = useState<boolean>(false);
     const [ edited, setEdited ] = useState<boolean>(false);
-    const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
     const [ editedValue, setEditedValue ] = useState<string>('');
-    const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
 
     const [ _, startTransition ] = useTransition();
 
@@ -40,10 +37,7 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
 
     const id = useMemo(() => generateId(), []);
 
-    const onEdit = () => startTransition(() => {
-        setEdit(true);
-        setShowErrPopup(false);
-    });
+    const onEdit = () => startTransition(() =>  setEdit(true));
 
     const onEditCancel = () => startTransition(() => {
         setEdit(false);
@@ -72,11 +66,7 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
                 setEdited(true);
             }
 
-            if (props.onChange) {
-                props.onChange(e);
-            } else {
-                setEditedValue(e.target.value);
-            }
+            setEditedValue(e.target.value);
         }
     };
 
@@ -97,11 +87,18 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
         }
     }, [ edit ]);
 
+    useEffect(() => {
+        if (props.value === editedValue) {
+            startTransition(() => setEdited(false));
+        }
+    }, [ props.value ]);
+
     return <FormControl sx={{ width: '100%', marginTop: '0.5rem' }}>
         <InputLabel htmlFor={ id }> { props.label } </InputLabel>
 
         <OutlinedInput
             id={ id }
+            data-testid="setf-input"
             value={ edited ? editedValue : props.value }
             disabled={ !edit }
             label={ props.label }
@@ -110,8 +107,8 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
             ref={ valueInputRef }
             sx={{
                 background: edited ?
-                    'linear-gradient(to right, ' + theme.palette.primary.main + '00 75%, '
-                    + theme.palette.primary.main + '55)' : 'none'
+                    'linear-gradient(to right, ' + theme.palette.primary.main
+                    + '00 75%, ' + theme.palette.primary.main + '55)' : 'none'
             }}
             endAdornment={
                 <InputAdornment position="end">
@@ -121,16 +118,21 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
                     :
                         edit ?
                         <Fragment>
-                            <IconButton onClick={ onEditSave }>
+                            <IconButton
+                                data-testid="setf-save-button"
+                                onClick={ onEditSave }>
                                 <Check />
                             </IconButton>
 
-                            <IconButton onClick={ onEditCancel }>
+                            <IconButton
+                                data-testid="setf-cancel-button"
+                                onClick={ onEditCancel }>
                                 <Close />
                             </IconButton>
                         </Fragment>
                         :
                         <IconButton
+                            data-testid="setf-edit-button"
                             onClick={ onEdit }
                             color={ edited? 'default' : 'secondary' }>
                             <Edit />
@@ -139,7 +141,9 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
                 </InputAdornment>
             } />
 
-        <Error on={ showErrPopup }>{ errPopupText }</Error>
+        <Error on={ props.showErrPopup || false }>
+            { props.errPopupText }
+        </Error>
     </FormControl>;
 };
 

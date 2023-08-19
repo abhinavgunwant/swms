@@ -346,6 +346,10 @@ pub async fn get_image_file(req: HttpRequest) -> HttpResponse {
 #[put("/api/admin/image/update-title/")]
 pub async fn update_image_title (req: Json<ImageTitleUpdateRequest>)
     -> HttpResponse {
+    if req.title.is_empty() {
+        return HttpResponse::BadRequest().body("Title cannot be empty");
+    }
+
     let img_repo = get_image_repository();
 
     match img_repo.get(req.image_id) {
