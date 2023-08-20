@@ -13,6 +13,16 @@ pub trait ImageRepository {
     fn get_all_paged(&self, page: u32, page_length: u32)
         -> Result<Vec<Image>, DBError>;
 
+    /// Returns images inside a folder from folder id.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `folder_id` - The folder id.
+    /// * `all` -  Whether to fetch all the images inside the folder.
+    /// 
+    fn get_from_folder(&self, folder_id: u32, all: bool)
+        -> Result<Vec<Image>, DBError>;
+
     /// Returns images inside a folder from folder slug.
     /// 
     /// # Arguments

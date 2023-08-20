@@ -1,5 +1,6 @@
 pub mod image;
 pub mod admin;
+pub mod service;
 
 use actix_web::{get, HttpResponse, Responder};
 

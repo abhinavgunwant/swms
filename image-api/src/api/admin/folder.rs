@@ -3,6 +3,7 @@ use crate::{
     db::DBError,
     repository::folder::{ FolderRepository, get_folder_repository },
     model::folder::Folder,
+    api::service::remove::remove_folders,
 };
 
 #[get("/api/admin/folder/{folder_id}/")]
@@ -44,12 +45,37 @@ pub async fn update_folder (folder: Json<Folder>) -> HttpResponse {
 
 #[delete("/api/admin/folder/{folder_id}")]
 pub async fn remove_folder (req: HttpRequest) -> HttpResponse {
-    let folder_id: u32 = req.match_info().get("folder_id").unwrap().parse()
-        .unwrap();
+    let folder_ids: Vec<u32>;
 
-    match get_folder_repository().remove_item(folder_id) {
-        Ok (success) => HttpResponse::Ok().body(success),
-        Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),
+    match req.match_info().get("image_id") {
+        Some (folder_id_str) => {
+            folder_ids = folder_id_str.split(',').map(|s| s.parse().unwrap())
+                .collect();
+        }
+
+        None => {
+            return HttpResponse::BadRequest().body("No folders supplied");
+        }
+    }
+
+    match remove_folders(&folder_ids) {
+        Ok (_) => {
+            if folder_ids.len() > 1 {
+                return HttpResponse::Ok().body("Folders deleted successfully");
+            } else {
+                return HttpResponse::Ok().body("Folder deleted successfully");
+            }
+        }
+
+        Err (_) => {
+            if folder_ids.len() > 1 {
+                return HttpResponse::InternalServerError()
+                    .body("Some folders could not be deleted successfully");
+            } else {
+                return HttpResponse::InternalServerError()
+                    .body("An error occurred while deleting the folder.");
+            }
+        }
     }
 }
 

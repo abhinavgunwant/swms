@@ -187,6 +187,19 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
+    fn get_from_folder(&self, folder_id: u32, _all: bool)
+            -> Result<Vec<Image>, DBError> {
+        get_images_from_row(get_rows_from_query(
+            r"SELECT
+                I.ID, I.SLUG, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
+                I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
+                I.MODIFIED_BY, I.CREATED_ON, I.MODIFIED_ON
+            FROM IMAGE I, FOLDER F
+            WHERE I.FOLDER_ID = F.ID AND F.ID = :folder_id",
+            params! { "folder_id" => folder_id }
+        ))
+    }
+
     fn get_from_folder_slug(&self, folder_slug: String, _all: bool)
             -> Result<Vec<Image>, DBError> {
         get_images_from_row(get_rows_from_query(
