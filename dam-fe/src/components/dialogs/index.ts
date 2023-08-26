@@ -1,5 +1,4 @@
-export * from './DeleteImageDialog';
-export * from './DeleteFolderDialog';
+export * from './DeleteItemDialog';
 export * from './NewImageDialog';
 export * from './RenditionDialog';
 

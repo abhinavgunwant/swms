@@ -130,13 +130,21 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
 ///
 /// ### Parameters
 /// - `folder_ids`: IDs of folders to be deleted
-pub fn remove_folders(folder_ids: &Vec<u32>) -> Result<String, String> {
+pub fn remove_folders(folder_ids: &mut Vec<u32>) -> Result<String, String> {
     let mut error: bool = false;
 
     let fol_repo = get_folder_repository();
     let img_repo = get_image_repository();
 
-    for folder_id in folder_ids.iter() {
+    let mut folders_to_delete: Vec<u32> = vec![];
+
+    folders_to_delete.append(folder_ids);
+
+    for fid in folder_ids.iter() {
+        folders_to_delete.append(&mut get_subfolders(*fid));
+    }
+
+    for folder_id in folders_to_delete.iter() {
         match fol_repo.remove_item(*folder_id) {
             Ok (_) => {
                 match img_repo.get_from_folder(*folder_id, true) {
@@ -155,9 +163,6 @@ pub fn remove_folders(folder_ids: &Vec<u32>) -> Result<String, String> {
 
                     Err (_) => { error = true; }
                 }
-
-                // TODO: Get all sub folder of this removed folder and call
-                // `remove_folders` again on those folders.
             },
             Err (_) => { error = true; },
         }
@@ -168,5 +173,23 @@ pub fn remove_folders(folder_ids: &Vec<u32>) -> Result<String, String> {
     } else {
         Ok (String::from("Folders removed"))
     }
+}
+
+fn get_subfolders(folder_id: u32) -> Vec<u32> {
+    let mut f_ids: Vec<u32> = vec![];
+
+    match get_folder_repository().get_from_folder(folder_id) {
+        Ok (folders) => {
+            for f in folders.iter() {
+                f_ids.push(f.id);
+
+                f_ids.append(&mut get_subfolders(f.id));
+            }
+        }
+
+        Err (e) => { println!("{}", e); }
+    }
+
+    return f_ids;
 }
 

@@ -512,18 +512,8 @@ const useAPI = () => {
             return { success: false, message: 'NOT_FOUND' };
         },
 
-        deleteFolder: async (folder: number | Folder) => {
-            let folderId: number = -1;
-
-            if (typeof folder === 'number') {
-                folderId = folder;
-            } else if (
-                folder && folder.id && typeof folder.id === 'number'
-            ) {
-                folderId = folder.id;
-            }
-
-            if (folderId === -1) {
+        deleteFolders: async (folderId: Array<number>) => {
+            if (folderId.length === 0) {
                 return { success: false, message: 'Invalid Image!' };
             }
 
@@ -537,14 +527,19 @@ const useAPI = () => {
             });
 
             if (response.status === 200) {
-                // return await response.json();
                 return {
                     success: true,
                     message: await response.text() || 'Success!'
                 };
             }
 
-            return { success: false, message: 'Some Unknown Error Occured' };
+            let message = 'Some Unknown Error Occured';
+
+            try {
+                message = await response.json();
+            } catch (e) { console.log(e); }
+
+            return { success: false, message };
         },
 
         /**

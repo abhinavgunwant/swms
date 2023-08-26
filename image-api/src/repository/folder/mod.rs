@@ -9,6 +9,12 @@ pub trait FolderRepository {
     fn get_from_slug(&self, slug: String) -> Result<Folder, DBError>;
     fn get_all_from_project(&self, project_id: u32) -> Result<Vec<Folder>, DBError>;
 
+    /// Returns subfolders of a folder from it's id.
+    ///
+    /// # Arguments
+    /// * `folder_id` - The folder id.
+    fn get_from_folder(&self, folder_id: u32) -> Result<Vec<Folder>, DBError>;
+
     /// Returns subfolders of a folder from it's slug.
     ///
     /// # Arguments

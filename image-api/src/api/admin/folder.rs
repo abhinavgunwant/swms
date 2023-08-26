@@ -45,9 +45,9 @@ pub async fn update_folder (folder: Json<Folder>) -> HttpResponse {
 
 #[delete("/api/admin/folder/{folder_id}")]
 pub async fn remove_folder (req: HttpRequest) -> HttpResponse {
-    let folder_ids: Vec<u32>;
+    let mut folder_ids: Vec<u32>;
 
-    match req.match_info().get("image_id") {
+    match req.match_info().get("folder_id") {
         Some (folder_id_str) => {
             folder_ids = folder_id_str.split(',').map(|s| s.parse().unwrap())
                 .collect();
@@ -58,7 +58,7 @@ pub async fn remove_folder (req: HttpRequest) -> HttpResponse {
         }
     }
 
-    match remove_folders(&folder_ids) {
+    match remove_folders(&mut folder_ids) {
         Ok (_) => {
             if folder_ids.len() > 1 {
                 return HttpResponse::Ok().body("Folders deleted successfully");

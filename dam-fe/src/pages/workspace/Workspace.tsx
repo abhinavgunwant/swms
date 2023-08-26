@@ -3,27 +3,21 @@ import React, {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import {
-    Box, Grid, List, CircularProgress, Dialog, DialogTitle, DialogContent,
-    ListItem, ListItemText, ListItemIcon,
-} from '@mui/material';
+import { Box, Grid, List, CircularProgress } from '@mui/material';
 
 import {
     Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove,
-    Image, Description,
+    Description,
 } from '@mui/icons-material';
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import {
     Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab,
 } from '../../components';
-import {
-    DeleteImageDialog, DeleteFolderDialog, NewImageDialog,
-} from '../../components/dialogs';
+import { DeleteItemDialog, NewImageDialog } from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
 
-import useUserStore from '../../store/workspace/UserStore';
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 
 import Folder from '../../models/Folder';
@@ -64,7 +58,7 @@ const Workspace = ():React.ReactElement => {
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ errorText, setErrorText ] = useState<string>('');
     const [ deleteImageIDs, setDeleteImageIDs ] = useState<Array<number>>([]);
-    const [ deleteFolderId, setDeleteFolderId ] = useState<number>(-1);
+    const [ deleteFolderIDs, setDeleteFolderIDs ] = useState<Array<number>>([]);
     const [ openNewDialog, setOpenNewDialog ] = useState<boolean>(false);
 
     /**
@@ -82,7 +76,7 @@ const Workspace = ():React.ReactElement => {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const { '*': path } = useParams();
     
-    console.log(path);
+    console.log('Workspace path: ', path);
 
     const { getChildren } = useAPI();
 
@@ -114,7 +108,6 @@ const Workspace = ():React.ReactElement => {
 
     const loadImages = async () => {
         console.log('current folder: ', store.currentFolder);
-        let slug;
         let _type: ('project' | 'folder') = 'project';
 
         let _path = window.location.pathname as string;
@@ -132,10 +125,7 @@ const Workspace = ():React.ReactElement => {
             const projectSlug = path ? pathSegments[0] : '';
 
             if (pathEnd === store.currentFolder.slug) {
-                slug = pathEnd;
                 _type = 'folder';
-            } else {
-                slug = projectSlug || '';
             }
 
             if (projectSlug) {
@@ -181,6 +171,7 @@ const Workspace = ():React.ReactElement => {
 
     const onDeleteSelected = () => {
         setDeleteImageIDs(Array.from(store.selectedImages.values()));
+        setDeleteFolderIDs(Array.from(store.selectedFolders.values()));
     };
 
     const onNewClicked = () => startTransition(() => {
@@ -200,7 +191,7 @@ const Workspace = ():React.ReactElement => {
     );
 
     /* eslint-disable react-hooks/exhaustive-deps */
-    useEffect(() => { loadImages(); }, [ deleteImageIDs, deleteFolderId ]);
+    useEffect(() => { loadImages(); }, [ deleteImageIDs, deleteFolderIDs ]);
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ store.breadcrumbList } />
@@ -256,7 +247,7 @@ const Workspace = ():React.ReactElement => {
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
 
-                                                startTransition(() => setDeleteFolderId(t.id));
+                                                startTransition(() => setDeleteFolderIDs([t.id]));
                                             }
                                         },
                                     ]}
@@ -390,15 +381,14 @@ const Workspace = ():React.ReactElement => {
 
         <Error on={ showError }> { errorText } </Error>
 
-        <DeleteImageDialog
-            open={ deleteImageIDs.length > 0  }
-            onClose={ () => startTransition(() => setDeleteImageIDs([])) }
-            imageIDs={ deleteImageIDs } />
-
-        <DeleteFolderDialog
-            open={ deleteFolderId !== -1 }
-            onClose={ () => startTransition(() => setDeleteFolderId(-1)) }
-            folderId={ deleteFolderId } />
+        <DeleteItemDialog
+            open={ deleteImageIDs.length > 0 || deleteFolderIDs.length > 0 }
+            onClose={ () => startTransition(() => {
+                setDeleteImageIDs([]);
+                setDeleteFolderIDs([]);
+            }) }
+            imageIDs={ deleteImageIDs }
+            folderIDs={ deleteFolderIDs } />
 
         <NewImageDialog open={ openNewDialog } onClose={ onNewDialogClosed } />
     </div>;

@@ -206,6 +206,20 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
+    fn get_from_folder(&self, folder_id: u32) -> Result<Vec<Folder>, DBError> {
+        get_folders_from_row(get_rows_from_query(
+            format!(
+                r"SELECT
+                    F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
+                    F.CREATED_ON, F.MODIFIED_ON, F.SLUG, F.PROJECT_ID,
+                    F.PARENT_FOLDER_ID
+                FROM FOLDER F, FOLDER F2
+                WHERE F2.ID = :folder_id AND F.PARENT_FOLDER_ID = F2.ID",
+            ).as_str(),
+            params! { "folder_id" => folder_id },
+        ))
+    }
+
     fn get_from_folder_slug(&self, folder_slug: String, _all: bool)
             -> Result<Vec<Folder>, DBError> {
         get_folders_from_row(get_rows_from_query(
@@ -245,6 +259,19 @@ impl FolderRepository for MySQLFolderRepository {
 
             Err (e) => {
                 eprintln!("Error inserting new folder: {}", e);
+
+                match e {
+                    Error::MySqlError (mysql_error) => {
+                        if mysql_error.code == 1062 {
+                            return Err(format!(
+                                "A folder already exists with slug '{}'",
+                                &folder.slug,
+                            ));
+                        }
+                    }
+
+                    _ => {}
+                }
 
                 Err(String::from("Error creating new folder!"))
             }
