@@ -10,11 +10,13 @@ import useAPI from '../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
 
-interface DeleteImageDialogProps {
+interface DeleteItemDialogProps {
     open: boolean,
-    onClose: () => void,
-    imageIDs: Array<number>,
-    folderIDs: Array<number>,
+    onClose: (success: boolean) => void,
+    onSuccess?: () => void,
+    onFailure?: () => void,
+    imageIDs?: Array<number>,
+    folderIDs?: Array<number>,
     navigateToAfterSuccess?: string,
 }
 
@@ -30,7 +32,7 @@ const DeleteText = styled(Typography)`
  * Implements the action when user clicks on the 'Delete' button on an
  * image thumbnail or on the image details view.
  */
-export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
+export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
     const [ error, setError ] = useState<boolean>(false);
     const [ deleting, setDeleting ] = useState<boolean>(false);
 
@@ -39,10 +41,10 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
     const navigate = useNavigate();
     const { deleteImages, deleteFolders } = useAPI();
 
-    const validImgArray: boolean = Array.isArray(props.imageIDs)
+    let validImgArray: boolean = Array.isArray(props.imageIDs)
         && props.imageIDs.length > 0;
 
-    const validFolArray: boolean = Array.isArray(props.folderIDs)
+    let validFolArray: boolean = Array.isArray(props.folderIDs)
         && props.folderIDs.length > 0;
 
     const multiItems = (validImgArray && validFolArray)
@@ -67,7 +69,7 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
                 deleteFolders(props.folderIDs)
             ]).then(([ respImg, respFol ]) => {
                 if (respImg.success && respFol.success) {
-                    props.onClose();
+                    props.onClose(true);
 
                     if (props.navigateToAfterSuccess) {
                         navigate(props.navigateToAfterSuccess);
@@ -90,7 +92,7 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
             const resp = await deleteImages(props.imageIDs);
 
             if (resp.success) {
-                props.onClose();
+                props.onClose(true);
 
                 if (props.navigateToAfterSuccess) {
                     navigate(props.navigateToAfterSuccess);
@@ -113,7 +115,7 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
         const resp = await deleteFolders(props.folderIDs);
 
         if (resp.success) {
-            props.onClose();
+            props.onClose(true);
 
             if (props.navigateToAfterSuccess) {
                 navigate(props.navigateToAfterSuccess);
@@ -126,7 +128,7 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
         }
     };
 
-    const onNo = () => props.onClose();
+    const onNo = () => props.onClose(false);
 
     useEffect(() => {
         if (props.open && error) {
@@ -139,7 +141,7 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
     }, [ props.open ]);
 
     return <CustomDialog
-        open={ props.open }
+        open={ props.open && (validImgArray || validFolArray) }
         title={
             error ? 
                 <DialogTitle color="error">Error while deleting</DialogTitle>
@@ -191,9 +193,9 @@ export const DeleteImageDialog = (props: DeleteImageDialogProps) => {
                         { text: 'No', action: onNo }
                     ]
         }
-        onClose={ props.onClose }
+        onClose={ () => { props.onClose(false) } }
     />
 }
 
-export default DeleteImageDialog;
+export default DeleteItemDialog;
 

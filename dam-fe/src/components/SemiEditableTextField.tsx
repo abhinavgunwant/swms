@@ -18,6 +18,7 @@ import { generateId } from '../utils/misc';
 interface SemiEditableTextFieldProps {
     label: string,
     value?: string,
+    sx?: any,
     onSave?: (updatedVal: string) => void,
     updating?: boolean,
     showErrPopup?: boolean,
@@ -93,7 +94,7 @@ export const SemiEditableTextField = (props: SemiEditableTextFieldProps) => {
         }
     }, [ props.value ]);
 
-    return <FormControl sx={{ width: '100%', marginTop: '0.5rem' }}>
+    return <FormControl sx={ props.sx || { width: '100%', marginTop: '0.5rem' }}>
         <InputLabel htmlFor={ id }> { props.label } </InputLabel>
 
         <OutlinedInput

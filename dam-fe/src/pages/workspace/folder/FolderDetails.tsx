@@ -1,23 +1,17 @@
 import {
-    useState, useEffect, useTransition, Fragment, ChangeEvent, useRef,
-    KeyboardEvent
+    useState, useEffect, useTransition, Fragment,
 } from 'react';
 
 import { useParams } from 'react-router-dom';
 
 import {
-    TextField as MuiTextField, Typography, Grid, IconButton, OutlinedInput,
-    InputAdornment, FormControl, InputLabel, CircularProgress, Box, Button,
+    TextField as MuiTextField, Typography, Grid, IconButton, Box, Button,
 } from '@mui/material';
 
-import { Edit, Delete, Check, Close, Visibility } from '@mui/icons-material';
+import { Edit, Delete } from '@mui/icons-material';
 
-import {
-    Loading, Breadcrumbs, Error, ImagePreview,
-} from '../../../components';
-
-import { DeleteFolderDialog } from '../../../components/dialogs';
-
+import { Loading, Breadcrumbs } from '../../../components';
+import { DeleteItemDialog } from '../../../components/dialogs';
 import { WorkspaceGrid } from '../Workspace';
 
 import useAPI from '../../../hooks/useAPI';
@@ -223,10 +217,10 @@ const FolderDetails = () => {
             </Fragment>
         </WorkspaceGrid>
 
-        <DeleteFolderDialog
+        <DeleteItemDialog
             open={ showDeleteDialog }
             onClose={ onDeleteDialogClosed }
-            folderId={ getFolderId() || -1 } />
+            folderIDs={ [ getFolderId() || -1 ] } />
     </div>
 };
 

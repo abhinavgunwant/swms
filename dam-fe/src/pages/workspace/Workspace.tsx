@@ -57,10 +57,11 @@ const Workspace = ():React.ReactElement => {
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ errorText, setErrorText ] = useState<string>('');
+    const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
     const [ deleteImageIDs, setDeleteImageIDs ] = useState<Array<number>>([]);
     const [ deleteFolderIDs, setDeleteFolderIDs ] = useState<Array<number>>([]);
     const [ openNewDialog, setOpenNewDialog ] = useState<boolean>(false);
-
+    const [ itemsDeleted, setItemsDeleted ] = useState<boolean>(false);
     /**
      * ID of the image to be previewed
      */
@@ -70,13 +71,12 @@ const Workspace = ():React.ReactElement => {
     const [ _, startTransition ] = useTransition();
 
     const store = useWorkspaceStore();
-    //const userStore = useUserStore();
 
     const navigate = useNavigate();
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const { '*': path } = useParams();
     
-    console.log('Workspace path: ', path);
+    //console.log('Workspace path: ', path);
 
     const { getChildren } = useAPI();
 
@@ -107,7 +107,7 @@ const Workspace = ():React.ReactElement => {
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
 
     const loadImages = async () => {
-        console.log('current folder: ', store.currentFolder);
+        // console.log('current folder: ', store.currentFolder);
         let _type: ('project' | 'folder') = 'project';
 
         let _path = window.location.pathname as string;
@@ -116,11 +116,11 @@ const Workspace = ():React.ReactElement => {
         if (path) {
             let pathEnd = path.substring(_path.lastIndexOf('/') + 1, _path.length);
 
-            console.log('pathEnd: ', pathEnd);
+            // console.log('pathEnd: ', pathEnd);
 
             const pathSegments = path.split('/');
 
-            console.log('pathSegments', pathSegments);
+            // console.log('pathSegments', pathSegments);
 
             const projectSlug = path ? pathSegments[0] : '';
 
@@ -152,11 +152,7 @@ const Workspace = ():React.ReactElement => {
             store.setBreadcrumbList(breadcrumbList);
         }
 
-        // TODO: pass the rquired slug (i.e. project slug if user is at root
-        // of project and folder slug if user is in some project)
-        await getChildren(path || '', _type);
-
-        startTransition(() => setLoading(false));
+        return getChildren(path || '', _type);
     };
 
     const selectAll = () => {
@@ -169,10 +165,20 @@ const Workspace = ():React.ReactElement => {
         store.resetSelectedFolders();
     };
 
-    const onDeleteSelected = () => {
-        setDeleteImageIDs(Array.from(store.selectedImages.values()));
-        setDeleteFolderIDs(Array.from(store.selectedFolders.values()));
-    };
+    const onDeleteClicked = () => startTransition(() => {
+        if (store.selectedImages.size > 0 || store.selectedFolders.size > 0) {
+            setDeleteImageIDs(Array.from(store.selectedImages.values()));
+            setDeleteFolderIDs(Array.from(store.selectedFolders.values()));
+            setShowDeleteDialog(true);
+        }
+    });
+
+    const onDeleteDialogClosed = (success: boolean) => startTransition(() => {
+        setDeleteImageIDs([]);
+        setDeleteFolderIDs([]);
+        setShowDeleteDialog(false);
+        setItemsDeleted(success);
+    });
 
     const onNewClicked = () => startTransition(() => {
         let currentPath = path || '';
@@ -190,8 +196,20 @@ const Workspace = ():React.ReactElement => {
         () => setOpenNewDialog(false)
     );
 
-    /* eslint-disable react-hooks/exhaustive-deps */
-    useEffect(() => { loadImages(); }, [ deleteImageIDs, deleteFolderIDs ]);
+    useEffect(() => {
+        loadImages().then(() => { startTransition(() => setLoading(false)); });
+    }, []);
+
+    useEffect(() => {
+        if (!showDeleteDialog && itemsDeleted) {
+            loadImages().then(() => { startTransition(() => setLoading(false)); });
+
+            startTransition(() => {
+                setItemsDeleted(false)
+                store.setSelecting(false);
+            });
+        }
+    }, [ showDeleteDialog ]);
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ store.breadcrumbList } />
@@ -332,15 +350,17 @@ const Workspace = ():React.ReactElement => {
                         }
                     </List>
         }
-<WorkspaceFab
+
+        <WorkspaceFab
             fabs={[
                 {
                     text: 'Select All',
                     onClick: selectAll,
                     variant: "extended",
                     icon: <SelectAll />,
-                    show: store.imageList.length !== store.selectedImages.size
-                        || store.folderList.length !== store.selectedFolders.size,
+                    show: (store.imageList.length > 0 || store.folderList.length > 0)
+                        && (store.imageList.length !== store.selectedImages.size
+                        || store.folderList.length !== store.selectedFolders.size),
                 },
                 {
                     text: 'Deselect All',
@@ -358,7 +378,7 @@ const Workspace = ():React.ReactElement => {
                 },
                 {
                     text: 'Delete',
-                    onClick: () => { onDeleteSelected() },
+                    onClick: onDeleteClicked,
                     variant: "extended",
                     color: "error",
                     icon: <Delete />,
@@ -382,11 +402,8 @@ const Workspace = ():React.ReactElement => {
         <Error on={ showError }> { errorText } </Error>
 
         <DeleteItemDialog
-            open={ deleteImageIDs.length > 0 || deleteFolderIDs.length > 0 }
-            onClose={ () => startTransition(() => {
-                setDeleteImageIDs([]);
-                setDeleteFolderIDs([]);
-            }) }
+            open={ showDeleteDialog }
+            onClose={ onDeleteDialogClosed }
             imageIDs={ deleteImageIDs }
             folderIDs={ deleteFolderIDs } />
 

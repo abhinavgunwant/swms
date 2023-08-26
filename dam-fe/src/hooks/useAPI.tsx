@@ -209,7 +209,7 @@ const useAPI = () => {
          * Gets the list of all children from dam api and sets it in store.
          */
         getChildren: async (slug:string, type:('folder' | 'project') ='project') => {
-            console.log('getChildren: slug: ', slug, 'type: ', type);
+            // console.log('getChildren: slug: ', slug, 'type: ', type);
 
             const response = await fetch(
                 `${HOST}/api/admin/get-children?type=${type}&path=${slug}`, {

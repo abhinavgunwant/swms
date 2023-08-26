@@ -13,7 +13,7 @@ import {
 import { Accordion } from '../../../components/rendition';
 
 import {
-    DeleteImageDialog, RenditionDialog, RenditionDialogMode
+    DeleteItemDialog, RenditionDialog, RenditionDialogMode
 } from '../../../components/dialogs';
 
 import {
@@ -324,7 +324,8 @@ const ImageDetails = () => {
 
                         <Grid item xs={ 12 } md={ 6 }>
                             <SemiEditableTextField
-                                label="Slug"
+                                label="Title"
+                                sx={{ marginTop: 0, width: '100%' }}
                                 value={ image?.title }
                                 onEdited={ onImageNameChanged }
                                 showErrPopup={ showErrPopup }
@@ -406,7 +407,7 @@ const ImageDetails = () => {
             imageId={ getImageId() }
             onClose={ onPreviewClosed } />
 
-        <DeleteImageDialog
+        <DeleteItemDialog
             open={ showDeleteDialog }
             onClose={ () => startTransition(() => setShowDeleteDialog(false)) }
             imageIDs={ [getImageId() || -1] }
