@@ -1,4 +1,4 @@
-export interface UserList {
+export interface UserListing {
     id: number,
     loginId: string,
     name: string,
@@ -6,5 +6,5 @@ export interface UserList {
     userRole?: number,
 }
 
-export default UserList;
+export default UserListing;
 

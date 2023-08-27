@@ -1,13 +1,10 @@
 import useUserStore from '../store/workspace/UserStore';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
-import Project from '../models/Project';
-import SelectUserModel from '../models/SelectUserModel';
-import UploadImage from '../models/UploadImage';
-import Rendition from '../models/Rendition';
-import CreateUserPayload from '../models/CreateUserPayload';
-import UserListing from '../models/UserListing';
-import Role from '../models/Role';
-import Folder from '../models/Folder';
+
+import {
+    Project, SelectUserModel, UploadImage, Rendition, CreateUserPayload,
+    UserListing, Role, Folder, Image,
+} from '../models';
 
 const HOST = 'http://localhost:8080';
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
@@ -261,32 +258,33 @@ const useAPI = () => {
             return false;
         },
 
-        updateImageTitle: async (imageId: number, title: string) => {
+        updateImage: async (image: Image) => {
             const response = await fetch(
-                `${HOST}/api/admin/image/update-title/`, {
+                `${HOST}/api/admin/image`, {
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,
                     'Content-Type': 'application/json',
                 },
                 method: 'PUT',
-                body: JSON.stringify({imageId, title}),
+                body: JSON.stringify(image),
             });
 
             if (response.status === 200) {
-                const respText = await response.text();
+                const respJson = await response.json();
 
-                return { success: true, message: respText };
+                return respJson;
             }
-
-            let respText;
 
             try {
-                respText = await response.text();
-            } catch (e) {
-                respText = 'Some error Occured! Please try again in some time!';
-            }
+                let resp = await response.json();
 
-            return { success: false, message: respText };
+                return resp;
+            } catch (e) { console.log(e); }
+
+            return {
+                success: false,
+                message: 'Some error Occured! Please try again in some time!',
+            };
         },
 
         /**

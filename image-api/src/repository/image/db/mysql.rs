@@ -364,10 +364,154 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn update(&self, image: Image) -> Result<String, String>{
+    fn update(&self, image: Image) -> Result<String, String> {
         let mut conn = get_db_connection();
 
         println!("Updating an image");
+
+        let id = image.id;
+
+        match conn.start_transaction(TxOpts::default()) {
+            Ok (mut tx) => {
+                let mut update_title: bool = false;
+                let mut update_slug: bool = false;
+
+                let row_result: Result<Option<Row>, mysql::error::Error> = tx.exec_first(
+                    r"SELECT TITLE, SLUG FROM IMAGE WHERE ID = :id",
+                    params! { "id" => id },
+                );
+
+                match row_result {
+                    Ok (row_option) => {
+                        match row_option {
+                            Some (mut row) => {
+                                let title: String;
+                                let slug: String;
+                                let folder_id: u32;
+                                
+                                match row.take("TITLE") {
+                                    Some (t) => { title = t; },
+                                    None => { title = String::default(); },
+                                }
+
+                                match row.take("SLUG") {
+                                    Some (s) => { slug = s; },
+                                    None => { slug = String::default(); },
+                                }
+
+                                match row.take("FOLDER_ID") {
+                                    Some (f) => { folder_id = f; },
+                                    None => { folder_id = 0; },
+                                }
+
+                                if (title.is_empty() && !image.title.is_empty())
+                                    || !title.eq(image.title.as_str()) {
+                                    update_title = true;
+                                }
+
+                                if (slug.is_empty() && !image.slug.is_empty())
+                                    || !slug.eq(image.slug.as_str()) {
+                                    // Check if the supplied slug already
+                                    // exists
+                                    let slug_result: Result<Option<Row>, mysql::error::Error> = tx.exec_first(
+                                        r"SELECT SLUG FROM IMAGE WHERE
+                                        ID != :id AND FOLDER_ID = :folder_id
+                                        AND SLUG = :slug",
+                                        params! {
+                                            "id" => id,
+                                            "folder_id" => folder_id,
+                                            "slug" => image.slug.clone(),
+                                        }
+                                    );
+
+                                    match slug_result {
+                                        Ok (row_option) => {
+                                            match row_option {
+                                                Some (_) => {
+                                                    return Err(format!(
+                                                        "Image with slug '{}' already exists",
+                                                        image.slug.clone(),
+                                                    ));
+                                                }
+
+                                                None => {}
+                                            }
+                                        }
+
+                                        Err (e) => { eprintln!("{}", e); }
+                                    }
+
+                                    update_slug = true;
+                                }
+                            }
+
+                            None => {
+                                match tx.rollback() {
+                                    Ok (_) => {},
+                                    Err (e) => { eprintln!("{}", e); }
+                                }
+
+                                return Err(
+                                    format!("No image exists with id: {}", id)
+                                );
+                            }
+                        }
+                    }
+
+                    Err (e) => {
+                        match tx.rollback() {
+                            Ok (_) => {},
+                            Err (e) => { eprintln!("{}", e); }
+                        }
+
+                        eprintln!("{}", e);
+                        return Err(String::from("Some error occured."));
+                    }
+                }
+
+                if update_title || update_slug {
+                    let mut set_clause: String = String::new();
+
+                    if update_title {
+                        set_clause.push_str(
+                            format!(" TITLE = '{}'", image.title).as_str()
+                        );
+                    }
+
+                    if update_slug {
+                        if update_title {
+                            set_clause.push_str(" , ");
+                        }
+
+                        set_clause.push_str(
+                            format!(" SLUG = '{}' ", image.slug).as_str()
+                        );
+                    }
+
+                    println!("{}", set_clause);
+
+                    match tx.exec_drop(
+                        format!(
+                            "UPDATE IMAGE SET {} WHERE ID = :id",
+                            set_clause.as_str()
+                        ),
+                        params! { "id" => id },
+                    ) {
+                        Ok (_) => {},
+                        Err (e) => {
+                            eprintln!("{}", e);
+                        }
+                    }
+                } else {
+                }
+            }
+
+            Err (e) => {
+                eprintln!("{}", e);
+
+                return Err(String::from("Some unknown error occured."))
+            }
+        }
 
         match conn.exec_drop(r"UPDATE IMAGE SET
                 ORIGINAL_FILENAME = :original_filename, TITLE = :title,

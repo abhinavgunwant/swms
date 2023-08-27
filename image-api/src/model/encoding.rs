@@ -1,15 +1,13 @@
-use serde::{ Serialize, Deserialize, Serializer };
+use serde::{ Serialize, Deserialize };
 
-/**
- * The integer values associated with enum variants are categorized according
- * the ranges below:
- * 0 - 19: Raw Images
- * 20 - 39: Images with Lossless compression
- * 40 - 59: Images with Lossy compression
- * 60 - 79: Images that can have both lossy and lossless compression
- * 80+: Vector graphics images
- */
-#[derive(Copy, Clone, Deserialize)]
+/// The integer values associated with enum variants are categorized according
+/// the ranges below:
+/// 0 - 19: Raw Images
+/// 20 - 39: Images with Lossless compression
+/// 40 - 59: Images with Lossy compression
+/// 60 - 79: Images that can have both lossy and lossless compression
+/// 80+: Vector graphics images
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum Encoding {
     TIF = 0,
     BMP = 1,
@@ -30,14 +28,14 @@ pub enum Encoding {
     SVG = 81
 }
 
-impl Serialize for Encoding {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer {
-
-        let t = *self;
-        serializer.serialize_u8(t as u8)
-    }
-}
+//impl Serialize for Encoding {
+//    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//        where S: Serializer {
+//
+//        let t = *self;
+//        serializer.serialize_u8(t as u8)
+//    }
+//}
 
 impl Encoding {
     pub fn extension(&self) -> String {

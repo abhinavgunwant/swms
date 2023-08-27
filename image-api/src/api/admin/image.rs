@@ -9,7 +9,7 @@ use crate::{
     db::DBError,
     repository::image::{ ImageRepository, get_image_repository },
     model::{ image::Image, upload_image::UploadImage, rendition::Rendition, },
-    api::service::remove::remove_images,
+    api::{ admin::SuccessResponse, service::remove::remove_images, },
 };
 
 #[derive(Serialize)]
@@ -232,37 +232,13 @@ pub async fn get_image_file(req: HttpRequest) -> HttpResponse {
     }
 }
 
-/**
- * Updates the title of an image.
- */
-#[put("/api/admin/image/update-title/")]
-pub async fn update_image_title (req: Json<ImageTitleUpdateRequest>)
-    -> HttpResponse {
-    if req.title.is_empty() {
-        return HttpResponse::BadRequest().body("Title cannot be empty");
-    }
-
-    let img_repo = get_image_repository();
-
-    match img_repo.get(req.image_id) {
-        Ok (mut image) => {
-            image.title = req.title.clone();
-
-            match img_repo.update(image) {
-                Ok (msg) => HttpResponse::Ok().body(msg),
-
-                Err (msg) => HttpResponse::InternalServerError().body(msg),
-            }
-
-        }
-
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound().body("Image not found");
-            }
-
-            return HttpResponse::InternalServerError().body("Some error occured");
-        }
+/// Updates an image.
+#[put("/api/admin/image")]
+pub async fn update(req: Json<Image>) -> HttpResponse {
+    match get_image_repository().update(req.into_inner()) {
+        Ok (msg) => HttpResponse::Ok().json(SuccessResponse::new(true, msg)),
+        Err (msg) => HttpResponse::InternalServerError()
+            .json(SuccessResponse::new(false, msg)),
     }
 }
 

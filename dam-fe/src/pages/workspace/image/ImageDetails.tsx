@@ -52,11 +52,16 @@ const ImageDetails = () => {
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ imageNotFound, setImageNotFound ] = useState<boolean>(false);
     const [ edit, setEdit ] = useState<boolean>(false);
+    const [ editSlug, setEditSlug ] = useState<boolean>(false);
     const [ edited, setEdited ] = useState<boolean>(false);
+    const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
     const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
+    const [ showErrPopupSlug, setShowErrPopupSlug ] = useState<boolean>(false);
     const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
+    const [ errPopupSlugText, setErrPopupSlugText ] = useState<string>('Error!');
     const [ updatingName, setUpdatingName ] = useState<boolean>(false);
+    const [ updatingSlug, setUpdatingSlug ] = useState<boolean>(false);
     const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
     const [ showRenditionDialog, setShowRenditionDialog ] = useState<boolean>(false);
     const [ renditionListUpdated, setRenditionListUpdated ] = useState<boolean>(false);
@@ -73,8 +78,7 @@ const ImageDetails = () => {
     const imageTitleRef = useRef();
 
     const {
-        getImage, updateImageTitle, getRenditions, addRenditions,
-        deleteRendition,
+        getImage, updateImage, getRenditions, addRenditions, deleteRendition,
     } = useAPI();
     const { imageId } = useParams();
 
@@ -92,6 +96,10 @@ const ImageDetails = () => {
 
     const onImageNameChanged = (changed: boolean) => startTransition(
         () => setEdited(changed)
+    );
+
+    const onImageSlugChanged = (changed: boolean) => startTransition(
+        () => setSlugEdited(changed)
     );
 
     /**
@@ -200,24 +208,50 @@ const ImageDetails = () => {
                 setEdit(false);
             });
 
-            updateImageTitle(image.id, editedTitle)
-                .then((resp) => {
-                    if (resp.success) {
-                        startTransition(() => {
-                            setUpdatingName(false);
-                            setShowErrPopup(false);
-                            setImage({ ...image, title: editedTitle });
-                            setEdited(false);
-                        });
-                    } else {
-                        startTransition(() => {
-                            setUpdatingName(false);
-                            setShowErrPopup(true);
-                            setErrPopupText(resp.message);
-                            setEdited(false);
-                        });
-                    }
+            const resp = await updateImage({ ...image, title: editedTitle });
+
+            if (resp.success) {
+                startTransition(() => {
+                    setUpdatingName(false);
+                    setShowErrPopup(false);
+                    setImage({ ...image, title: editedTitle });
+                    setEdited(false);
                 });
+            } else {
+                startTransition(() => {
+                    setUpdatingName(false);
+                    setShowErrPopup(true);
+                    setErrPopupText(resp.message);
+                    setEdited(false);
+                });
+            }
+        }
+    };
+
+    const onEditSlugSave = async (editedSlug: string) => {
+        if (image && image.id) {
+            startTransition(() => {
+                setUpdatingSlug(true);
+                setEditSlug(false);
+            });
+
+            const resp = await updateImage({ ...image, slug: editedSlug });
+
+            if (resp.success) {
+                startTransition(() => {
+                    setUpdatingSlug(false);
+                    setShowErrPopupSlug(false);
+                    setImage({ ...image, title: editedSlug });
+                    setSlugEdited(false);
+                });
+            } else {
+                startTransition(() => {
+                    setUpdatingSlug(false);
+                    setShowErrPopupSlug(true);
+                    setErrPopupSlugText(resp.message);
+                    setSlugEdited(false);
+                });
+            }
         }
     };
 
@@ -335,20 +369,32 @@ const ImageDetails = () => {
                         </Grid>
 
                         <Grid item xs={ 12 } md={ 6 }>
+                            <SemiEditableTextField
+                                label="Slug"
+                                sx={{ marginTop: 0, width: '100%' }}
+                                value={ image?.slug }
+                                onEdited={ onImageSlugChanged }
+                                showErrPopup={ showErrPopupSlug }
+                                errPopupText={ errPopupSlugText }
+                                updating={ updatingSlug }
+                                onSave={ onEditSlugSave } />
+                        </Grid>
+
+                        <Grid item xs={ 12 } md={ 6 }>
                             <TextField
                                 value={ image?.name }
                                 disabled={ true }
                                 label="Original filename" />
                         </Grid>
 
-                        <Grid item xs={ 12 } md={ 6 }>
+                        <Grid item xs={ 6 } md={ 3 }>
                             <TextField
                                 value={ image?.width }
                                 disabled={ true }
                                 label="Width" />
                         </Grid>
 
-                        <Grid item xs={ 12 } md={ 6 }>
+                        <Grid item xs={ 6 } md={ 3 }>
                             <TextField
                                 value={ image?.height }
                                 disabled={ true }

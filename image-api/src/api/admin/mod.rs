@@ -22,6 +22,13 @@ use crate::{
 };
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SuccessResponse {
+    success: bool,
+    message: String,
+}
+
+#[derive(Serialize)]
 pub struct GetChildrenResponse {
     folders: Vec<Folder>,
     images: Vec<Image>,
@@ -452,5 +459,13 @@ fn generate_resource_response(
         rendition: None,
         message: response_msg,
     })
+}
+
+// ------------------------
+// Implementations here...
+// ------------------------
+
+impl SuccessResponse {
+    fn new(success: bool, message: String) -> Self { Self {success,message} }
 }
 
