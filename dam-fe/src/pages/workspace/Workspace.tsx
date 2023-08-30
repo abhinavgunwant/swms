@@ -230,6 +230,7 @@ const Workspace = ():React.ReactElement => {
                                     key={ t.id }
                                     id={ t.id }
                                     name={ t.title }
+                                    subtitle={ t.slug }
                                     thumbnailLocation=""
                                     type="FOLDER"
                                     selected={ selected }
@@ -285,7 +286,7 @@ const Workspace = ():React.ReactElement => {
                                     key={ t.id }
                                     id={ t.id }
                                     name={ t.title }
-                                    subtitle={ t.name }
+                                    subtitle={ t.slug }
                                     isImage={ true }
                                     selected={ selected }
                                     actions={[
