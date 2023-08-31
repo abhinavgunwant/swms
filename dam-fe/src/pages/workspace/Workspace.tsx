@@ -178,6 +178,12 @@ const Workspace = ():React.ReactElement => {
         setDeleteFolderIDs([]);
         setShowDeleteDialog(false);
         setItemsDeleted(success);
+
+        if (success) {
+            store.setSelecting(false);
+            store.resetSelectedImages();
+            store.resetSelectedFolders();
+        }
     });
 
     const onNewClicked = () => startTransition(() => {
