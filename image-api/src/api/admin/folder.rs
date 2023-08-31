@@ -1,4 +1,6 @@
 use actix_web::{ HttpResponse, HttpRequest, get, post, put, delete, web::Json };
+use qstring::QString;
+
 use crate::{
     db::DBError,
     repository::folder::{ FolderRepository, get_folder_repository },
@@ -43,18 +45,23 @@ pub async fn update_folder (folder: Json<Folder>) -> HttpResponse {
     }
 }
 
-#[delete("/api/admin/folder/{folder_id}")]
+/// Deletes folder(s)
+///
+/// ## URL parameters:
+/// - `id` - Comma-separated folder IDs.
+#[delete("/api/admin/folder")]
 pub async fn remove_folder (req: HttpRequest) -> HttpResponse {
+    let qs = QString::from(req.query_string());
+
     let mut folder_ids: Vec<u32>;
 
-    match req.match_info().get("folder_id") {
-        Some (folder_id_str) => {
-            folder_ids = folder_id_str.split(',').map(|s| s.parse().unwrap())
-                .collect();
+    match qs.get("id") {
+        Some (qid) => {
+            folder_ids = qid.split(',').map(|s| s.parse().unwrap()).collect();
         }
 
         None => {
-            return HttpResponse::BadRequest().body("No folders supplied");
+            return HttpResponse::BadRequest().body("No folder IDs supplied");
         }
     }
 

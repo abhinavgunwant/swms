@@ -516,7 +516,7 @@ const useAPI = () => {
             }
 
             const response = await fetch(
-                `${HOST}/api/admin/folder/${ folderId }`, {
+                `${HOST}/api/admin/folder?id=${ folderId }`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,
