@@ -222,7 +222,7 @@ const Workspace = ():React.ReactElement => {
                     <WorkspaceGrid container spacing={2}>
                         <Fragment>
                         {
-                            store.folderList.length && 
+                            store.folderList.length > 0 && 
                             store.folderList.map(t => {
                                 const selected = store.isFolderSelected(t.id);
 
@@ -278,7 +278,7 @@ const Workspace = ():React.ReactElement => {
                         </Fragment>
                         <Fragment>
                         {
-                            store.imageList.length ?
+                            store.imageList.length > 0 ?
                             store.imageList.map(t => {
                                 const selected = store.isSelected(t.id);
 
