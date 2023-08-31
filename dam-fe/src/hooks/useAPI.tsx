@@ -375,7 +375,7 @@ const useAPI = () => {
             }
 
             const response = await fetch(
-                `${HOST}/api/admin/image/${ imageIDs.join(',') }`, {
+                `${HOST}/api/admin/image?id=${ imageIDs.join(',') }`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': 'Bearer ' + userStore.sessionToken,

@@ -3,6 +3,7 @@ use actix_web::{
 };
 use std::fs::{ read, rename, remove_file };
 use serde::{ Serialize, Deserialize };
+use qstring::QString;
 use chrono::Utc;
 
 use crate::{
@@ -160,17 +161,22 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
 
 /// Deletes the image data from the database and deletes the original image file
 /// and rendition files.
-#[delete("/api/admin/image/{image_id}")]
+///
+/// ## URL parameters:
+/// - `id` - Comma-separated image IDs.
+#[delete("/api/admin/image")]
 pub async fn remove_image(req: HttpRequest) -> HttpResponse {
+    let qs = QString::from(req.query_string());
+
     let image_ids: Vec<u32>;
 
-    match req.match_info().get("image_id") {
-        Some (image_id_str) => {
-            image_ids = image_id_str.split(',').map(|s| s.parse().unwrap()).collect();
+    match qs.get("id") {
+        Some (qid) => {
+            image_ids = qid.split(',').map(|s| s.parse().unwrap()).collect();
         }
 
         None => {
-            return HttpResponse::BadRequest().body("No image supplied");
+            return HttpResponse::BadRequest().body("No image IDs supplied");
         }
     }
 
