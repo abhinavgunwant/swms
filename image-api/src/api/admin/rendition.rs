@@ -1,3 +1,5 @@
+use std::{collections::HashMap, rc::Rc};
+
 use actix_web::{ HttpResponse, HttpRequest, get, post, delete, web::Json };
 use serde::{ Serialize, Deserialize };
 use raster::Image as RasterImage;
@@ -112,99 +114,122 @@ pub async fn get_rendition(req: HttpRequest) -> HttpResponse {
     }
 }
 
-/**
- * Creates multiple renditions for a single image.
- */
+/// Creates multiple renditions for a single image.
 #[post("/api/admin/renditions")]
 pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
-    let mut success: bool = true;
     let mut unsuccessful_renditions: Vec<UnsuccessfulRendition> = vec![];
     let mut internal_error: bool = false;
-
-    let mut raster_img = RasterImage{ width: 0, height: 0, bytes: vec![] };
-    let mut raster_img_init: bool = false;
-
-    let mut source_file_path: String = String::from("");
-    let mut source_file_path_init: bool = false;
-
 
     let repo = get_rendition_repository();
     let img_repo = get_image_repository();
 
-    let mut image: Option<Image> = None;
+    //let mut image_id: Option<u32> = None;
+    let image_option: Option<Image>;
 
-    for rendition in req.renditions.iter() {
+    println!("Inside add rendition API");
+
+    if req.renditions.is_empty() {
+        return HttpResponse::BadRequest()
+            .json(SetRenditionsResponse {
+                success: false,
+                message: String::from("No renditions provided"),
+                unsuccessful_renditions,
+            });
+    }
+
+    let image_id = req.renditions[0].image_id;
+
+    let different_images = req.renditions.iter()
+        .filter(|&r| r.image_id != image_id)
+        .count();
+
+    if different_images > 0 {
+        return HttpResponse::BadRequest().json(SetRenditionsResponse {
+            success: false,
+            message: String::from(
+                "Renditions with different image_ids are not allowed!"
+            ),
+            unsuccessful_renditions,
+        });
+    }
+
+    // Get image from repo.
+    match img_repo.get(image_id) {
+        Ok(img) => { image_option = Some(img); },
+        Err (e) => {
+            eprintln!("{}", e);
+
+            return HttpResponse::BadRequest().json(SetRenditionsResponse {
+                success: false,
+                message: format!("Image having id \"{}\" not found", image_id),
+                unsuccessful_renditions,
+            });
+        }
+    }
+
+    if let Some(image) = image_option {
+        let mut image_raster_option: Option<Rc<RasterImage>> = None;
+
         if req.eager {
-            println!("Creating renditions eagerly");
+            let src_file_path = format!(
+                "image-uploads/{}{}", image.id, image.encoding.extension()
+            );
 
-            if image.is_none() {
-                match img_repo.get(rendition.image_id) {
-                    Ok(img) => {
-                        image = Some(img);
-                    }
+            match raster::open(src_file_path.as_str()) {
+                Ok (r_img) => { image_raster_option = Some(Rc::new(r_img)); }
+                Err (_) => { eprintln!("Error loading image file."); }
+            }
+        }
 
-                    Err (_e) => {
-                        unsuccessful_renditions.push(UnsuccessfulRendition {
-                            id: rendition.id,
-                            message: format!(
-                                "Image having id \"{}\" not found",
-                                rendition.image_id
-                            ),
-                        });
+        for rendition in req.renditions.iter() {
+            let mut rendition_to_add: Rendition = rendition.clone();
 
-                        success = false;
-                    }
-                }
+            if rendition.slug == "default" {
+                rendition_to_add.height = image.height;
+                rendition_to_add.width = image.width;
             }
 
-            match repo.add(rendition.clone()) {
+            match repo.add(rendition_to_add.clone()) {
                 Ok (rendition_id) => {
-                    if !source_file_path_init {
-                        source_file_path = format!(
-                            "image-uploads/{}{}",
-                            image.as_ref().unwrap().id,
-                            image.as_ref().unwrap().encoding.extension()
+                    // Create renditions files.
+                    if let Some(mut r_img) = image_raster_option.clone() {
+                        let dest_file_path = format!(
+                            "image-rendition-cache/{}{}",
+                            rendition_id,
+                            rendition_to_add.encoding.extension()
                         );
 
-                        source_file_path_init = true;
+                        let dest_path = dest_file_path.as_str();
+
+                        println!(
+                            "--> Creating rendition eagerly: {} ({}x{})",
+                            dest_file_path ,
+                            rendition_to_add.width,
+                            rendition_to_add.height,
+                        );
+
+                        let mut raster_img = Rc::make_mut(&mut r_img);
+
+                        // Resize rendition.
+                        match raster::editor::resize(
+                            &mut raster_img,
+                            rendition_to_add.width as i32,
+                            rendition_to_add.height as i32,
+                            raster::ResizeMode::Fit
+                        ) {
+                            Ok (_) => {
+                                // Save rendition file.
+                                match raster::save(&raster_img, dest_path) {
+                                    Ok (_) => {}
+                                    Err (_) => { eprintln!("Error while saving"); }
+                                }
+                            }
+
+                            Err (_) => { eprintln!("Error while resize"); }
+                        }
                     }
-
-                    let dest_file_path = format!(
-                        "image-rendition-cache/{}{}",
-                        rendition_id,
-                        rendition.encoding.extension()
-                    );
-
-                    if !raster_img_init {
-                        raster_img = raster::open(
-                            source_file_path.as_str()
-                        ).unwrap();
-
-                        raster_img_init = true;
-                    }
-
-                    raster::editor::resize(
-                        &mut raster_img,
-                        rendition.width as i32,
-                        rendition.height as i32,
-                        raster::ResizeMode::Fit
-                    ).unwrap();
-
-                    raster::save(&raster_img, dest_file_path.as_str()).unwrap();
                 }
 
-                Err (err_msg) => {
-                    internal_error = true;
-
-                    unsuccessful_renditions.push(UnsuccessfulRendition {
-                        id: rendition.id,
-                        message: err_msg,
-                    });
-                }
-            }
-        } else {
-            match repo.add(rendition.clone()) {
-                Ok (_id) => {},
                 Err (err_msg) => {
                     internal_error = true;
 
@@ -217,7 +242,7 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
         }
     }
 
-    if !success || unsuccessful_renditions.len() > 0 {
+    if unsuccessful_renditions.len() > 0 {
         if unsuccessful_renditions.len() == req.renditions.len() {
             if internal_error {
                 return HttpResponse::InternalServerError()
@@ -243,7 +268,7 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
     }
 
     HttpResponse::Ok().json(SetRenditionsResponse {
-        success,
+        success: true,
         message: String::from("All renditions saved successfully"),
         unsuccessful_renditions,
     })

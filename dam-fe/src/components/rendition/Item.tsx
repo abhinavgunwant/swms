@@ -28,10 +28,13 @@ export const Item = (props: ItemProps) => {
     return <ListItem>
         <ListItemText>
             <Typography>
-                { props.rendition.targetDevice }
+                { props.rendition.slug }
                 <SubText>
-                    ({ props.rendition.slug },{' '}
-                    {props.rendition.encoding },{' '}
+                    ({
+                        props.rendition.targetDevice ?
+                            props.rendition.targetDevice + ', ' : ''
+                    }
+                    { props.rendition.encoding },{' '}
                     { props.rendition.width }x
                     { props.rendition.height })
                 </SubText>

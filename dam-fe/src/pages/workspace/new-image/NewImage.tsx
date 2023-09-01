@@ -37,13 +37,37 @@ const StyledGrid = styled(Grid)`
     margin-top: 1rem;
 `;
 
+const thumbnailRendition: Rendition = {
+    id: 0,
+    imageId: 0,
+    height: 200,
+    width: 300,
+    targetDevice: '',
+    slug: 'ui-thumb-default',
+    isPublished: true,
+    encoding: 'JPG',
+    createdOn: '',
+    createdBy: 0,
+    modifiedOn: '',
+    modifiedBy: 0,
+};
+
+const defaultRendition: Rendition = {
+    ...thumbnailRendition,
+    height: 0,
+    width: 0,
+    slug: 'default',
+};
+
 const NewImage = () => {
     const [ slug, setSlug ] = useState<string>('');
     const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
     const [ title, setTitle ] = useState<string>('');
     const [ details, setDetails ] = useState<string>('');
     const [ file, setFile ] = useState<File>();
-    const [ renditionList, setRenditionList ] = useState<Rendition[]>([]);
+    const [ renditionList, setRenditionList ] = useState<Rendition[]>([
+        thumbnailRendition, defaultRendition
+    ]);
     // Rendition Selection Index
     const [ renSelIndex, setRenSelIndex ] = useState<number>(-1);
     // Rendition Dialog Mode
@@ -221,7 +245,7 @@ const NewImage = () => {
                 setSlug(generateSlug(title));
             });
         }
-    }, [ title, slugEdited ]);
+    }, [ title, slugEdited, file ]);
 
     return <div className="page page--new-image">
         <Breadcrumbs links={[
@@ -294,6 +318,7 @@ const NewImage = () => {
                 
                 <Accordion
                     renditionList={ renditionList }
+                    showEagerCheckbox={ true }
                     eagerRendition={ eagerRendition }
                     onEditRendition={ onEditRendition }
                     onDeleteRendition={ onDeleteRendition }
