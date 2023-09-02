@@ -1,7 +1,7 @@
 // use std::path::PathBuf;
 use std::io::Write;
 use std::fs::{ File, read };
-use std::path::Path;
+use std::path::{Path, self};
 //use std::time::{ Duration, Instant };
 use actix_multipart::Multipart;
 use actix_web::{
@@ -14,11 +14,12 @@ use serde::Serialize;
 use raster;
 use regex::Regex;
 use crate::{
+    api::service::path::{ get_rendition_from_path_segments, split_path },
     repository::{
         rendition::{ RenditionRepository, get_rendition_repository },
         image::{ ImageRepository, get_image_repository },
     },
-    model::rendition::Rendition, db::DBError,
+    model::{ rendition::Rendition, error::ErrorType }, db::DBError,
 };
 
 #[derive(Serialize)]
@@ -33,6 +34,14 @@ pub struct ImageUploadResponse {
     success: bool,
     upload_id: String,
     message: String,
+}
+
+fn not_found_response() -> HttpResponse {
+    HttpResponse::NotFound().body("404: Not Found!")
+}
+
+fn error_response() -> HttpResponse {
+    return HttpResponse::InternalServerError().body("Internal Server Error")
 }
 
 #[post("/api/image")]
@@ -90,8 +99,7 @@ pub async fn upload(mut payload: Multipart) -> HttpResponse {
  * TODO: Make the cache behaviour optional with user choosing whether to make
  * renditions render eagerly or lazily.
  */
-#[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})$}")]
-pub async fn download(req: HttpRequest) -> HttpResponse {
+pub async fn download2(req: HttpRequest) -> HttpResponse {
     let path: String = req.match_info().get("path").unwrap().parse().unwrap();
 
     // Refine path string
@@ -211,5 +219,82 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
     }
 
     HttpResponse::NotFound().body("Not Found")
+}
+
+#[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]
+pub async fn download(req: HttpRequest) -> HttpResponse {
+    match req.match_info().get("path") {
+        Some(path) => {
+            match get_rendition_from_path_segments(split_path(path)) {
+                Ok(rendition) => {
+                    let dest_file_path = format!(
+                        "image-rendition-cache/{}{}",
+                        rendition.id,
+                        rendition.encoding.extension()
+                    );
+
+                    if !Path::new(dest_file_path.as_str()).exists() {
+                        match get_image_repository().get(rendition.image_id) {
+                            Ok (image_data) => {
+                                let source_file_path = format!(
+                                    "image-uploads/{}{}",
+                                    image_data.id,
+                                    image_data.encoding.extension()
+                                );
+
+                                let src_img_path = source_file_path.as_str();
+
+                                println!("Getting source file: {}", source_file_path);
+
+                                match raster::open(src_img_path) {
+                                    Ok(mut raster_img) => {
+                                        raster::editor::resize(
+                                            &mut raster_img,
+                                            rendition.width as i32,
+                                            rendition.height as i32,
+                                            raster::ResizeMode::Fit
+                                        ).unwrap();
+
+                                        raster::save(
+                                            &raster_img, dest_file_path.as_str()
+                                        ).unwrap();
+                                    }
+
+                                    Err(_) => { return error_response(); }
+                                }
+                            }
+
+                            Err (e) => {
+                                match e {
+                                    DBError::NOT_FOUND => {
+                                        return not_found_response();
+                                    }
+
+                                    _ => { return error_response(); }
+                                }
+                            }
+                        }
+                    }
+
+                    let image_file = block(
+                        move || read(String::from(dest_file_path))
+                    ).await.unwrap().expect("Error while downloading!");
+
+                    return HttpResponse::Ok()
+                        .content_type(rendition.encoding.mime_type())
+                        .body(image_file);
+                }
+
+                Err (e) => {
+                    match e.error_type {
+                        ErrorType::NotFound => { return not_found_response(); }
+                        ErrorType::InternalError => { return error_response(); }
+                    }
+                }
+            }
+        }
+
+        None => not_found_response()
+    }
 }
 

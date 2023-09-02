@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use actix_web::{ HttpResponse, HttpRequest, get, post, delete, web::Json };
 use serde::{ Serialize, Deserialize };
@@ -123,7 +123,6 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
     let repo = get_rendition_repository();
     let img_repo = get_image_repository();
 
-    //let mut image_id: Option<u32> = None;
     let image_option: Option<Image>;
 
     println!("Inside add rendition API");

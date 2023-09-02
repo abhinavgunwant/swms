@@ -126,6 +126,18 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
+    fn get_from_image_and_slug(&self, image_id: u32, slug: String)
+        -> Result<Rendition, DBError> {
+        get_rendition_from_row(get_row_from_query(
+            r"SELECT
+                ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG, PUBLISHED,
+                CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON
+            FROM IMAGE_RENDITION
+            WHERE IMAGE_ID = :image_id AND SLUG = :slug",
+            params! { "image_id" => image_id, "slug" => slug }
+        ))
+    }
+
     fn get_all(&self) -> Result<Vec<Rendition>, DBError> {
         get_renditions_from_row(get_rows_from_query(
             r"SELECT

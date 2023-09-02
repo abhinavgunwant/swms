@@ -12,6 +12,7 @@ pub trait RenditionRepository {
         -> Result<Rendition, DBError>;
     fn get_from_folder_rendition_slug(&self, f_slug: String, i_slug: String)
         -> Result<Rendition, DBError>;
+    fn get_from_image_and_slug(&self, image_id: u32, slug: String) -> Result<Rendition, DBError>;
     fn get_all(&self) -> Result<Vec<Rendition>, DBError>;
     fn get_all_from_image(&self, image_id: u32) -> Result<Vec::<Rendition>, DBError>;
     fn get_all_from_project(&self, project_id: u32)

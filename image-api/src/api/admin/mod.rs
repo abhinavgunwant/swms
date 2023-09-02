@@ -11,6 +11,7 @@ use serde::Serialize;
 use qstring::QString;
 
 use crate::{
+    api::service::path::{ split_path },
     db::DBError,
     repository::{
         image::{ ImageRepository, get_image_repository },
@@ -67,7 +68,6 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
 
     // URL parameter vars:
     let _type: ResourceType;
-    let path: &str;
     let show_all: bool;
 
     if let Some(show_all_qs) = qs.get("show-all") {
@@ -102,35 +102,15 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
         _type = ResourceType::NONE;
     }
 
+    let path_segments: Vec<&str>;
+
     match qs.get("path") {
-        Some(s) => {
-            let mut chars = s.chars();
-            let mut updated = false;
-
-            if chars.clone().last().unwrap() == '/' {
-                chars.next_back();
-                updated = true;
-            }
-
-            let mut p = chars.clone().peekable();
-
-            if let Some(first_char) = p.peek() {
-                if *first_char == '/' {
-                    chars.next();
-                    updated = true;
-                }
-            }
-
-            if updated {
-                path = chars.as_str();
-            } else {
-                path = s;
-            }
-        }
+        Some(s) => { path_segments = split_path(s); }
 
         None => {
-            path = "";
             error = true;
+
+            path_segments = vec![];
 
             response_msg.push(String::from(
                 "ERROR: Request missing a \"path\" parameter."
@@ -154,9 +134,8 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
     let fol_repo = get_folder_repository();
     let proj_repo = get_project_repository();
 
-    println!("Path is: {}", path);
+    //println!("Path is: {}", path);
 
-    let path_segments: Vec<&str> = path.split("/").collect();
     let project_slug: String;
     let project_id: u32;
     let mut folder_id: u32 = 0;
@@ -197,8 +176,8 @@ pub async fn get_children(req: HttpRequest) -> HttpResponse {
         println!("show_all: {}", show_all);
 
         return generate_resource_response(
-            fol_repo.get_from_project_slug(String::from(path), show_all),
-            img_repo.get_from_project_slug(String::from(path), show_all),
+            fol_repo.get_from_project_slug(String::from(path_segments[0]), show_all),
+            img_repo.get_from_project_slug(String::from(path_segments[0]), show_all),
             ResourceType::Project,
         );
     } else {

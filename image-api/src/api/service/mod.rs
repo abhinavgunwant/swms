@@ -3,4 +3,5 @@
 //! This module does not contain any REST endpoints.
 
 pub mod remove;
+pub mod path;
 
