@@ -13,3 +13,8 @@ export const getImagePathFromURL = ():string => {
 
     return '';
 }
+
+export const generateThumbnailURL = (path: string, imgSlug: string):string =>
+    'http://localhost:8080/api/image/' + path + '/' + imgSlug
+    + '/ui-thumb-default.jpg';
+

@@ -22,6 +22,8 @@ import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 
 import Folder from '../../models/Folder';
 
+import { generateThumbnailURL } from '../../utils/PathUtils';
+
 import { styled } from '@mui/material/styles';
 
 export const WorkspaceGrid = styled(Grid)`
@@ -294,6 +296,9 @@ const Workspace = ():React.ReactElement => {
                                     name={ t.title }
                                     subtitle={ t.slug }
                                     isImage={ true }
+                                    thumbnailLocation={
+                                        generateThumbnailURL(path||'', t.slug)
+                                    }
                                     selected={ selected }
                                     actions={[
                                         {
