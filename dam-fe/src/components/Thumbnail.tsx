@@ -31,12 +31,15 @@ const CustomCardMedia = styled(CardMedia)`
     align-items: center;
 `;
 
+const DEFAULT_IMAGE_THUMBNAIL ="/logo192.png"; 
+
 export const Thumbnail = (props: ThumbnailExtendedProps) => {
     const [ showThumbnail, setShowThumbnail ] = useState<boolean>();
 
     const [ _, startTransition ] = useTransition();
 
     const cardRef = useRef<HTMLDivElement|null>(null);
+    const imgRef = useRef<HTMLImageElement|null>(null);
     const intObserverRef = useRef<IntersectionObserver>();
 
     useEffect(() => {
@@ -68,6 +71,17 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
         }
     }, []);
 
+    useEffect(() => {
+        setTimeout(() => {
+            if (showThumbnail && !(
+                imgRef.current && imgRef.current.complete
+                && imgRef.current.naturalHeight
+            )) {
+                startTransition(() => setShowThumbnail(false));
+            }
+        }, 10000);
+    }, [ showThumbnail ]);
+
     return <Grid item xs={12} sm={6} lg={3} xl={2}>
         <Card
             variant="outlined"
@@ -84,9 +98,11 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
                         component="img"
                         height="200"
                         image={
-                            showThumbnail && props.thumbnailLocation || "/logo192.png"
+                            showThumbnail && props.thumbnailLocation
+                            || DEFAULT_IMAGE_THUMBNAIL
                         }
-                        alt={ props.name } />
+                        alt={ props.name }
+                        ref={ imgRef } />
                 :
                     props.type === "PROJECT" ?
                     <CustomCardMedia>

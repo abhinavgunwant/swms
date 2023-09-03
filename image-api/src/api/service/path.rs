@@ -78,8 +78,8 @@ pub fn get_rendition_from_path_segments(path_segments: Vec<&str>) -> Result<Rend
         if is_last && image_id != 0 {
             // Check if rendition slug
             println!("\tValidating rendition slug: {}", path_segment);
-            match ren_repo.get_from_project_rendition_slug(
-                project_slug.clone(),
+            match ren_repo.get_from_image_and_slug(
+                image_id,
                 path_seg_owned.clone()
             ) {
                 Ok (rendition) => {
