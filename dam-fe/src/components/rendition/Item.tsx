@@ -4,7 +4,7 @@ import {
     Typography, IconButton, ListItem, ListItemText, ListItemSecondaryAction
 } from '@mui/material';
 
-import { Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete, Visibility } from '@mui/icons-material';
 
 import Rendition from '../../models/Rendition';
 
@@ -17,6 +17,8 @@ const SubText = emoStyled.span`
 
 interface ItemProps {
     rendition: Rendition,
+    showPreview?: boolean,
+    onShowPreview?: () => void,
     onEditRendition: () => void,
     onDeleteRendition: () => void,
 }
@@ -24,6 +26,12 @@ interface ItemProps {
 export const Item = (props: ItemProps) => {
     const onEdit: MouseEventHandler = () => props.onEditRendition();
     const onDelete: MouseEventHandler = () => props.onDeleteRendition();
+
+    const onShowPreview = () => {
+        if (props.onShowPreview) {
+            props.onShowPreview();
+        }
+    };
 
     return <ListItem>
         <ListItemText>
@@ -42,7 +50,18 @@ export const Item = (props: ItemProps) => {
         </ListItemText>
 
         <ListItemSecondaryAction>
-            <IconButton onClick={ onEdit }><Edit /></IconButton>
+            {
+                props.showPreview &&
+                <IconButton onClick={ onShowPreview }>
+                    <Visibility />
+                </IconButton>
+            }
+
+            <IconButton
+                color="secondary"
+                onClick={ onEdit }>
+                <Edit />
+            </IconButton>
 
             <IconButton color="error" onClick={ onDelete }>
                 <Delete />

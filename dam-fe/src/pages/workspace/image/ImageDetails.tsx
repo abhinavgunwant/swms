@@ -56,6 +56,8 @@ const ImageDetails = () => {
     const [ edited, setEdited ] = useState<boolean>(false);
     const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
     const [ showPreview, setShowPreview ] = useState<boolean>(false);
+    const [ previewType, setPreviewType ] = useState<'rendition'|'image'>('image');
+    const [ previewSlug, setPreviewSlug ] = useState<string>('');
     const [ showErrPopup, setShowErrPopup ] = useState<boolean>(false);
     const [ showErrPopupSlug, setShowErrPopupSlug ] = useState<boolean>(false);
     const [ errPopupText, setErrPopupText ] = useState<string>('Error!');
@@ -198,8 +200,22 @@ const ImageDetails = () => {
         }
     }
 
-    const onPreview = () => startTransition(() => setShowPreview(true));
+    const onPreview = () => startTransition(() => {
+        setShowPreview(true);
+        setPreviewType('image');
+    });
+
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
+
+    const onRenditionPreview = (slug: string) => {
+        if (image) {
+            startTransition(() => {
+                setPreviewSlug('/' + image.slug + '/' + slug);
+                setShowPreview(true);
+                setPreviewType('rendition');
+            });
+        }
+    };
 
     const onEditSave = async (editedTitle: string) => {
         if (image && image.id) {
@@ -432,6 +448,8 @@ const ImageDetails = () => {
                         <Grid item xs={ 12 } md={ 6 }>
                             <Accordion
                                 expand={ true }
+                                showPreview={ true }
+                                onRenditionPreview={ onRenditionPreview }
                                 renditionList={ renditionList }
                                 eagerRendition={ eagerRendition }
                                 showEagerCheckbox={ renditionListUpdated }
@@ -450,6 +468,8 @@ const ImageDetails = () => {
 
         <ImagePreview
             show={ showPreview }
+            previewType={ previewType }
+            slug={ previewSlug }
             imageId={ getImageId() }
             onClose={ onPreviewClosed } />
 

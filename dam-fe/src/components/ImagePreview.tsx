@@ -7,6 +7,8 @@ import {
     PhotoSizeSelectActual,
 } from '@mui/icons-material';
 
+import useWorkspaceStore from '../store/workspace/WorkspaceStore';
+
 import styled from '@emotion/styled';
 import { styled as muiStyled } from '@mui/material/styles';
 
@@ -50,7 +52,9 @@ const CloseButton = muiStyled(ControlButton)`
 `;
 
 interface ImagePreviewProps {
-    imageId?: number | undefined,
+    imageId?: number,
+    slug?: string,
+    previewType?: 'image' | 'rendition';
     show: boolean,
     onClose: () => void,
 }
@@ -76,6 +80,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
 
     const imageRef = useRef<HTMLImageElement>(null);
     const imgSectionRef = useRef<HTMLDivElement>(null);
+    const store = useWorkspaceStore();
 
     const onImageLoaded = () => {
         setLoading(false);
@@ -193,6 +198,11 @@ export const ImagePreview = (props: ImagePreviewProps) => {
                     <Fragment>
                         <img
                             src={
+                                props.previewType === 'rendition' ?
+                                    'http://localhost:8080/api/image'
+                                    + store.currentPath.replace('workspace/tree/', '')
+                                    + props.slug
+                                :
                                 'http://localhost:8080/api/admin/image-file/'
                                 + props.imageId
                             }

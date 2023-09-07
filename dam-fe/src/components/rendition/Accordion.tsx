@@ -13,10 +13,12 @@ import Rendition from '../../models/Rendition';
 
 interface AccordionProps {
     expand?: boolean,
+    showPreview?: boolean,
     renditionList: Rendition[],
     showEagerCheckbox?: boolean,
     eagerRendition: boolean,
 
+    onRenditionPreview?: (slug: string) => void,
     onEditRendition: (indx: number) => void,
     onDeleteRendition: (indx: number) => void,
     onRenditionClicked: () => void,
@@ -25,9 +27,9 @@ interface AccordionProps {
 
 export const Accordion = (
     {
-        expand, renditionList, showEagerCheckbox, eagerRendition,
+        expand, showPreview, renditionList, showEagerCheckbox, eagerRendition,
         onEditRendition, onDeleteRendition, onRenditionClicked,
-        onEagerRenditionChecked,
+        onEagerRenditionChecked, onRenditionPreview,
     } : AccordionProps
 ) => {
     const [ expanded, setExpanded ] = useState<boolean>(false);
@@ -37,6 +39,12 @@ export const Accordion = (
     const onSummaryClicked = () => startTransition(
         () => setExpanded(!expanded)
     );
+
+    const onShowPreview = (slug: string) => {
+        if (onRenditionPreview) {
+            onRenditionPreview(slug);
+        }
+    };
 
     useEffect(() => {
         if (expand) {
@@ -60,6 +68,8 @@ export const Accordion = (
                     {
                         renditionList.map((r: Rendition, i: number) =>
                             <RenditionItem
+                                showPreview={ showPreview }
+                                onShowPreview={ () => onShowPreview(r.slug) }
                                 rendition={ r }
                                 onEditRendition={() => onEditRendition(i)}
                                 onDeleteRendition={() => onDeleteRendition(i)}
