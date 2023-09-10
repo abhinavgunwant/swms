@@ -39,6 +39,12 @@ pub enum Encoding {
 }
 
 impl Encoding {
+    /// Inits Encoding instance from the input text
+    ///
+    /// ### Example:
+    /// ```rust
+    /// assert(Encoding::from("example.jpg"), Encoding::JPG);
+    /// ```
     pub fn from(text: &str) -> Self {
         if text.is_empty() { return Encoding::NONE; }
 
@@ -72,6 +78,15 @@ impl Encoding {
         }
     }
 
+    /// Returns `true` if the supplied text contains a valid extension.
+    /// Returns `false' otherwise.
+    pub fn match_extension(text: &str) -> bool {
+        if text.is_empty() { return false; }
+
+        RE.is_match(text)
+    }
+
+    /// Returns an iterator to the enum variants.
     pub fn iter() -> Iter<'static, Encoding> {
         static ENCODINGS: [Encoding; 14] = [
             Encoding::TIF,
@@ -93,6 +108,7 @@ impl Encoding {
         ENCODINGS.iter()
     }
 
+    /// Returns the extension for a particular image encoding.
     pub fn extension(&self) -> String {
         use Encoding::*;
 
@@ -114,6 +130,7 @@ impl Encoding {
         }
     }
 
+    /// Returns the mime type for an Encoding.
     pub fn mime_type(&self) -> String {
         use Encoding::*;
 

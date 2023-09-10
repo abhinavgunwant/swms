@@ -1,7 +1,7 @@
 // use std::path::PathBuf;
 use std::io::Write;
 use std::fs::{ File, read };
-use std::path::{Path, self};
+use std::path::Path;
 //use std::time::{ Duration, Instant };
 use actix_multipart::Multipart;
 use actix_web::{
@@ -18,7 +18,7 @@ use crate::{
         DEST_REN_DIR, IMG_UPL_DIR,
         service::path::{
             get_rendition_from_path_segments, split_path, create_folder_tree,
-            rendition_cache_path,
+            rendition_cache_path, cache_rendition_file,
         }
     },
     repository::{
@@ -256,7 +256,7 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
             }
 
             None => {
-                let mut path_segments = split_path(path);
+                let path_segments = split_path(path);
 
                 match get_rendition_from_path_segments(&path_segments) {
                     Ok(rendition) => {
@@ -269,72 +269,44 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                                     image_data.encoding.extension()
                                 );
 
-                                let src_img_path = source_file_path.as_str();
-
                                 println!(
                                     "Getting source file: {}",
                                     source_file_path
                                 );
 
-                                match raster::open(src_img_path) {
-                                    Ok(mut raster_img) => {
-                                        let ren_slug = rendition.slug.as_str();
-                                        let end_indx = path_segments.len() - 1;
-                                        dest_file_path = format!(
-                                            "{}/{}", DEST_REN_DIR, path
-                                        );
+                                let ren_slug = rendition.slug.as_str();
+                                let end_indx = path_segments.len() - 1;
+                                dest_file_path = format!(
+                                    "{}/{}", DEST_REN_DIR, path
+                                );
 
-                                        let ext = rendition.encoding
-                                            .extension();
-                                        let ext_str = ext.as_str();
-                                        // "end of path_segment" :)
-                                        let eps = path_segments[end_indx];
+                                let ext = rendition.encoding.extension();
+                                let ext_str = ext.as_str();
+                                // "end of path_segment" :)
+                                let eps = path_segments[end_indx];
 
-                                        // Check if supplied path contains slug
-                                        // and file extension.
-                                        if eps.contains(ren_slug) {
-                                            path_segments.remove(end_indx);
+                                // Check if supplied path contains slug
+                                // and file extension.
+                                if !eps.contains(ren_slug) {
+                                    dest_file_path.push('/');
+                                    dest_file_path.push_str(
+                                        rendition.slug.as_str()
+                                    );
+                                }
 
-                                            if !eps.ends_with(ext_str) {
-                                                println!("pushing rendition slug into file name");
-                                                dest_file_path.push_str(ext_str);
-                                            }
-                                        } else {
-                                            dest_file_path.push('/');
-                                            dest_file_path.push_str(
-                                                rendition.slug.as_str()
-                                            );
+                                if !eps.ends_with(ext_str) {
+                                    dest_file_path.push_str(ext_str);
+                                }
 
-                                            if !eps.ends_with(ext_str) {
-                                                println!("pushing rendition slug into file name");
-                                                dest_file_path.push_str(ext_str);
-                                            }
-                                        }
+                                mime_type = rendition.encoding.mime_type();
 
-                                        raster::editor::resize(
-                                            &mut raster_img,
-                                            rendition.width as i32,
-                                            rendition.height as i32,
-                                            raster::ResizeMode::Fit
-                                        ).unwrap();
-
-                                        match create_folder_tree(
-                                            DEST_REN_DIR, path_segments
-                                        ) {
-                                            Err (()) => {
-                                                return error_response("");
-                                            }
-                                            _ => {}
-                                        }
-
-                                        println!("Saving rendition to path: {}", dest_file_path);
-                                        raster::save(
-                                            &raster_img, &dest_file_path
-                                        ).unwrap();
-
-                                        mime_type = rendition.encoding.mime_type();
-                                    }
-
+                                match cache_rendition_file(
+                                    &source_file_path,
+                                    &dest_file_path,
+                                    rendition.width,
+                                    rendition.height
+                                    ) {
+                                    Ok(_) => {}
                                     Err(_) => { return error_response(""); }
                                 }
                             }

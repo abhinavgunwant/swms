@@ -1,14 +1,9 @@
 //! Path and slug service
 
-use std::{ fs::{ read, create_dir_all }, path::Path };
-
-use actix_web::{
-    get, post, web::block, HttpResponse, HttpRequest,
-};
-use regex::{ Regex, Captures };
+use std::{ fs::create_dir_all, path::Path };
+use raster;
 
 use crate::{
-    api::{ DEST_REN_DIR, IMG_UPL_DIR },
     db::DBError,
     repository::{
         image::{ ImageRepository, get_image_repository },
@@ -17,12 +12,14 @@ use crate::{
         rendition::{ RenditionRepository, get_rendition_repository },
     },
     model::{
-        rendition::Rendition, error::{ Error, ErrorType },
-        encoding::{ Encoding, RE }
+        rendition::Rendition, error::{ Error, ErrorType }, image::Image,
+        encoding::{ Encoding, RE },
     },
 };
 
-pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>) -> Result<Rendition, Error<'a>> {
+/// Gets rendition that is represented by the given path
+pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
+    -> Result<Rendition, Error<'a>> {
     let img_repo = get_image_repository();
     let ren_repo = get_rendition_repository();
     let fol_repo = get_folder_repository();
@@ -71,7 +68,7 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>) -> Re
 
         println!("\tChecking folder with slug: {}", path_seg_owned.clone());
 
-        if is_last && match_extension(path_segment) {
+        if is_last && Encoding::match_extension(path_segment) {
             // TODO: Extract the extension here and match it with the rendition
             path_seg_owned =  String::from(
                 path_seg_owned.split(".").collect::<Vec<_>>()[0]
@@ -179,6 +176,48 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>) -> Re
     Err(Error::new(ErrorType::NotFound, "NOT FOUND"))
 }
 
+/// Gets the path of an image
+pub fn get_image_path(image: Image) -> Result<String, DBError> {
+    println!("Getting image path");
+    let fol_repo = get_folder_repository();
+    let prj_repo = get_project_repository();
+
+    let mut path: String = image.slug;
+
+    let mut folder_id: u32 = image.folder_id;
+
+    while folder_id != 0 {
+        match fol_repo.get(folder_id) {
+            Ok(folder) => {
+                folder_id = folder.parent_folder_id;
+                path = format!("{}/{}", folder.slug, path);
+            }
+
+            Err(e) => {
+                eprintln!("Error while generating image path1: {}, folder: {}", e, folder_id);
+                return Err(e);
+            }
+        }
+    }
+
+    println!("-> Getting project");
+
+    match prj_repo.get(image.project_id) {
+        Ok(project) => {
+            path = format!("{}/{}", project.slug, path);
+        }
+
+        Err(e) => {
+            eprintln!("Error while generating image path2: {}", e);
+            return Err(e);
+        }
+    }
+
+    println!("-> done!");
+
+    Ok(path)
+}
+
 /// Takes raw path as input and returns vector containing path segments.
 pub fn split_path(path: &str) -> Vec<&str> {
     let mut chars = path.chars();
@@ -205,38 +244,23 @@ pub fn split_path(path: &str) -> Vec<&str> {
     }
 }
 
-/// Returns true if a provided string contains an extension
-/// e.g.: "example.jpg"
-fn match_extension(text: &str) -> bool {
-    if text.is_empty() { return false; }
-
-    RE.is_match(text)
-}
-
-fn get_extension(text: &str) -> Option<String> {
-    match RE.captures(text) {
-        Some(captures) => {
-            match captures.get(0) {
-                Some(match_) => Some(String::from(match_.as_str())),
-                None => None,
-            }
-        }
-
-        None => None
-    }
-}
-
-pub fn create_folder_tree(parent_folder: &str, paths: Vec<&str>) -> Result<(), ()> {
+/// Creates folder tree on the file system for the path supplied.
+pub fn create_folder_tree(path: &str) -> Result<(), ()> {
     println!("in create_folder_tree");
-    let mut path_updated = String::from(parent_folder);
+    let mut path_updated = String::new();
+    let mut insert_slash = false;
 
-    for p in paths.iter() {
-        if match_extension(p) {
+    for p in split_path(path).iter() {
+        if Encoding::match_extension(p) {
             break;
         }
 
-        path_updated.push('/');
+        if insert_slash {
+            path_updated.push('/');
+        }
+
         path_updated.push_str(p);
+        insert_slash = true;
     }
 
     let path_str = path_updated.as_str();
@@ -265,11 +289,17 @@ pub fn create_folder_tree(parent_folder: &str, paths: Vec<&str>) -> Result<(), (
 pub fn rendition_cache_path(path: &str) -> Option<String> {
     if path.is_empty() { return None; }
 
-    if match_extension(path) && Path::new(path).exists() {
-        return Some(String::from(path));
+    let mut def_img_path: String = String::from(path);
+
+    if Encoding::match_extension(path) {
+        if Path::new(path).exists() {
+            return Some(String::from(path));
+        } else {
+            def_img_path = String::from(RE.replace(path, ""));
+        }
     }
 
-    let def_img_path = format!("{}/default.jpg", path);
+    def_img_path = format!("{}/default.jpg", def_img_path);
 
     if Path::new(def_img_path.as_str()).exists() {
         return Some(def_img_path);
@@ -282,7 +312,7 @@ pub fn rendition_cache_path(path: &str) -> Option<String> {
 
         let new_path = format!("{}{}", path, ext);
 
-        println!("Seeing if {} exists", new_path);
+        println!("Checking if {} exists", new_path);
 
         if Path::new(new_path.as_str()).exists() {
             return Some(new_path);
@@ -290,5 +320,49 @@ pub fn rendition_cache_path(path: &str) -> Option<String> {
     }
 
     None
+}
+
+pub fn resize_and_save_rendition(
+    raster_img: &mut raster::Image, dest_path: &str, width: u16, height: u16
+) -> Result<(),()> {
+    match raster::editor::resize(
+        raster_img,
+        width as i32,
+        height as i32,
+        raster::ResizeMode::Fit
+    ) {
+        Ok(_) => {
+            match create_folder_tree(dest_path) {
+                Err (()) => { return Err(()); }
+                _ => {}
+            }
+
+            println!("Saving rendition to path: {}", dest_path);
+
+            match raster::save(&raster_img, dest_path) {
+                Ok (_) => { return Ok (()); }
+                Err(_) => {
+                    eprintln!("Error while saving file.");
+                    return Err(());
+                }
+            }
+        }
+
+        Err(_) => { eprintln!("Error while resizing."); return Err(()); }
+    }
+}
+
+pub fn cache_rendition_file(
+    src_path: &str, dest_path: &str, width: u16, height: u16
+) -> Result<(),()> {
+    match raster::open(src_path) {
+        Ok(mut raster_img) => {
+            return resize_and_save_rendition(
+                &mut raster_img, dest_path, width, height
+            );
+        }
+
+        Err(_) => Err(())
+    }
 }
 

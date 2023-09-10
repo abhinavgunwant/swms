@@ -6,6 +6,10 @@ use raster::Image as RasterImage;
 use qstring::QString;
 
 use crate::{
+    api::{
+        DEST_REN_DIR, IMG_UPL_DIR,
+        service::path::{ resize_and_save_rendition, get_image_path }
+    },
     db::DBError,
     repository::{
         rendition::{ RenditionRepository, get_rendition_repository },
@@ -168,6 +172,23 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
 
     if let Some(image) = image_option {
         let mut image_raster_option: Option<Rc<RasterImage>> = None;
+        let image_path;
+
+        match get_image_path(image.clone()) {
+            Ok(i_path) => { image_path = i_path; }
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(SetRenditionsResponse {
+                    success: false,
+                    message: String::from("No renditions saved!"),
+                    unsuccessful_renditions,
+                });
+            }
+        }
+
+        println!("Got the image path: {}", image_path);
+
+        let dest_path_prefix = format!("{}/{}", DEST_REN_DIR, image_path);
 
         if req.eager {
             let src_file_path = format!(
@@ -189,12 +210,13 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
             }
 
             match repo.add(rendition_to_add.clone()) {
-                Ok (rendition_id) => {
+                Ok (_rendition_id) => {
                     // Create renditions files.
                     if let Some(mut r_img) = image_raster_option.clone() {
                         let dest_file_path = format!(
-                            "image-rendition-cache/{}{}",
-                            rendition_id,
+                            "{}/{}{}",
+                            dest_path_prefix,
+                            rendition_to_add.slug,
                             rendition_to_add.encoding.extension()
                         );
 
@@ -207,25 +229,15 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
                             rendition_to_add.height,
                         );
 
-                        let mut raster_img = Rc::make_mut(&mut r_img);
-
-                        // Resize rendition.
-                        match raster::editor::resize(
-                            &mut raster_img,
-                            rendition_to_add.width as i32,
-                            rendition_to_add.height as i32,
-                            raster::ResizeMode::Fit
+                        match resize_and_save_rendition(
+                            Rc::make_mut(&mut r_img),
+                            dest_path,
+                            rendition_to_add.width,
+                            rendition_to_add.height
                         ) {
-                            Ok (_) => {
-                                // Save rendition file.
-                                match raster::save(&raster_img, dest_path) {
-                                    Ok (_) => {}
-                                    Err (_) => { eprintln!("Error while saving"); }
-                                }
-                            }
-
-                            Err (_) => { eprintln!("Error while resize"); }
-                        }
+                            Ok(_) => {},
+                            Err(_) => {},
+                        };
                     }
                 }
 

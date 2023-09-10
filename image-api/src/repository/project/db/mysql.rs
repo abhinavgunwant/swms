@@ -110,7 +110,9 @@ impl ProjectRepository for MySQLProjectRepository {
         get_project_from_row(get_row_from_query(
             r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON, SLUG, RESTRICT_USERS WHERE ID = :id",
+                MODIFIED_ON, SLUG, RESTRICT_USERS
+            FROM PROJECT
+            WHERE ID = :id",
             params! { "id" => id },
         ))
     }
@@ -122,7 +124,9 @@ impl ProjectRepository for MySQLProjectRepository {
         get_project_from_row(get_row_from_query(
             r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
-                MODIFIED_ON, SLUG, RESTRICT_USERS WHERE SLUG = :slug",
+                MODIFIED_ON, SLUG, RESTRICT_USERS
+            FROM PROJECT
+            WHERE SLUG = :slug",
             params! {"slug" => slug},
         ))
     }
