@@ -14,12 +14,19 @@ use serde::Serialize;
 use raster;
 use regex::Regex;
 use crate::{
-    api::service::path::{ get_rendition_from_path_segments, split_path },
+    api::{
+        DEST_REN_DIR, IMG_UPL_DIR,
+        service::path::{
+            get_rendition_from_path_segments, split_path, create_folder_tree,
+            rendition_cache_path,
+        }
+    },
     repository::{
         rendition::{ RenditionRepository, get_rendition_repository },
         image::{ ImageRepository, get_image_repository },
     },
-    model::{ rendition::Rendition, error::ErrorType }, db::DBError,
+    model::{ rendition::Rendition, error::ErrorType, encoding::Encoding },
+    db::DBError,
 };
 
 #[derive(Serialize)]
@@ -40,8 +47,12 @@ fn not_found_response() -> HttpResponse {
     HttpResponse::NotFound().body("404: Not Found!")
 }
 
-fn error_response() -> HttpResponse {
-    return HttpResponse::InternalServerError().body("Internal Server Error")
+fn error_response(msg: &str) -> HttpResponse {
+    if msg.is_empty() {
+        return HttpResponse::InternalServerError().body("Internal Server Error");
+    }
+
+    HttpResponse::BadRequest().body(String::from(msg))
 }
 
 #[post("/api/image")]
@@ -145,7 +156,8 @@ pub async fn download2(req: HttpRequest) -> HttpResponse {
                 //    has any renditions that match it's extention.");
 
                 let dest_file_path = format!(
-                    "image-rendition-cache/{}{}",
+                    "{}/{}{}",
+                    DEST_REN_DIR,
                     rendition.id,
                     rendition.encoding.extension()
                 );
@@ -156,7 +168,8 @@ pub async fn download2(req: HttpRequest) -> HttpResponse {
                     match img_repo.get(rendition.image_id) {
                         Ok (image_data) => {
                             let source_file_path = format!(
-                                "image-uploads/{}{}",
+                                "{}/{}{}",
+                                IMG_UPL_DIR,
                                 image_data.id,
                                 image_data.encoding.extension()
                             );
@@ -223,31 +236,81 @@ pub async fn download2(req: HttpRequest) -> HttpResponse {
 
 #[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]
 pub async fn download(req: HttpRequest) -> HttpResponse {
-    match req.match_info().get("path") {
-        Some(path) => {
-            match get_rendition_from_path_segments(split_path(path)) {
-                Ok(rendition) => {
-                    let dest_file_path = format!(
-                        "image-rendition-cache/{}{}",
-                        rendition.id,
-                        rendition.encoding.extension()
-                    );
+    if let Some(path) = req.match_info().get("path") {
+        println!("Requested Path: \"{}\"", path);
 
-                    if !Path::new(dest_file_path.as_str()).exists() {
+        let mut dest_file_path: String = format!("{}/{}", DEST_REN_DIR, path);
+        let mime_type: String;
+
+        match rendition_cache_path(&dest_file_path) {
+            Some(p) => {
+                println!("--> Found in rendition cache!");
+
+                if p != dest_file_path {
+                    println!("--> Updating file path with: {}", p);
+                    dest_file_path = p;
+                }
+
+                mime_type = Encoding::from(dest_file_path.as_str())
+                    .mime_type();
+            }
+
+            None => {
+                let mut path_segments = split_path(path);
+
+                match get_rendition_from_path_segments(&path_segments) {
+                    Ok(rendition) => {
                         match get_image_repository().get(rendition.image_id) {
                             Ok (image_data) => {
                                 let source_file_path = format!(
-                                    "image-uploads/{}{}",
+                                    "{}/{}{}",
+                                    IMG_UPL_DIR,
                                     image_data.id,
                                     image_data.encoding.extension()
                                 );
 
                                 let src_img_path = source_file_path.as_str();
 
-                                println!("Getting source file: {}", source_file_path);
+                                println!(
+                                    "Getting source file: {}",
+                                    source_file_path
+                                );
 
                                 match raster::open(src_img_path) {
                                     Ok(mut raster_img) => {
+                                        let ren_slug = rendition.slug.as_str();
+                                        let end_indx = path_segments.len() - 1;
+                                        dest_file_path = format!(
+                                            "{}/{}", DEST_REN_DIR, path
+                                        );
+
+                                        let ext = rendition.encoding
+                                            .extension();
+                                        let ext_str = ext.as_str();
+                                        // "end of path_segment" :)
+                                        let eps = path_segments[end_indx];
+
+                                        // Check if supplied path contains slug
+                                        // and file extension.
+                                        if eps.contains(ren_slug) {
+                                            path_segments.remove(end_indx);
+
+                                            if !eps.ends_with(ext_str) {
+                                                println!("pushing rendition slug into file name");
+                                                dest_file_path.push_str(ext_str);
+                                            }
+                                        } else {
+                                            dest_file_path.push('/');
+                                            dest_file_path.push_str(
+                                                rendition.slug.as_str()
+                                            );
+
+                                            if !eps.ends_with(ext_str) {
+                                                println!("pushing rendition slug into file name");
+                                                dest_file_path.push_str(ext_str);
+                                            }
+                                        }
+
                                         raster::editor::resize(
                                             &mut raster_img,
                                             rendition.width as i32,
@@ -255,12 +318,24 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                                             raster::ResizeMode::Fit
                                         ).unwrap();
 
+                                        match create_folder_tree(
+                                            DEST_REN_DIR, path_segments
+                                        ) {
+                                            Err (()) => {
+                                                return error_response("");
+                                            }
+                                            _ => {}
+                                        }
+
+                                        println!("Saving rendition to path: {}", dest_file_path);
                                         raster::save(
-                                            &raster_img, dest_file_path.as_str()
+                                            &raster_img, &dest_file_path
                                         ).unwrap();
+
+                                        mime_type = rendition.encoding.mime_type();
                                     }
 
-                                    Err(_) => { return error_response(); }
+                                    Err(_) => { return error_response(""); }
                                 }
                             }
 
@@ -270,31 +345,29 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                                         return not_found_response();
                                     }
 
-                                    _ => { return error_response(); }
+                                    _ => { return error_response(""); }
                                 }
                             }
                         }
                     }
 
-                    let image_file = block(
-                        move || read(String::from(dest_file_path))
-                    ).await.unwrap().expect("Error while downloading!");
-
-                    return HttpResponse::Ok()
-                        .content_type(rendition.encoding.mime_type())
-                        .body(image_file);
-                }
-
-                Err (e) => {
-                    match e.error_type {
-                        ErrorType::NotFound => { return not_found_response(); }
-                        ErrorType::InternalError => { return error_response(); }
+                    Err (e) => {
+                        match e.error_type {
+                            ErrorType::NotFound => { return not_found_response(); }
+                            ErrorType::InternalError => { return error_response(""); }
+                        }
                     }
                 }
             }
         }
 
-        None => not_found_response()
+        let image_file = block(move || read(dest_file_path)).await
+            .unwrap().expect("Error while downloading!");
+
+        return HttpResponse::Ok().content_type(mime_type).body(image_file);
+
     }
+
+    not_found_response()
 }
 

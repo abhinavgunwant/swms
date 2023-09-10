@@ -1,8 +1,14 @@
 //! Path and slug service
 
-use regex::Regex;
+use std::{ fs::{ read, create_dir_all }, path::Path };
+
+use actix_web::{
+    get, post, web::block, HttpResponse, HttpRequest,
+};
+use regex::{ Regex, Captures };
 
 use crate::{
+    api::{ DEST_REN_DIR, IMG_UPL_DIR },
     db::DBError,
     repository::{
         image::{ ImageRepository, get_image_repository },
@@ -11,18 +17,17 @@ use crate::{
         rendition::{ RenditionRepository, get_rendition_repository },
     },
     model::{
-        image::Image, folder::Folder, rendition::Rendition, item::Item,
-        error::{ Error, ErrorType },
+        rendition::Rendition, error::{ Error, ErrorType },
+        encoding::{ Encoding, RE }
     },
 };
 
-pub fn get_rendition_from_path_segments(path_segments: Vec<&str>) -> Result<Rendition, Error> {
+pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>) -> Result<Rendition, Error<'a>> {
     let img_repo = get_image_repository();
     let ren_repo = get_rendition_repository();
     let fol_repo = get_folder_repository();
     let proj_repo = get_project_repository();
 
-    let project_slug: String;
     let project_id: u32;
     let mut folder_id: u32 = 0;
     let mut image_id: u32 = 0;
@@ -35,7 +40,6 @@ pub fn get_rendition_from_path_segments(path_segments: Vec<&str>) -> Result<Rend
             match valid_option {
                 Some(id) => {
                     println!("\t-> Project Valid!");
-                    project_slug = String::from(path_segments[0]);
                     project_id = id;
                 },
 
@@ -206,7 +210,85 @@ pub fn split_path(path: &str) -> Vec<&str> {
 fn match_extension(text: &str) -> bool {
     if text.is_empty() { return false; }
 
-    let re = Regex::new(r"\.(png|gif|jpg|jpeg|webp|tif|bmp|raw|cr2|nef|orf|sr2|eps|svg)$").unwrap();
-    re.is_match(text)
+    RE.is_match(text)
+}
+
+fn get_extension(text: &str) -> Option<String> {
+    match RE.captures(text) {
+        Some(captures) => {
+            match captures.get(0) {
+                Some(match_) => Some(String::from(match_.as_str())),
+                None => None,
+            }
+        }
+
+        None => None
+    }
+}
+
+pub fn create_folder_tree(parent_folder: &str, paths: Vec<&str>) -> Result<(), ()> {
+    println!("in create_folder_tree");
+    let mut path_updated = String::from(parent_folder);
+
+    for p in paths.iter() {
+        if match_extension(p) {
+            break;
+        }
+
+        path_updated.push('/');
+        path_updated.push_str(p);
+    }
+
+    let path_str = path_updated.as_str();
+
+    println!("  -> checking if \"{}\" exists.", path_str);
+    if !Path::new(path_str).exists() {
+        match create_dir_all(path_str) {
+            std::io::Result::Ok(()) => {
+                println!("  -> Tree created.");
+                return Ok(());
+            }
+            std::io::Result::Err(e) => {
+                eprintln!("Error occured while creating renditions: {}", e);
+                return Err(());
+            }
+        }
+    }
+
+    println!("  -> Tree exists already.");
+
+    Ok (())
+}
+
+/// Returns the path where the rendition cache exists.
+/// `None` if rendition cache does not exist.
+pub fn rendition_cache_path(path: &str) -> Option<String> {
+    if path.is_empty() { return None; }
+
+    if match_extension(path) && Path::new(path).exists() {
+        return Some(String::from(path));
+    }
+
+    let def_img_path = format!("{}/default.jpg", path);
+
+    if Path::new(def_img_path.as_str()).exists() {
+        return Some(def_img_path);
+    }
+
+    for enc in Encoding::iter() {
+        let ext = enc.extension();
+
+        if ext.is_empty() { continue; }
+
+        let new_path = format!("{}{}", path, ext);
+
+        println!("Seeing if {} exists", new_path);
+
+        if Path::new(new_path.as_str()).exists() {
+            return Some(new_path);
+        }
+    }
+
+    None
 }
 
