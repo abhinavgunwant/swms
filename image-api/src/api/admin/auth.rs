@@ -1,12 +1,22 @@
 use actix_web::{
-    web::Json, HttpRequest, HttpResponse, cookie::Cookie, get, post
+    web::Json, HttpRequest, HttpResponse, get, post,
+    cookie::{ time::Duration as ActixWebDuration, Cookie },
 };
 use serde::{ Serialize, Deserialize };
+use chrono::{ DateTime, Utc, Duration };
+
 use crate::{
-    repository::user::{ get_user_repository, UserRepository },
+    db::DBError,
+    model::{ user::User, role::Role },
+    repository::{
+        user::{ get_user_repository, UserRepository },
+        role::{ get_role_repository, RoleRepository },
+    },
     auth::{
         pwd_hash::verify_password,
-        token::{ create_session_token, create_refresh_token },
+        token::{
+            create_session_token, create_refresh_token, remove_refresh_token
+        },
         utils::validate_session_token,
     },
 };
@@ -22,63 +32,126 @@ pub struct AuthMessage {
     success: bool,
     // Session token (JWT)
     s: String,
-    r: String,
+    //r: String,
     message: String
 }
 
 #[post("/api/admin/auth")]
 pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
-    let repo = get_user_repository();
+    let user_repo = get_user_repository();
+    let role_repo = get_role_repository();
 
-    let pw = repo.get_password_for_login_id(req_obj.username.clone());
+    let user_valid: bool;
+    let user_id: u32;
+    let user_role: Role;
+    let name: String;
 
-    match pw {
-        Ok (password_hash) => {
-            let valid = verify_password(
-                req_obj.password.clone(),
-                password_hash
-            );
+    match user_repo.get_from_login_id(req_obj.username.clone()) {
+        Ok (user) => {
+            name = user.name;
+            user_id = user.id;
 
-            if valid {
-                //let refresh_token: RefreshToken = create_refresh_token(req_obj.username.clone());
-                let refresh_token: String = create_refresh_token(req_obj.username.clone());
+            match user_repo.get_password_for_login_id(req_obj.username.clone()) {
+                Ok (password_hash) => {
+                    user_valid = verify_password(
+                        req_obj.password.clone(),
+                        password_hash
+                    );
 
-                let ref_token_cookie: Cookie = Cookie::build(
-                        //"r", refresh_token.refresh_token
-                        "r", refresh_token
-                    ).path("/")
-                    .domain("localhost") // TODO: make this configurable
-                    // .secure(true) // TODO: uncomment this for secure cookie!
-                    .http_only(true)
-                    .finish();
+                    match role_repo.get(user.user_role) {
+                        Ok (role) => { user_role = role },
+                        Err (e) => {
+                            eprintln!(
+                                "Some error occured while getting role (user-id: {}): {}",
+                                user.id,
+                                e
+                            );
 
-                return HttpResponse::Ok()
-                    .cookie(ref_token_cookie)
-                    .json(AuthMessage {
-                        success: true,
-                        s: create_session_token(req_obj.username.clone()),
-                        r: create_refresh_token(req_obj.username.clone()),
-                        message: String::from("Login Successful!"),
-                });
+                            user_role = Role::default()
+                        },
+                    }
+                }
+
+                Err (_) => {
+                    return HttpResponse::InternalServerError()
+                        .body("Error 500: Internal Server Error!");
+                }
             }
-
-            HttpResponse::NotFound().json(AuthMessage {
-                success: false,
-                s: String::from(""),
-                r: String::from(""),
-                message: String::from("Username/Password combination is invalid")
-            })
         }
 
-        Err(_e) => {
-            HttpResponse::NotFound().json(AuthMessage {
-                success: false,
-                s: String::from(""),
-                r: String::from(""),
-                message: String::from("Username/Password combination is invalid")
-            })
+        Err (e) => {
+            match e {
+                DBError::NOT_FOUND => {
+                    return HttpResponse::NotFound()
+                        .body("Error 404: User not found!");
+                }
+
+                DBError::OtherError => {
+                    return HttpResponse::InternalServerError()
+                        .body("Error 500: Internal Server Error!");
+                }
+            }
         }
     }
+
+    if user_valid {
+        let refresh_token: String = create_refresh_token(
+            user_id,
+            req_obj.username.clone(),
+            name.clone(),
+            user_role.id
+        );
+
+        let ref_token_cookie: Cookie = Cookie::build("r", refresh_token)
+            .path("/")
+            .domain("localhost") // TODO: make this configurable
+            // .secure(true) // TODO: uncomment this for secure cookie!
+            .max_age(ActixWebDuration::new(1800, 0))
+            .http_only(true)
+            .finish();
+
+        return HttpResponse::Ok().cookie(ref_token_cookie).json(AuthMessage {
+                success: true,
+                s: create_session_token(req_obj.username.clone(), name, user_role),
+                message: String::from("Login Successful!"),
+        });
+    }
+
+    HttpResponse::NotFound().json(AuthMessage {
+        success: false,
+        s: String::from(""),
+        message: String::from("Username/Password combination is invalid")
+    })
+}
+
+#[get("/api/auth/logout")]
+async fn auth_logout(req: HttpRequest) -> HttpResponse {
+    let ref_token_cookie_exp: Cookie = Cookie::build("r", "")
+        .path("/")
+        .domain("localhost") // TODO: make this configurable
+        // .secure(true) // TODO: uncomment this for secure cookie!
+        .max_age(ActixWebDuration::new(-1, 0))
+        .http_only(true)
+        .finish();
+
+    // delete the refresh token from the hash map.
+    match req.cookie("r") {
+        Some(cookie) => {
+            let val = String::from(cookie.value());
+            println!("found refresh token in cookie: {}", val);
+
+            unsafe {
+                remove_refresh_token(val);
+            }
+        }
+
+        None => {
+            println!("No refresh cookie found in the request!");
+            return HttpResponse::BadRequest().body("You're not signed in!");
+        }
+    }
+
+    HttpResponse::Ok().cookie(ref_token_cookie_exp).body("Logged out")
 }
 
 /**

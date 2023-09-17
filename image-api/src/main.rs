@@ -6,13 +6,15 @@ mod model;
 
 use actix_web::{ App, HttpServer, web };
 use actix_cors::Cors;
+// use actix_identity::IdentityMiddleware;
+// use actix_session::{ storage::CookieSessionStore, SessionMiddleware };
 use actix_web_static_files::ResourceFiles;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         // TODO: Implement a stricter CORS policy.
         let cors = //Cors::default()
             Cors::permissive();
@@ -32,10 +34,15 @@ async fn main() -> std::io::Result<()> {
         let generated = generate();
         App::new()
             .wrap(cors)
+//            .wrap(IdentityMiddleware::default())
+//            .wrap(SessionMiddleware::new(
+//                    CookieSessionStore::default(), secret_key.clone()
+//            ))
             .app_data(web::PayloadConfig::new(1000000 * 250))
             .service(api::echo)
             .service(api::admin::get_children)
             .service(api::admin::auth::auth)
+            .service(api::admin::auth::auth_logout)
             .service(api::admin::auth::get_user_permissions)
             .service(api::admin::user::create_user)
             .service(api::admin::user::edit_user)

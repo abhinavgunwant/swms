@@ -3,74 +3,165 @@ use mysql::*;
 use mysql::prelude::*;
 
 use crate::{
-    db::{ DBError, get_db_connection },
+    db::{
+        DBError, get_db_connection,
+        utils::mysql::{ get_row_from_query, get_rows_from_query },
+    },
     model::{ role::Role, user_permissions::UserPermissions },
     repository::role::RoleRepository,
 };
 
 pub struct MySQLRoleRepository {}
+fn get_role_from_row(mut row: Row) -> Role {
+    Role {
+        id: row.take("ID").unwrap(),
+        role_name: row.take("ROLE_NAME").unwrap(),
+        permissions: UserPermissions {
+            create_image: row.take("CREATE_IMAGE").unwrap(),
+            read_image: row.take("READ_IMAGE").unwrap(),
+            modify_image: row.take("MODIFY_IMAGE").unwrap(),
+            delete_image: row.take("DELETE_IMAGE").unwrap(),
+            read_renditions: row.take("READ_RENDITIONS").unwrap(),
+            create_renditions: row.take("CREATE_RENDITIONS").unwrap(),
+            modify_renditions: row.take("MODIFY_RENDITIONS").unwrap(),
+            delete_renditions: row.take("DELETE_RENDITIONS").unwrap(),
+            read_project: row.take("READ_PROJECT").unwrap(),
+            create_project: row.take("CREATE_PROJECT").unwrap(),
+            modify_project: row.take("MODIFY_PROJECT").unwrap(),
+            delete_project: row.take("DELETE_PROJECT").unwrap(),
+            read_user: row.take("READ_USER").unwrap(),
+            create_user: row.take("CREATE_USER").unwrap(),
+            modify_user: row.take("MODIFY_USER").unwrap(),
+            delete_user: row.take("DELETE_USER").unwrap(),
+            publish: row.take("PUBLISH").unwrap(),
+            publish_all: row.take("PUBLISH_ALL").unwrap(),
+            access_all_projects: row.take("ACCESS_ALL_PROJECTS").unwrap()
+        }
+    }
+}
+
+fn get_role_from_row_wrapped(row_wrapped: Result<Option<Row>, Error>)
+    -> Result<Role, DBError> {
+    match row_wrapped {
+        Ok (row_option) => {
+            match row_option {
+                Some(row_ref) => Ok (get_role_from_row(row_ref)),
+                None => Err(DBError::NOT_FOUND),
+            }
+        }
+
+        Err (e) => {
+            eprintln!("Error while getting rendition from query: {}", e);
+
+            Err(DBError::OtherError)
+        }
+    }
+}
+
+fn get_roles_from_rows_wrapped(row_wrapped: Result<Vec<Row>, Error>)
+    -> Result<Vec<Role>, DBError> {
+    match row_wrapped {
+        Ok (rows) => {
+            let mut roles: Vec<Role> = vec![];
+
+            for row_ref in rows.iter() {
+                let mut row = row_ref.clone();
+
+                roles.push(get_role_from_row(row));
+            }
+
+            Ok (roles)
+        }
+
+        Err (e) => {
+            eprintln!("Error while getting rendition from query: {}", e);
+
+            Err(DBError::OtherError)
+        }
+    }
+}
 
 impl RoleRepository for MySQLRoleRepository {
+    fn get(&self, id: u8) -> Result<Role, DBError> {
+        get_role_from_row_wrapped(get_row_from_query(r"SELECT
+            ID, ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
+            DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS, MODIFY_RENDITIONS,
+            DELETE_RENDITIONS, READ_PROJECT, CREATE_PROJECT, MODIFY_PROJECT,
+            DELETE_PROJECT, READ_USER, CREATE_USER, MODIFY_USER, DELETE_USER,
+            PUBLISH, PUBLISH_ALL, ACCESS_ALL_PROJECTS
+            FROM USER_ROLE where ID = :id", params! { "id" => id }
+        ))
+    }
+
     fn get_all(&self) -> Result<Vec<Role>, DBError> {
-        let mut conn: PooledConn = get_db_connection();
-        let statement = conn.prep(r"SELECT
+        get_roles_from_rows_wrapped(get_rows_from_query(r"SELECT
             ID, ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
             DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS, MODIFY_RENDITIONS,
             DELETE_RENDITIONS, READ_PROJECT, CREATE_PROJECT, MODIFY_PROJECT,
             DELETE_PROJECT, READ_USER, CREATE_USER, MODIFY_USER, DELETE_USER,
             PUBLISH, PUBLISH_ALL, ACCESS_ALL_PROJECTS
             FROM USER_ROLE
-        ").unwrap();
+        ", Params::Empty))
 
-        let rows_wrapped: mysql::Result<Vec<Row>> =
-            conn.exec(statement, Params::Empty);
+        // let mut conn: PooledConn = get_db_connection();
+        // let statement = conn.prep(r"SELECT
+        //     ID, ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
+        //     DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS, MODIFY_RENDITIONS,
+        //     DELETE_RENDITIONS, READ_PROJECT, CREATE_PROJECT, MODIFY_PROJECT,
+        //     DELETE_PROJECT, READ_USER, CREATE_USER, MODIFY_USER, DELETE_USER,
+        //     PUBLISH, PUBLISH_ALL, ACCESS_ALL_PROJECTS
+        //     FROM USER_ROLE
+        // ").unwrap();
 
-        match rows_wrapped {
-            Ok (rows) => {
-                let mut roles: Vec<Role> = vec![];
+        // let rows_wrapped: mysql::Result<Vec<Row>> =
+        //     conn.exec(statement, Params::Empty);
 
-                for row_ref in rows.iter() {
-                    let mut row: Row = row_ref.clone();
+        // match rows_wrapped {
+        //     Ok (rows) => {
+        //         let mut roles: Vec<Role> = vec![];
 
-                    let permissions = UserPermissions {
-                        create_image: row.take("CREATE_IMAGE").unwrap(),
-                        read_image: row.take("READ_IMAGE").unwrap(),
-                        modify_image: row.take("MODIFY_IMAGE").unwrap(),
-                        delete_image: row.take("DELETE_IMAGE").unwrap(),
-                        read_renditions: row.take("READ_RENDITIONS").unwrap(),
-                        create_renditions: row.take("CREATE_RENDITIONS").unwrap(),
-                        modify_renditions: row.take("MODIFY_RENDITIONS").unwrap(),
-                        delete_renditions: row.take("DELETE_RENDITIONS").unwrap(),
-                        read_project: row.take("READ_PROJECT").unwrap(),
-                        create_project: row.take("CREATE_PROJECT").unwrap(),
-                        modify_project: row.take("MODIFY_PROJECT").unwrap(),
-                        delete_project: row.take("DELETE_PROJECT").unwrap(),
-                        read_user: row.take("READ_USER").unwrap(),
-                        create_user: row.take("CREATE_USER").unwrap(),
-                        modify_user: row.take("MODIFY_USER").unwrap(),
-                        delete_user: row.take("DELETE_USER").unwrap(),
-                        publish: row.take("PUBLISH").unwrap(),
-                        publish_all: row.take("PUBLISH_ALL").unwrap(),
-                        access_all_projects: row.take("ACCESS_ALL_PROJECTS").unwrap()
-                    };
+        //         for row_ref in rows.iter() {
+        //             let mut row: Row = row_ref.clone();
 
-                    roles.push(Role {
-                        id: row.take("ID").unwrap(),
-                        role_name: row.take("ROLE_NAME").unwrap(),
-                        permissions
-                    });
+        //             let permissions = UserPermissions {
+        //                 create_image: row.take("CREATE_IMAGE").unwrap(),
+        //                 read_image: row.take("READ_IMAGE").unwrap(),
+        //                 modify_image: row.take("MODIFY_IMAGE").unwrap(),
+        //                 delete_image: row.take("DELETE_IMAGE").unwrap(),
+        //                 read_renditions: row.take("READ_RENDITIONS").unwrap(),
+        //                 create_renditions: row.take("CREATE_RENDITIONS").unwrap(),
+        //                 modify_renditions: row.take("MODIFY_RENDITIONS").unwrap(),
+        //                 delete_renditions: row.take("DELETE_RENDITIONS").unwrap(),
+        //                 read_project: row.take("READ_PROJECT").unwrap(),
+        //                 create_project: row.take("CREATE_PROJECT").unwrap(),
+        //                 modify_project: row.take("MODIFY_PROJECT").unwrap(),
+        //                 delete_project: row.take("DELETE_PROJECT").unwrap(),
+        //                 read_user: row.take("READ_USER").unwrap(),
+        //                 create_user: row.take("CREATE_USER").unwrap(),
+        //                 modify_user: row.take("MODIFY_USER").unwrap(),
+        //                 delete_user: row.take("DELETE_USER").unwrap(),
+        //                 publish: row.take("PUBLISH").unwrap(),
+        //                 publish_all: row.take("PUBLISH_ALL").unwrap(),
+        //                 access_all_projects: row.take("ACCESS_ALL_PROJECTS").unwrap()
+        //             };
 
-                }
+        //             roles.push(Role {
+        //                 id: row.take("ID").unwrap(),
+        //                 role_name: row.take("ROLE_NAME").unwrap(),
+        //                 permissions
+        //             });
 
-                Ok (roles)
-            }
+        //         }
 
-            Err (e) => {
-                eprintln!("Error while getting rendition from query: {}", e);
+        //         Ok (roles)
+        //     }
 
-                Err(DBError::OtherError)
-            }
-        }
+        //     Err (e) => {
+        //         eprintln!("Error while getting rendition from query: {}", e);
+
+        //         Err(DBError::OtherError)
+        //     }
+        // }
     }
 
     fn add(&self, role: Role) -> Result<String, String> {

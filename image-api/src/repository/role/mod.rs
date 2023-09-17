@@ -8,7 +8,7 @@ use crate::{
 use db::mysql::MySQLRoleRepository;
 
 pub trait RoleRepository {
-    //fn get(&self, id: u16) -> Result<Role, DBError>;
+    fn get(&self, id: u8) -> Result<Role, DBError>;
     fn get_all(&self) -> Result<Vec<Role>, DBError>;
     fn add(&self, role: Role) -> Result<String, String>;
     fn update(&self, role: Role) -> Result<String, String>;
