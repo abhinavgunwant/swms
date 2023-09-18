@@ -7,6 +7,7 @@ import {
 } from '@mui/material/';
 
 import useUserStore from '../store/workspace/UserStore';
+import { sessionFromToken } from '../utils/token';
 
 import { styled as materialStyled } from '@mui/material/styles';
 import styled from '@emotion/styled';
@@ -68,7 +69,7 @@ const Home = (): React.ReactElement => {
             setProcessing(true);
         });
 
-        const response = await fetch('http://localhost:8080/api/admin/auth', {
+        const response = await fetch('http://localhost/api/admin/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -80,25 +81,14 @@ const Home = (): React.ReactElement => {
             const responseJson = await response.json();
     
             if (responseJson.success) {
-                userStore.setSession(responseJson.s, 0);
+                if (responseJson.s) {
+                    const session = sessionFromToken(responseJson.s);
 
-                // Get the permissions
-                const permResponse = await fetch('http://localhost:8080/api/admin/auth/permissions', {
-                    headers: {
-                        'Authorization': 'Bearer ' + responseJson.s,
-                    },
-                });
-
-                if (permResponse.status === 200) {
-                    const responseJson = await permResponse.json();
-
-                    if (responseJson) {
-                        userStore.setRole(responseJson);
-                    }
+                    userStore.setSessionToken(responseJson.s);
+                    userStore.setSession(session);
                 }
 
                 navigate('/workspace');
-
                 return;
             }
 

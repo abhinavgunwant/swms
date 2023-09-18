@@ -36,7 +36,7 @@ pub struct AuthMessage {
     message: String
 }
 
-#[post("/api/admin/auth")]
+#[post("/login")]
 pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
     let user_repo = get_user_repository();
     let role_repo = get_role_repository();
@@ -124,7 +124,7 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
     })
 }
 
-#[get("/api/auth/logout")]
+#[get("/logout")]
 async fn auth_logout(req: HttpRequest) -> HttpResponse {
     let ref_token_cookie_exp: Cookie = Cookie::build("r", "")
         .path("/")

@@ -1,15 +1,12 @@
-import UserRole from "../../models/UserRole";
+import { Session } from '../../models';
 
 export default interface UserState {
-    // Session token
     sessionToken: string,
+    // Session
+    session: Session,
 
-    // Session token expiry timestamp
-    sessionTokenExpiry: number,
-
-    role: UserRole,
-
-    setSession: (token: string, exp: number) => void;
-    setRole: (role: UserRole) => void;
+    setSessionToken: (t: string) => void;
+    setSession: (s: Session) => void;
+    resetSession: () => void;
 }
 

@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use jsonwebtoken::{ encode, EncodingKey, Header };
+use jsonwebtoken::{ encode, decode, EncodingKey, DecodingKey, Header, Validation };
 use serde::{ Serialize, Deserialize };
-use chrono::{ DateTime, Utc, Duration };
+use chrono::{ Utc, Duration };
 use rand::{
     SeedableRng, rngs::{ OsRng, adapter::ReseedingRng },
     distributions::{Alphanumeric, DistString},
@@ -37,6 +37,8 @@ lazy_static! {
         = Mutex::new(HashMap::new());
 }
 
+const JWT_SECRET: &[u8] = b"a0190as9fuhsjkfhalh";
+
 pub unsafe fn store_refresh_token(token: String, data: RefreshTokenData) {
     REFRESH_TOKEN_MAP.lock().unwrap().insert(token, data);
 }
@@ -47,6 +49,40 @@ pub unsafe fn remove_refresh_token(token: String) {
 
 pub unsafe fn refresh_token_exists(token: String) -> bool {
     REFRESH_TOKEN_MAP.lock().unwrap().contains_key(&token)
+}
+
+fn encode_jwt(claims: &SessionTokenClaims) -> String {
+    // TODO: get this from a config file or environment.
+
+    match encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(JWT_SECRET),
+    ) {
+        Ok (t) => t,
+
+        Err (e) => {
+            eprintln!("Error while generating jwt: {}", e);
+
+            return String::from("");
+        }
+    }
+}
+
+pub fn decode_jwt(token: &String) -> Result<SessionTokenClaims, ()> {
+    match decode::<SessionTokenClaims>(
+        &token,
+        &DecodingKey::from_secret(JWT_SECRET),
+        &Validation::default(),
+    ) {
+        Ok(claims) => Ok(claims.claims),
+
+        Err(e) => {
+            eprintln!("Error while decoding jwt: {}", e);
+
+            return Err(());
+        }
+    }
 }
 
 /// Returns a refresh token that will be used in case the user "refresh"es the
@@ -107,11 +143,7 @@ pub fn create_session_token (username: String, name: String, role: Role) -> Stri
         exp,
     };
 
-    let token = encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(b"kuch bhi"),
-    ).unwrap();
+    let token = encode_jwt(&claims);
 
     println!("-> session token: {}", token);
 

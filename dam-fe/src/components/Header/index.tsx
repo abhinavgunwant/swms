@@ -1,13 +1,20 @@
 import { useState, useTransition } from 'react'
 
+import useUserStore from '../../store/workspace/UserStore';
+
 import {
-    AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem,
-    ListItemButton
+    AppBar, Toolbar, IconButton, Typography, Button,
 } from '@mui/material';
 
 import MenuIcon from '@mui/icons-material/Menu';
 
+import { styled } from '@mui/material/styles';
+
 import Menu from './Menu';
+
+const CustomToolbar = styled(Toolbar)`
+    justify-content: space-between;
+`;
 
 const Header = (): React.ReactElement => {
     const [ drawerOpen, setDrawerOpen ] = useState<boolean>(false);
@@ -15,13 +22,24 @@ const Header = (): React.ReactElement => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
+    const userStore = useUserStore();
+
     const onToggleDrawer = () => {
         startTransition(() => setDrawerOpen(!drawerOpen));
     }
 
+    const onLogout = async () => {
+        const resp = await fetch('http://localhost/api/admin/auth/logout');
+
+        if (resp.status === 200) {
+            userStore.resetSession();
+            window.location.pathname = '/';
+        }
+    };
+
     return <header className="header">
         <AppBar position="fixed">
-            <Toolbar>
+            <CustomToolbar>
             <IconButton
                 size="large"
                 edge="start"
@@ -36,7 +54,26 @@ const Header = (): React.ReactElement => {
                 Dam
             </Typography>
             
-            </Toolbar>
+            {
+                userStore.session.username &&
+                <Typography component="div">
+                    { userStore.session.username }
+                    <Button
+                        sx={{
+                            color: '#ffffff',
+                            textTransform: 'capitalize',
+                            '&:hover': {
+                                textDecoration: 'underline',
+                            }
+                        }}
+                        variant="text"
+                        onClick={ onLogout }>
+                            (Logout)
+                    </Button>
+                </Typography>
+            }
+
+            </CustomToolbar>
         </AppBar>
 
         <Menu drawerOpen={ drawerOpen } onToggleDrawer={ onToggleDrawer } />

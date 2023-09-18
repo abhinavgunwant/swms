@@ -193,7 +193,7 @@ const Project = () => {
             /**
              * Only show new button if user has required permission
              */
-            userStore.role.createProject &&
+            userStore.session.role.createProject &&
             <WorkspaceFab
                 fabs={[
                     {

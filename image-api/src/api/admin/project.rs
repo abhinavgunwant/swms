@@ -2,7 +2,7 @@ use actix_web::{ web::Json, HttpResponse, HttpRequest, post, get };
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
 use crate::{
-    db::DBError,
+    auth::AuthMiddleware, db::DBError,
     repository::{
         project::{ ProjectRepository, get_project_repository },
         user::{ get_user_repository, UserRepository }
@@ -57,25 +57,13 @@ pub async fn get_projects() -> HttpResponse {
 }
 
 #[get("/api/admin/projects-for-user")]
-pub async fn get_projects_for_user(req: HttpRequest) -> HttpResponse {
+pub async fn get_projects_for_user(auth: AuthMiddleware) -> HttpResponse {
     let repo = get_project_repository();
 
-    let auth_header = req.headers().get("Authorization")
-        .unwrap().to_str().unwrap();
-
-    if auth_header.chars().count() < 8 {
-        return HttpResponse::Unauthorized().json(ProjectResponse {
-            success: false,
-            message: vec![String::from("Anauthorized")],
-            projects: vec![],
-        });
-    }
-
-    // for now, since jwt setup is pending, i'm extracting it from the repo.
-    let login_id = format!("{}", &auth_header[7..]);
-    println!("Login ID: {}", login_id);
     let user_repo = get_user_repository();
-    let user_res: Result<User, DBError> = user_repo.get_from_login_id(login_id);
+    let user_res: Result<User, DBError> = user_repo.get_from_login_id(
+        auth.login_id
+    );
 
     let user: User;
 
