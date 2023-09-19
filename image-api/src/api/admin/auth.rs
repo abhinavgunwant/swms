@@ -1,3 +1,7 @@
+//! auth
+//!
+//! Contains Authentication and Authorization related code.
+
 use actix_web::{
     web::Json, HttpRequest, HttpResponse, get, post,
     cookie::{ time::Duration as ActixWebDuration, Cookie },
@@ -15,7 +19,9 @@ use crate::{
     auth::{
         pwd_hash::verify_password,
         token::{
-            create_session_token, create_refresh_token, remove_refresh_token
+            create_session_token, create_refresh_token, remove_refresh_token,
+            create_session_token_from_refresh_token, TokenError,
+            create_refresh_token_cookie,
         },
         utils::validate_session_token,
     },
@@ -102,18 +108,12 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
             user_role.id
         );
 
-        let ref_token_cookie: Cookie = Cookie::build("r", refresh_token)
-            .path("/")
-            .domain("localhost") // TODO: make this configurable
-            // .secure(true) // TODO: uncomment this for secure cookie!
-            .max_age(ActixWebDuration::new(1800, 0))
-            .http_only(true)
-            .finish();
-
-        return HttpResponse::Ok().cookie(ref_token_cookie).json(AuthMessage {
-                success: true,
-                s: create_session_token(req_obj.username.clone(), name, user_role),
-                message: String::from("Login Successful!"),
+        return HttpResponse::Ok().cookie(
+            create_refresh_token_cookie(refresh_token)
+        ).json(AuthMessage {
+            success: true,
+            s: create_session_token(req_obj.username.clone(), name, user_role),
+            message: String::from("Login Successful!"),
         });
     }
 
@@ -152,6 +152,53 @@ async fn auth_logout(req: HttpRequest) -> HttpResponse {
     }
 
     HttpResponse::Ok().cookie(ref_token_cookie_exp).body("Logged out")
+}
+
+#[get("/refresh")]
+async fn auth_refresh(req: HttpRequest) -> HttpResponse {
+    match req.cookie("r") {
+        Some(cookie) => {
+            let val = String::from(cookie.value());
+
+            let token_wrapped: Result<String, TokenError>;
+
+            unsafe {
+                token_wrapped = create_session_token_from_refresh_token(val);
+            }
+
+            match token_wrapped {
+                Ok(token) => {
+                    return HttpResponse::Ok().cookie(
+                        create_refresh_token_cookie(token)
+                    ).body("Success!");
+                }
+
+                Err(e) => {
+                    match e {
+                        TokenError::InvalidToken => {
+                            return HttpResponse::UnprocessableEntity()
+                                .body("You session is either invalid or expired , please login again!");
+                        }
+
+                        TokenError::RoleNotFound => {
+                            return HttpResponse::UnprocessableEntity()
+                                .body("User role could not be found. Please contact your administrator!");
+                        }
+
+                        _ => {
+                            return HttpResponse::InternalServerError()
+                                .body("Error 500: Internal Server Error");
+                        }
+                    }
+                }
+            }
+        }
+
+        None => {
+            println!("No refresh cookie found in the request!");
+            return HttpResponse::BadRequest().body("You're not signed in!");
+        }
+    }
 }
 
 /**

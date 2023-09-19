@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use actix_web::cookie::{ time::Duration as ActixWebDuration, Cookie};
 use lazy_static::lazy_static;
-use jsonwebtoken::{ encode, decode, EncodingKey, DecodingKey, Header, Validation };
+use jsonwebtoken::{
+    encode, decode, EncodingKey, DecodingKey, Header, Validation
+};
 use serde::{ Serialize, Deserialize };
 use chrono::{ Utc, Duration };
 use rand::{
@@ -11,9 +14,12 @@ use rand::{
 };
 use rand_chacha::ChaCha20Core;
 
-use crate::model::role::Role;
+use crate::{
+    model::role::Role,
+    repository::role::{ get_role_repository, RoleRepository }, db::DBError,
+};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RefreshTokenData {
     pub user_id: u32,
     pub username: String,
@@ -30,6 +36,15 @@ pub struct SessionTokenClaims {
     pub role: Role,
     pub iat: usize,
     pub exp: usize,  // timestamp of expiry
+}
+
+pub enum TokenError {
+    InvalidToken,
+    UserNotFound,
+
+    /// User may have been found but is not assigned a role.
+    RoleNotFound,
+    OtherError,
 }
 
 lazy_static! {
@@ -49,6 +64,38 @@ pub unsafe fn remove_refresh_token(token: String) {
 
 pub unsafe fn refresh_token_exists(token: String) -> bool {
     REFRESH_TOKEN_MAP.lock().unwrap().contains_key(&token)
+}
+
+pub unsafe fn get_refresh_token(token: String) -> Option<RefreshTokenData> {
+    match REFRESH_TOKEN_MAP.lock() {
+        Ok(locked_ref_token_map) => {
+            match locked_ref_token_map.get(&token) {
+                Some(ref_token_data) => Some(ref_token_data.clone()),
+                None => None,
+            }
+        }
+        Err(_) => None,
+    }
+}
+
+pub unsafe fn update_refresh_token_expiry(token: String) {
+    match REFRESH_TOKEN_MAP.lock() {
+        Ok(mut ref_hm) => {
+            match ref_hm.get_mut(&token) {
+                Some(ref_tok_data) => {
+                    ref_tok_data.expiry = get_expiry_from_now();
+                }
+
+                None => {}
+            };
+        }
+
+        Err(e) => { eprintln!("Error: {}", e); }
+    }
+}
+
+fn get_expiry_from_now() -> usize {
+    (Utc::now() + Duration::minutes(30)).timestamp() as usize
 }
 
 fn encode_jwt(claims: &SessionTokenClaims) -> String {
@@ -100,7 +147,7 @@ pub fn create_refresh_token(user_id: u32, username: String, name: String, role_i
         role_id,
         username,
         name,
-        expiry: (Utc::now() + Duration::minutes(30)).timestamp() as usize
+        expiry: get_expiry_from_now()
     };
 
     let mut loop_counter: u8 = 0;
@@ -130,7 +177,7 @@ pub fn create_refresh_token(user_id: u32, username: String, name: String, role_i
 }
 
 /// Generates JWT token string
-pub fn create_session_token (username: String, name: String, role: Role) -> String {
+pub fn create_session_token(username: String, name: String, role: Role) -> String {
     let now = Utc::now();
     let iat = now.timestamp() as usize;
     let exp = (now + Duration::minutes(5)).timestamp() as usize;
@@ -150,13 +197,56 @@ pub fn create_session_token (username: String, name: String, role: Role) -> Stri
     token
 }
 
-/**
- * Return session token from the supplied refresh token.
- * 
- * TODO: Change it based on the refresh token.
- */
-pub fn create_session_token_from_refresh (refresh_token: String) -> String {
-    refresh_token
+/// Returns session token from the supplied refresh token.
+pub fn create_session_token_from_refresh_token (refresh_token: String)
+    -> Result<String, TokenError> {
+
+    if refresh_token.is_empty() {
+        return Err(TokenError::InvalidToken);
+    }
+
+    unsafe {
+        match get_refresh_token(refresh_token) {
+            Some(refresh_data) => {
+                match get_role_repository().get(refresh_data.role_id) {
+                    Ok(role) => {
+                        let session_token = create_session_token(
+                            refresh_data.username.clone(),
+                            refresh_data.name.clone(),
+                            role
+                        );
+
+                        if !session_token.is_empty() {
+                            update_refresh_token_expiry(session_token.clone());
+
+                            return Ok(session_token);
+                        }
+
+                        return Err(TokenError::OtherError);
+                    }
+
+                    Err(e) => {
+                        match e {
+                            DBError::NOT_FOUND => { return Err(TokenError::RoleNotFound); }
+                            DBError::OtherError => { return Err(TokenError::OtherError); }
+                        }
+                    }
+                }
+            }
+
+            None => { return Err(TokenError::InvalidToken); }
+        }
+    }
+}
+
+pub fn create_refresh_token_cookie<'a>(refresh_token: String) -> Cookie<'a> {
+    Cookie::build("r", refresh_token)
+        .path("/")
+        .domain("localhost") // TODO: make this configurable
+        // .secure(true) // TODO: uncomment this for secure cookie!
+        .max_age(ActixWebDuration::new(1800, 0))
+        .http_only(true)
+        .finish()
 }
 
 // TODO: modify to verify a jwt token
