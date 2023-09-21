@@ -1,4 +1,6 @@
-import React, { ChangeEvent, useState, useTransition, Fragment } from 'react';
+import React, {
+    ChangeEvent, Fragment, useEffect, useState, useTransition,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -6,8 +8,13 @@ import {
     CircularProgress,
 } from '@mui/material/';
 
+import UserState from '../store/workspace/UserState';
 import useUserStore from '../store/workspace/UserStore';
 import { sessionFromToken } from '../utils/token';
+
+import useAPI from '../hooks/useAPI';
+
+import { getLatestSessionToken } from '../utils/misc';
 
 import { styled as materialStyled } from '@mui/material/styles';
 import styled from '@emotion/styled';
@@ -34,8 +41,15 @@ const ProcessingAnimation = () => <FlexCentered>
     <CircularProgress />
 </FlexCentered>;
 
+const userSelector = (state: UserState) => ({
+    session: state.session,
+    sessionToken: state.sessionToken,
+    setSessionToken: state.setSessionToken,
+    setSession: state.setSession,
+});
+
 const Home = (): React.ReactElement => {
-    const userStore = useUserStore();
+    const userStore = useUserStore(userSelector);
 
     const [ username, setUsername ] = useState<string>('');
     const [ password, setPassword ] = useState<string>('');
@@ -43,15 +57,22 @@ const Home = (): React.ReactElement => {
     const [ error, setError ] = useState<string>('Unknown error');
     const [ showError, setShowError ] = useState<boolean>(false);
     const [ processing, setProcessing ] = useState<boolean>(false);
+    const [ checkingSession, setCheckingSession ] = useState<boolean>(true);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [ _, startTransition ] = useTransition();
+
+    const { login } = useAPI();
 
     const navigate = useNavigate();
 
     const onLogin = async (e: React.SyntheticEvent) => {
         if (e) {
             e.preventDefault();
+        }
+
+        if (checkingSession) {
+            return;
         }
 
         if (username === '' || password === '') {
@@ -69,37 +90,19 @@ const Home = (): React.ReactElement => {
             setProcessing(true);
         });
 
-        const response = await fetch('http://localhost/api/admin/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password }),
-        });
+        const loginResponse = await login(username, password);
 
-        if (response.status === 200) {
-            const responseJson = await response.json();
-    
-            if (responseJson.success) {
-                if (responseJson.s) {
-                    const session = sessionFromToken(responseJson.s);
+        if (loginResponse.success && loginResponse.s) {
+            const session = sessionFromToken(loginResponse.s);
 
-                    userStore.setSessionToken(responseJson.s);
-                    userStore.setSession(session);
-                }
+            userStore.setSessionToken(loginResponse.s);
+            userStore.setSession(session);
 
-                navigate('/workspace');
-                return;
-            }
-
-            startTransition(() => {
-                setError(responseJson.message);
-                setShowError(true);
-                setProcessing(false);
-            });
+            navigate('/workspace');
+            return;
         }
 
-        if (response.status === 404) {
+        if (loginResponse.status === 404) {
             startTransition(() => {
                 setError('The username and password combination is invalid. Retry with correct credentials.');
                 setShowError(true);
@@ -110,7 +113,7 @@ const Home = (): React.ReactElement => {
         }
 
         startTransition(() => {
-            setError('Unknown error, please try again later!')
+            setError(loginResponse.message);
             setShowError(true);
             setProcessing(false);
         });
@@ -125,6 +128,27 @@ const Home = (): React.ReactElement => {
         setPassword(e.target.value);
         setShowError(false);
     }
+
+    useEffect(() => {
+        if (userStore.sessionToken) {
+            navigate('/workspace');
+        } else {
+            async function f() {
+                const token = await getLatestSessionToken();
+
+                if (token) {
+                    userStore.setSession(sessionFromToken(token));
+                    userStore.setSessionToken(token);
+
+                    navigate('/workspace');
+                } else {
+                    startTransition(() => setCheckingSession(false));
+                }
+            }
+
+            f();
+        }
+    }, []);
 
     return <div className="homepage">
         <Grid
@@ -181,7 +205,9 @@ const Home = (): React.ReactElement => {
                                             textTransform: 'capitalize',
                                             marginTop: '0.5rem',
                                         }}
-                                        disabled={ showError }
+                                        disabled={
+                                            showError || checkingSession
+                                        }
                                         onClick={ onLogin }>
                                         Login
                                     </Button>
@@ -204,3 +230,4 @@ const Home = (): React.ReactElement => {
 }
 
 export default Home;
+

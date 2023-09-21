@@ -23,3 +23,8 @@ async fn echo() -> impl Responder {
     HttpResponse::Ok().body("Image API, Version 0.0.1\n\nAPI is live!")
 }
 
+#[get("/api/am-i-logged-in")]
+async fn am_i_logged_in() -> HttpResponse {
+    HttpResponse::Ok().body("You're signed in!")
+}
+

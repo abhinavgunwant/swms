@@ -58,6 +58,18 @@ pub async fn get_projects() -> HttpResponse {
 
 #[get("/api/admin/projects-for-user")]
 pub async fn get_projects_for_user(auth: AuthMiddleware) -> HttpResponse {
+    println!("getting projects for user");
+
+    if !auth.authorized {
+        println!("User is unauthorized.");
+
+        return HttpResponse::Unauthorized().json(ProjectResponse {
+            success: false,
+            message: vec![String::from("Unauthorized")],
+            projects: vec![],
+        });
+    }
+
     let repo = get_project_repository();
 
     let user_repo = get_user_repository();
@@ -75,9 +87,9 @@ pub async fn get_projects_for_user(auth: AuthMiddleware) -> HttpResponse {
         }
 
         Err (_e) => {
-            return HttpResponse::Unauthorized().json(ProjectResponse {
+            return HttpResponse::InternalServerError().json(ProjectResponse {
                 success: false,
-                message: vec![String::from("Anauthorized")],
+                message: vec![String::from("Some unknown error occured!")],
                 projects: vec![],
             });
         }

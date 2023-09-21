@@ -1,9 +1,10 @@
-import create from 'zustand';
+import { createStore, useStore } from 'zustand';
 import { Session, defaultSession } from '../../models';
 
 import UserState from './UserState';
 
-const useUserStore = create<UserState>()((set) => ({
+//const useUserStore = create<UserState>()((set) => ({
+export const userStore = createStore<UserState>((set) => ({
     // Session Token
     sessionToken: '',
     // Session
@@ -17,6 +18,9 @@ const useUserStore = create<UserState>()((set) => ({
         ({ sessionToken: '', session: defaultSession})
     ),
 }));
+
+const useUserStore = <T>(selector: (state: UserState) => T) =>
+    useStore(userStore, selector);
 
 export default useUserStore;
 

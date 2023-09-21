@@ -162,15 +162,12 @@ async fn auth_refresh(req: HttpRequest) -> HttpResponse {
 
             let token_wrapped: Result<String, TokenError>;
 
-            unsafe {
-                token_wrapped = create_session_token_from_refresh_token(val);
-            }
+            token_wrapped = create_session_token_from_refresh_token(val);
 
             match token_wrapped {
                 Ok(token) => {
-                    return HttpResponse::Ok().cookie(
-                        create_refresh_token_cookie(token)
-                    ).body("Success!");
+                    return HttpResponse::Ok().body(token);
+                        //.cookie( create_refresh_token_cookie(token))
                 }
 
                 Err(e) => {

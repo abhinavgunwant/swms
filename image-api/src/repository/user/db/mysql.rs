@@ -97,6 +97,8 @@ impl UserRepository for MySQLUserRepository {
     }
 
     fn get_from_login_id(&self, login_id: String) -> std::result::Result<User, DBError> {
+        println!("-> Getting projects for: {}", login_id);
+
         get_user_from_row(get_row_from_query(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,

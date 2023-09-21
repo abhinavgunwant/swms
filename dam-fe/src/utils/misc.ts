@@ -1,3 +1,8 @@
+import { userStore } from '../store/workspace/UserStore';
+// import useWorkspaceStore from '../store/workspace/WorkspaceStore';
+
+import { sessionFromToken } from './token';
+
 export const isEmpty = (a: any) => {
     if (typeof a === 'undefined' || a === '' || !a) {
         return true;
@@ -21,6 +26,51 @@ export const generateId = (length: number = 8) => {
 
     return result;
 }
+
+export const getLatestSessionToken = async () => {
+    const response = await fetch('http://localhost/api/admin/auth/refresh', {
+        credentials: 'include',
+    });
+
+    try {
+        if (response.status == 200) {
+            return await response.text();
+        }
+    } catch (e) { console.log(e); }
+
+    return '';
+};
+
+export const apiCall = async (
+    url: string, options: RequestInit = {}, authorized: boolean = true
+) => {
+    if (authorized) {
+        const now = new Date();
+
+        let token;
+
+        if (userStore.getState().session.expiry <= now) {
+            token = await getLatestSessionToken();
+
+            userStore.getState().setSession(sessionFromToken(token));
+            userStore.getState().setSessionToken(token);
+        } else {
+            token = userStore.getState().sessionToken;
+        }
+
+        let headers: HeadersInit = new Headers();
+
+        headers.set('Authorization', 'Bearer ' + token);
+
+        if (options.headers) {
+            Object.assign(options.headers, headers);
+        } else {
+            options.headers = headers;
+        }
+    }
+
+    return fetch(url, options);
+};
 
 export default {};
 

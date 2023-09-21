@@ -35,6 +35,7 @@ async fn main() -> std::io::Result<()> {
             .configure(api::config)
             .app_data(web::PayloadConfig::new(1000000 * 250))
             .service(api::echo)
+            .service(api::am_i_logged_in)
             .service(api::admin::get_children)
             .service(api::admin::auth::get_user_permissions)
             .service(api::admin::user::create_user)

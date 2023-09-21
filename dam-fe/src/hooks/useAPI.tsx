@@ -1,4 +1,3 @@
-import useUserStore from '../store/workspace/UserStore';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 
 import {
@@ -6,33 +5,50 @@ import {
     UserListing, Role, Folder, Image,
 } from '../models';
 
+import { apiCall } from '../utils/misc';
+
 const HOST = 'http://localhost:8080';
+const PATH_PRE = `${ HOST }/api/admin`;
+
+const APPLICATION_JSON = { 'Content-Type': 'application/json' };
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
 
-// const DEFAULT_ERROR_RESPONSE = {
-//     success: false,
-//     message: 'Some unknown error occurred'
-// };
+const success = (success: boolean, message: string) => ({ success, message });
 
 const useAPI = () => {
-    const userStore = useUserStore();
     const wsStore = useWorkspaceStore();
 
     return {
+        login: async (username: string, password: string) => {
+            const response = await apiCall(`${ PATH_PRE }/auth/login`, {
+                method: 'POST',
+                headers: APPLICATION_JSON,
+                body: JSON.stringify({ username, password }),
+                credentials: 'include',
+            }, false);
+
+            try {
+                if (response.status === 200) {
+                    const responseJson = await response.json();
+            
+                    if (responseJson.success) {
+                        return { ...responseJson, status: response.status };
+                    }
+                }
+            } catch (e) { console.log(e); }
+
+            return success(false, 'Some error occured!');
+        },
+
         /**
          * Gets a list of all the users at once.
          */
         getUsers: async () => {
-            const response = await fetch('http://localhost:8080/api/admin/users', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                },
-            });
+            const response = await apiCall('http://localhost:8080/api/admin/users');
 
             try {
                 const json = await response.json();
-                console.log('user list response: ', json);
+                // console.log('user list response: ', json);
 
                 if (json) {
                     if (!json.message && !json.success) {
@@ -45,26 +61,19 @@ const useAPI = () => {
                 console.log(e);
             }
 
-            return {
-                success: false,
-                message: DEFAULT_ERROR_MESSAGE,
-            };
+            return success(false, DEFAULT_ERROR_MESSAGE);
         },
 
         createUser: async (user: CreateUserPayload) => {
-            const response = await fetch('http://localhost:8080/api/admin/user', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall('http://localhost:8080/api/admin/user', {
+                headers: APPLICATION_JSON,
                 method: 'POST',
-                body: JSON.stringify(user)
+                body: JSON.stringify(user),
             });
 
             try {
                 const json = await response.json();
-                console.log('user creation response: ', json);
+                // console.log('user creation response: ', json);
 
                 if (json) {
                     if (!json.message) {
@@ -81,24 +90,17 @@ const useAPI = () => {
                 console.log(e);
             }
 
-            return {
-                success: false,
-                message: DEFAULT_ERROR_MESSAGE,
-            };
+            return success(false, DEFAULT_ERROR_MESSAGE);
         },
 
         /**
          * Edits user by replacing user attributes with ones in `user`.
          */
         editUser: async (user: UserListing) => {
-            const response = await fetch('http://localhost:8080/api/admin/user', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall('http://localhost:8080/api/admin/user', {
+                headers: APPLICATION_JSON,
                 method: 'PUT',
-                body: JSON.stringify(user)
+                body: JSON.stringify(user),
             });
 
             if (response.status === 200) {
@@ -112,33 +114,22 @@ const useAPI = () => {
          * Gets all the roles in the system.
          */
         getRoles: async () => {
-            const response = await fetch('http://localhost:8080/api/admin/roles', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                },
-            });
+            const response = await apiCall('http://localhost:8080/api/admin/roles');
 
             if (response.status === 200) {
                 try {
                     const roles: Role[] = await response.json();
 
                     return { success: true, roles };
-                } catch (e) {
-                    console.log(e);
-                }
+                } catch (e) { console.log(e); }
             }
 
             return { success: false, roles: [] };
         },
 
         createEditRoles: async (role: Role, mode: 'new' | 'edit' = 'new') => {
-            const response = await fetch('http://localhost:8080/api/admin/role', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall('http://localhost:8080/api/admin/role', {
+                headers: APPLICATION_JSON,
                 method: mode === 'new' ? 'POST' : 'PUT',
                 body: JSON.stringify(role),
             });
@@ -151,12 +142,8 @@ const useAPI = () => {
         },
 
         deleteRole: async (role: Role) => {
-            const response = await fetch('http://localhost:8080/api/admin/role', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall('http://localhost:8080/api/admin/role', {
+                headers: APPLICATION_JSON,
                 method: 'DELETE',
                 body: JSON.stringify(role),
             });
@@ -172,12 +159,9 @@ const useAPI = () => {
          * Gets the list of projects from dam api and sets it in store.
          */
         getProjects: async () => {
-            const response = await fetch('http://localhost:8080/api/admin/projects-for-user', {
-                headers: {
-                    //'Authorization': 'Bearer ' + userStore.sessionToken, // TODO: use this when jwt impl compeletes!
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                }
-            });
+            const response = await apiCall(
+                'http://localhost:8080/api/admin/projects-for-user'
+            );
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -189,12 +173,9 @@ const useAPI = () => {
          * Gets the list of images from dam api and sets it in store.
          */
         getImages: async (slug:string, type:string='PROJECT') => {
-            const response = await fetch(
-                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                }
-            });
+            const response = await apiCall(
+                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`
+            );
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -208,12 +189,9 @@ const useAPI = () => {
         getChildren: async (slug:string, type:('folder' | 'project') ='project') => {
             // console.log('getChildren: slug: ', slug, 'type: ', type);
 
-            const response = await fetch(
-                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                }
-            });
+            const response = await apiCall(
+                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`
+            );
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -243,12 +221,7 @@ const useAPI = () => {
          * TODO: Verify that the response is a proper `Image` object.
          */
         getImage: async (imageId: number) => {
-            const response = await fetch(
-                `${HOST}/api/admin/image/${ imageId }`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                }
-            });
+            const response = await apiCall(`${ PATH_PRE }/image/${ imageId }`);
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -259,12 +232,8 @@ const useAPI = () => {
         },
 
         updateImage: async (image: Image) => {
-            const response = await fetch(
-                `${HOST}/api/admin/image`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall( `${ PATH_PRE }/image`, {
+                headers: APPLICATION_JSON,
                 method: 'PUT',
                 body: JSON.stringify(image),
             });
@@ -281,24 +250,18 @@ const useAPI = () => {
                 return resp;
             } catch (e) { console.log(e); }
 
-            return {
-                success: false,
-                message: 'Some error Occured! Please try again in some time!',
-            };
+            return success(false, 'Some error Occured! Please try again in some time!');
         },
 
         /**
          * Adds a new project.
          */
         addProject: async (project: Project) => {
-            const response = await fetch(
-                `${HOST}/api/admin/project`, {
+            const response = await apiCall(
+                `${ PATH_PRE }/project`, {
                 method: 'POST',
                 body: JSON.stringify(project),
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                }
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
@@ -316,106 +279,80 @@ const useAPI = () => {
 
             formData.set('payload', payload);
 
-            const response = await fetch(
-                `${HOST}/api/image`, {
+            const response = await apiCall(`${ HOST }/api/image`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                },
                 body: formData,
             });
 
             if (response.status === 200) {
                 const uploadResp = await response.json();
 
-                console.log('initial response: ', uploadResp);
+                // console.log('initial response: ', uploadResp);
 
                 uploadImg.uploadId = uploadResp.uploadId;
 
                 // TODO: Second request with the data and the above ID
-                const resp2 = await fetch(
-                    `${ HOST }/api/admin/image-save`, {
+                const resp2 = await apiCall(`${ PATH_PRE }/image-save`, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': 'Bearer '
-                                + userStore.sessionToken,
-                            'Content-Type': 'application/json',
-                        },
+                        headers: APPLICATION_JSON,
                         body: JSON.stringify(uploadImg),
                     },
                 )
 
                 const resp2Json = await resp2.json();
 
-                console.log('response after upload: ', resp2Json);
+                // console.log('response after upload: ', resp2Json);
 
                 if (resp2Json) {
                     return resp2Json;
                 }
 
-                return {
-                    success: false,
-                    message: 'Some unknown error occurred'
-                };
+                return success(false, 'Some unknown error occurred');
             }
 
             try {
                 return await response.json();
             } catch (_e) {
-                return {
-                    success: false,
-                    message: 'Some unknown error occurred'
-                };
+                return success(false, 'Some unknown error occurred');
             }
         },
 
         deleteImages: async (imageIDs: Array<number>) => {
             if (imageIDs.length === 0) {
-                return { success: false, message: 'No image selected!' };
+                return success(false, 'No image selected!');
             }
 
-            const response = await fetch(
-                `${HOST}/api/admin/image?id=${ imageIDs.join(',') }`, {
+            const response = await apiCall(
+                `${ PATH_PRE }/image?id=${ imageIDs.join(',') }`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
                 // return await response.json();
-                return {
-                    success: true,
-                    message: await response.text() || 'Success!'
-                };
+                return success(true, await response.text() || 'Success!');
             }
 
-            return { success: false, message: 'Some Unknown Error Occured' };
+            return success(false, 'Some Unknown Error Occured');
         },
 
         /**
          * API to create renditions.
          */
         addRenditions: async (renditions: Rendition[], eager: boolean) => {
-            const response = await fetch(
-                `${HOST}/api/admin/renditions`, {
+            const response = await apiCall(`${ PATH_PRE }/renditions`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+                headers: APPLICATION_JSON,
                 body: JSON.stringify({ renditions, eager }),
             });
 
             if (response.status === 200) {
-                // return await response.json();
-                return { success: true, message: 'Success!' };
+                return success(true, 'Success!');
             }
 
             const rJson = await response.json();
 
-            console.log('rJson', rJson);
+            // console.log('rJson', rJson);
 
             let renditionMessages: { id: number, message:string }[] = [];
 
@@ -431,12 +368,9 @@ const useAPI = () => {
         },
 
         getRenditions: async (imageId: number) => {
-            const response = await fetch(
-                `${HOST}/api/admin/renditions?image-id=${ imageId }`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall(
+                `${ PATH_PRE }/renditions?image-id=${ imageId }`, {
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
@@ -449,37 +383,30 @@ const useAPI = () => {
                 };
             }
 
-            return { success: false, message: 'Some Unknown Error Occured' };
+            return success(false, 'Some Unknown Error Occured');
         },
 
         deleteRendition: async(renditionId: number) => {
-            const response = await fetch(
-                `${HOST}/api/admin/rendition/${ renditionId }`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+            const response = await apiCall(
+                `${ PATH_PRE }/rendition/${ renditionId }`, {
+                headers: APPLICATION_JSON,
                 method: 'DELETE',
             });
 
             try {
                 return await response.json();
             } catch (e) {
-                return { success: false, message: 'Some error occured!' };
+                return success(false, 'Some error occured!');
             }
         },
 
         addFolder: async (folder: Folder) => {
             try {
-                console.log(folder);
-                const response = await fetch(
-                    `${HOST}/api/admin/folder/`, {
+                // console.log(folder);
+                const response = await apiCall(`${ PATH_PRE }/folder/`, {
                     method: 'POST',
                     body: JSON.stringify(folder),
-                    headers: {
-                        'Authorization': 'Bearer ' + userStore.sessionToken,
-                        'Content-Type': 'application/json',
-                    }
+                    headers: APPLICATION_JSON,
                 });
 
                 if (response.status === 200) {
@@ -488,18 +415,15 @@ const useAPI = () => {
 
                 const message = await response.text();
 
-                return { success: false, message };
+                return success(false, message);
             } catch (e) {
                 return { success: false };
             }
         },
 
         getFolder: async (folderId: number) => {
-            const response = await fetch(
-                `${HOST}/api/admin/folder/${folderId}/`, {
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                }
+            const response = await apiCall(`${ PATH_PRE }/folder/${folderId}/`, {
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
@@ -507,28 +431,22 @@ const useAPI = () => {
                 return { success: true, folder: json };
             }
 
-            return { success: false, message: 'NOT_FOUND' };
+            return success(false, 'NOT_FOUND');
         },
 
         deleteFolders: async (folderId: Array<number>) => {
             if (folderId.length === 0) {
-                return { success: false, message: 'Invalid Image!' };
+                return success(false, 'Invalid Image!');
             }
 
-            const response = await fetch(
+            const response = await apiCall(
                 `${HOST}/api/admin/folder?id=${ folderId }`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                },
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
-                return {
-                    success: true,
-                    message: await response.text() || 'Success!'
-                };
+                return success(true, await response.text() || 'Success!');
             }
 
             let message = 'Some Unknown Error Occured';
@@ -537,20 +455,16 @@ const useAPI = () => {
                 message = await response.json();
             } catch (e) { console.log(e); }
 
-            return { success: false, message };
+            return success(false, message);
         },
 
         /**
          * Fetcher function used with the typeahead component.
          */
         userTypeahead: async (queryText: string) => {
-            const response = await fetch(
+            const response = await apiCall(
                 `${HOST}/api/admin/search/user?name=${ queryText }`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                }
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
@@ -566,13 +480,9 @@ const useAPI = () => {
          * Validates slug for new project.
          */
         validateProjectSlug: async (slug: string) => {
-            const response = await fetch (
-                `${ HOST }/api/admin/project/validate-slug?slug=${ slug }`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + userStore.sessionToken,
-                    'Content-Type': 'application/json',
-                }
+            const response = await apiCall(
+                `${ PATH_PRE }/project/validate-slug?slug=${ slug }`, {
+                headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {

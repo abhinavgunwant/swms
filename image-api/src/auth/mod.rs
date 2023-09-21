@@ -32,8 +32,13 @@ impl FromRequest for AuthMiddleware {
             }
         }
 
-        if req.path() == "/api/admin/auth/refresh"
-            || req.path() == "/api/admin/auth/login" {
+        let path = req.path();
+
+        if path == "/api/admin/auth/refresh"
+            || path == "/api/admin/auth/login"
+            || path == "/api/admin/auth/logout"
+            || path == "/api/echo"
+            || path == "/api/am-i-logged-in" {
             return ready(Ok(Self::default()));
         }
 
