@@ -9,6 +9,7 @@ use crate::db::{
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
+use log::{ info, debug, error };
 
 fn get_rendition_from_row(row_wrapped: Result<Option<Row>, Error>) -> Result<Rendition, DBError> {
     match row_wrapped {
@@ -40,7 +41,7 @@ fn get_rendition_from_row(row_wrapped: Result<Option<Row>, Error>) -> Result<Ren
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            error!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -77,7 +78,7 @@ fn get_renditions_from_row(row_wrapped: Result<Vec::<Row>, Error>)
         }
 
         Err(e) => {
-            eprintln!("Error while getting images from query: {}", e);
+            error!("Error while getting images from query: {}", e);
 
             Err(DBError::NOT_FOUND)
         }
@@ -191,7 +192,7 @@ impl RenditionRepository for MySQLRenditionRepository {
     }
 
     fn add(&self, rendition: Rendition) -> Result<u32, String> {
-        println!("adding a rendition");
+        debug!("adding a rendition");
         let error_msg: String = String::from("Error Inserting Data!");
 
         let mut conn = get_db_connection();
@@ -223,7 +224,7 @@ impl RenditionRepository for MySQLRenditionRepository {
 
                 match res {
                     Ok (_) => {
-                        println!("Data Inserted!");
+                        info!("Rendition data Inserted!");
 
                         let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
                             r"SELECT LAST_INSERT_ID() as LID;",
@@ -279,7 +280,7 @@ impl RenditionRepository for MySQLRenditionRepository {
 
                     Err (e) => {
                         let c_res = tx.rollback();
-                        eprintln!("{}", e);
+                        error!("{}", e);
 
                         match c_res {
                             Ok (_) => {
@@ -349,16 +350,16 @@ impl RenditionRepository for MySQLRenditionRepository {
 
     fn update(&self, _rendition: Rendition) {
         // TODO: Implement
-        println!("Updating a rendition");
+        debug!("Updating a rendition");
     }
 
     fn remove(&self, rendition: Rendition) -> Result<String, String> {
-        println!("Removing a rendition");
+        debug!("Removing a rendition");
         self.remove_item(rendition.id)
     }
 
     fn remove_item(&self, id: u32) -> Result<String, String> {
-        println!("Removing a rendition item");
+        debug!("Removing a rendition item");
         let mut conn = get_db_connection();
 
         match conn.exec_drop(
@@ -366,13 +367,13 @@ impl RenditionRepository for MySQLRenditionRepository {
             params! { "id" => id.clone() },
         ) {
             Ok (_) => {
-                println!("Rendition with ID: {} removed successfully!", id);
+                info!("Rendition removed successfully (ID: {})!", id);
 
                 Ok (String::from("Successfully removed rendition."))
             }
 
             Err (e) => {
-                eprintln!("Unable to remove rendition with ID: {}\nError: {}", id, e);
+                error!("Error removing rendition (ID: {}): {}", id, e);
 
                 Err (String::from("Unable to remove rendition."))
             }
@@ -380,7 +381,7 @@ impl RenditionRepository for MySQLRenditionRepository {
     }
 
     fn remove_all_from_image (&self, image_id: u32) -> Result<String, String> {
-        println!("Removing all renditions from image: {}", image_id);
+        debug!("Removing all renditions from image: {}", image_id);
 
         let mut conn = get_db_connection();
 
@@ -389,13 +390,13 @@ impl RenditionRepository for MySQLRenditionRepository {
             params! { "image_id" => image_id }
         ) {
             Ok (_) => {
-                println!("Rendition with ID: {} removed successfully!", image_id);
+                info!("Rendition removed successfully (ID: {})!", image_id);
 
                 Ok (format!("Successfully removed renditions for image with id: {}.", image_id))
             }
 
             Err (e) => {
-                eprintln!("Unable to remove rendition with ID: {}\nError: {}", image_id, e);
+                error!("Error removing rendition (ID: {}): {}", image_id, e);
 
                 Err (format!("Unable to remove rendition for image with id: {}", image_id))
             }

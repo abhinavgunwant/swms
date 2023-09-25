@@ -28,6 +28,20 @@ regex = "1.7.0"
 jsonwebtoken = "8.3.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
+log = "0.4.20"
+
+[dependencies.log4rs]
+version = "1.2.0"
+features = [
+    "gzip",
+    "background_rotation",
+    "console_appender",
+    "size_trigger",
+    "fixed_window_roller",
+    "rolling_file_appender"
+]
+
+#log4rs = { version = "1.2.0", features = [ "gzip", "background_rotation", "console_appender", "size_trigger", "fixed_window_roller", "rolling_file_appender" ] }
 
 #actix-session = { version = "0.8.0", features = [ "cookie-session" ] }
 #actix-identity = "0.6.0"

@@ -4,17 +4,33 @@ mod repository;
 mod auth;
 mod model;
 mod server_state;
+mod log_config;
 
-use actix_web::{ App, HttpServer, web::{ PayloadConfig, Data } };
+use std::env;
+
+use actix_web::{
+    App, HttpServer, web::{ PayloadConfig, Data }, middleware::Logger,
+};
 use actix_cors::Cors;
 use actix_web_static_files::ResourceFiles;
+use log::info;
 
 use server_state::ServerState;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
+pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
+pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const LINE: &str = "\n--------------------";
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    log_config::init_logger();
+
+    info!("{}\n {} v{}{}", LINE, APP_NAME, APP_VERSION, LINE);
+    info!("Starting Up");
+
     let server_state_data = Data::new(ServerState::default());
 
     HttpServer::new(move || {
@@ -37,6 +53,7 @@ async fn main() -> std::io::Result<()> {
         let generated = generate();
         App::new()
             .wrap(cors)
+            .wrap(Logger::new("%{r}a %{Referer}i [%{User-Agent}i] %r took %D ms").log_target("request"))
             .configure(api::config)
             .app_data(server_state_data.clone())
             .app_data(PayloadConfig::new(1000000 * 250))

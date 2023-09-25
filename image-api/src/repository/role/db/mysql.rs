@@ -1,4 +1,6 @@
 use std::result::Result;
+
+use log::{ info, error };
 use mysql::*;
 use mysql::prelude::*;
 
@@ -51,7 +53,7 @@ fn get_role_from_row_wrapped(row_wrapped: Result<Option<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            error!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -74,7 +76,7 @@ fn get_roles_from_rows_wrapped(row_wrapped: Result<Vec<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            error!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -157,7 +159,7 @@ impl RoleRepository for MySQLRoleRepository {
         //     }
 
         //     Err (e) => {
-        //         eprintln!("Error while getting rendition from query: {}", e);
+        //         error!("Error while getting rendition from query: {}", e);
 
         //         Err(DBError::OtherError)
         //     }
@@ -209,7 +211,7 @@ impl RoleRepository for MySQLRoleRepository {
             Ok(_) => Ok(String::from("Successfully created new role!")),
 
             Err (e) => {
-                eprintln!("Error saving role: {}", e);
+                error!("Error saving role: {}", e);
 
                 Err(String::from("Error saving role."))
             }
@@ -262,7 +264,7 @@ impl RoleRepository for MySQLRoleRepository {
             Ok(_) => Ok(String::from("Successfully updated role!")),
 
             Err (e) => {
-                eprintln!("Error while updating role: {}", e);
+                error!("Error while updating role: {}", e);
 
                 Err(String::from("Unable to update role."))
             }
@@ -281,13 +283,13 @@ impl RoleRepository for MySQLRoleRepository {
             params! { "id" => id.clone() }) {
 
             Ok (_) => {
-                println!("Role with ID: {} removed successfully!", id);
+                info!("Role with ID: {} removed successfully!", id);
 
                 Ok (String::from("Successfully removed role."))
             }
 
             Err (e) => {
-                eprintln!("Unable to remove role with ID: {}\nError: {}", id, e);
+                error!("Unable to remove role with ID: {}\nError: {}", id, e);
 
                 Err (String::from("Unable to remove role."))
             }

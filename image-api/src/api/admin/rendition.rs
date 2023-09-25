@@ -4,6 +4,7 @@ use actix_web::{ HttpResponse, HttpRequest, get, post, delete, web::Json };
 use serde::{ Serialize, Deserialize };
 use raster::Image as RasterImage;
 use qstring::QString;
+use log::{ debug, error };
 
 use crate::{
     api::{
@@ -56,7 +57,7 @@ pub struct UnsuccessfulRendition {
 #[get("/api/admin/renditions")]
 pub async fn get_renditions_for_image(req: HttpRequest, _: AuthMiddleware)
     -> HttpResponse {
-    println!("getting renditions");
+    debug!("getting renditions");
     let qs = QString::from(req.query_string());
 
     let image_id: Option<u32>;
@@ -88,7 +89,7 @@ pub async fn get_renditions_for_image(req: HttpRequest, _: AuthMiddleware)
                     .json(RenditionResponse { renditions: vec![] });
             }
 
-            eprintln!("Some internal error occured while fetching project images.");
+            error!("Some internal error occured while fetching project images.");
 
             HttpResponse::InternalServerError()
                 .json(RenditionResponse { renditions: vec![] })
@@ -114,7 +115,7 @@ pub async fn get_rendition(req: HttpRequest, _: AuthMiddleware)
                 return HttpResponse::NotFound().body("Not Found");
             }
 
-            eprintln!("Some internal error occured while fetching rendition.");
+            error!("Error while fetching rendition: {}", e);
 
             HttpResponse::InternalServerError().body("Internal Server Error")
         }
@@ -133,7 +134,7 @@ pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
 
     let image_option: Option<Image>;
 
-    println!("Inside add rendition API");
+    debug!("Inside add rendition API");
 
     if req.renditions.is_empty() {
         return HttpResponse::BadRequest()
@@ -164,7 +165,7 @@ pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
     match img_repo.get(image_id) {
         Ok(img) => { image_option = Some(img); },
         Err (e) => {
-            eprintln!("{}", e);
+            error!("Error while getting image data: {}", e);
 
             return HttpResponse::BadRequest().json(SetRenditionsResponse {
                 success: false,
@@ -190,7 +191,7 @@ pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
             }
         }
 
-        println!("Got the image path: {}", image_path);
+        debug!("Got the image path: {}", image_path);
 
         let dest_path_prefix = format!("{}/{}", DEST_REN_DIR, image_path);
 
@@ -201,7 +202,9 @@ pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
 
             match raster::open(src_file_path.as_str()) {
                 Ok (r_img) => { image_raster_option = Some(Rc::new(r_img)); }
-                Err (_) => { eprintln!("Error loading image file."); }
+                Err (_) => {
+                    error!("Error loading image file: {}", src_file_path);
+                }
             }
         }
 
@@ -226,7 +229,7 @@ pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
 
                         let dest_path = dest_file_path.as_str();
 
-                        println!(
+                        debug!(
                             "--> Creating rendition eagerly: {} ({}x{})",
                             dest_file_path ,
                             rendition_to_add.width,

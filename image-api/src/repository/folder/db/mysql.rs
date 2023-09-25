@@ -2,6 +2,8 @@ use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
 use std::result::Result;
+use log::{ info, debug, error };
+
 use crate::{
     db::{
         utils::mysql::{ get_rows_from_query, get_row_from_query, process_id_from_row_result },
@@ -24,7 +26,7 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
 
                     let parent_folder_id: u32;
                     let modified_by: u32;
-                    println!("Getting folder object...");
+                    debug!("Getting folder object...");
 
                     match row.take_opt("PARENT_FOLDER_ID") {
                         Some (fi_result) => {
@@ -77,7 +79,7 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            debug!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -96,7 +98,7 @@ fn get_folders_from_row(row_wrapped: Result<Vec<Row>, Error>)
 
                 let parent_folder_id: u32;
                 let modified_by: u32;
-                println!("Getting folder object...");
+                debug!("Getting folder object...");
 
                 match row.take_opt("PARENT_FOLDER_ID") {
                     Some (fi_result) => {
@@ -146,7 +148,7 @@ fn get_folders_from_row(row_wrapped: Result<Vec<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting folders from query: {}", e);
+            debug!("Error while getting folders from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -258,7 +260,7 @@ impl FolderRepository for MySQLFolderRepository {
             Ok (_) => Ok(String::from("Successfully created new folder!")),
 
             Err (e) => {
-                eprintln!("Error inserting new folder: {}", e);
+                error!("Error inserting new folder: {}", e);
 
                 match e {
                     Error::MySqlError (mysql_error) => {
@@ -325,7 +327,7 @@ impl FolderRepository for MySQLFolderRepository {
     fn update(&self, folder: Folder) -> Result<String, String> {
         let mut conn = get_db_connection();
 
-        println!("Updating a folder");
+        debug!("Updating a folder");
 
         match conn.exec_drop(r"UPDATE FOLDER SET
                 TITLE = :title, SLUG = :slug, DESCRIPTION = :description,
@@ -345,7 +347,7 @@ impl FolderRepository for MySQLFolderRepository {
             Ok(_) => Ok(String::from("Successfully updated folder!")),
 
             Err (e) => {
-                eprintln!("Error while updating folder: {}", e);
+                error!("Error while updating folder: {}", e);
 
                 Err(String::from("Unable to update folder."))
             }
@@ -357,7 +359,7 @@ impl FolderRepository for MySQLFolderRepository {
     }
 
     fn remove_item(&self, folder_id: u32) -> Result<String, String> {
-        println!("Removing a folder item");
+        debug!("Removing a folder item");
         let mut conn = get_db_connection();
 
         match conn.exec_drop(
@@ -365,13 +367,13 @@ impl FolderRepository for MySQLFolderRepository {
             params! { "id" => folder_id.clone() },
         ) {
             Ok (_) => {
-                println!("Folder with ID: {} removed successfully!", folder_id);
+                info!("Folder removed successfully (ID: {})!", folder_id);
 
                 Ok (String::from("Successfully removed folder."))
             }
 
             Err (e) => {
-                eprintln!("Unable to remove folder with ID: {}\nError: {}", folder_id, e);
+                error!("Error removing folder (ID: {}): {}", folder_id, e);
 
                 Err (String::from("Unable to remove folder."))
             }

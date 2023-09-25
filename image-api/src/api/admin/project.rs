@@ -1,6 +1,8 @@
 use actix_web::{ web::Json, HttpResponse, HttpRequest, post, get };
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
+use log::{ debug, info };
+
 use crate::{
     auth::AuthMiddleware, db::DBError,
     repository::{
@@ -59,10 +61,10 @@ pub async fn get_projects(_: AuthMiddleware) -> HttpResponse {
 #[get("/api/admin/projects-for-user")]
 pub async fn get_projects_for_user(auth: AuthMiddleware, _: AuthMiddleware)
     -> HttpResponse {
-    println!("getting projects for user");
+    debug!("getting projects for user");
 
     if !auth.authorized {
-        println!("User is unauthorized.");
+        info!("User is unauthorized.");
 
         return HttpResponse::Unauthorized().json(ProjectResponse {
             success: false,
@@ -84,7 +86,7 @@ pub async fn get_projects_for_user(auth: AuthMiddleware, _: AuthMiddleware)
         Ok (usr) => {
             user = usr;
 
-            println!("user: {} {}", &user.id, user.name.clone());
+            debug!("user: {} {}", &user.id, user.name.clone());
         }
 
         Err (_e) => {
@@ -129,7 +131,7 @@ pub async fn get_projects_for_user(auth: AuthMiddleware, _: AuthMiddleware)
 pub async fn add_project(project: Json<Project>, _: AuthMiddleware) -> HttpResponse {
     let repo = get_project_repository();
 
-    println!("{}", project);
+    debug!("{}", project);
 
     let (project_is_valid, validation_messages) = validate_project(&project.0);
 

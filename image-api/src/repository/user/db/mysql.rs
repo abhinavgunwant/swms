@@ -1,4 +1,6 @@
 use std::result::Result;
+
+use log::{ info, debug, error };
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
@@ -41,7 +43,7 @@ fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            error!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -76,7 +78,7 @@ fn get_users_from_rows(row_wrapped: Result<Vec<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            error!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -283,7 +285,7 @@ impl UserRepository for MySQLUserRepository {
             }
 
             Err (e) => {
-                eprintln!("Error while getting rendition from query: {}", e);
+                error!("Error while getting rendition from query: {}", e);
 
                 Err(DBError::OtherError)
             }
@@ -319,7 +321,7 @@ impl UserRepository for MySQLUserRepository {
 
                 match res {
                     Ok (_) => {
-                        println!("Data Inserted!");
+                        debug!("Data Inserted!");
 
                         let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
                             r"SELECT LAST_INSERT_ID() as LID;",
@@ -374,8 +376,8 @@ impl UserRepository for MySQLUserRepository {
                     }
 
                     Err (e) => {
-                        eprintln!("Error inserting data: {}", e);
-                        eprintln!("Rolling back the transaction!");
+                        error!("Error inserting data: {}", e);
+                        error!("Rolling back the transaction!");
 
                         let c_res = tx.rollback();
                         
@@ -407,20 +409,20 @@ impl UserRepository for MySQLUserRepository {
             Ok(_) => Ok(()),
 
             Err (e) => {
-                eprintln!("Error updating user: {}", e);
+                error!("Error updating user: {}", e);
 
                 return Err(String::from("Unable to update user."));
             }
         }
     }
 
-    fn remove(&self, _id: User) {
+    fn remove(&self, user: User) {
         // TODO: Implement
-        println!("Removing an user");
+        info!("Removing user (id:{}, login_id: {})", user.id, user.login_id);
     }
 
-    fn remove_item(&self, _id: u32) {
+    fn remove_item(&self, id: u32) {
         // TODO: Implement
-        println!("Removing an user item");
+        info!("Removing user (id:{})", id);
     }
 }

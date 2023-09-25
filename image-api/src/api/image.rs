@@ -5,6 +5,8 @@ use actix_web::{ get, post, web::block, HttpResponse, HttpRequest };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::Serialize;
+use log::debug;
+
 use crate::{
     api::{
         DEST_REN_DIR, IMG_UPL_DIR,
@@ -54,7 +56,7 @@ pub async fn upload(mut payload: Multipart, _: AuthMiddleware)
 
         match cd.get_filename() {
             Some(filename) => {
-                println!("filename: {}", filename);
+                debug!("filename: {}", filename);
             }
 
             None => {}
@@ -94,17 +96,17 @@ pub async fn upload(mut payload: Multipart, _: AuthMiddleware)
 #[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]
 pub async fn download(req: HttpRequest) -> HttpResponse {
     if let Some(path) = req.match_info().get("path") {
-        println!("Requested Path: \"{}\"", path);
+        debug!("Requested Path: \"{}\"", path);
 
         let mut dest_file_path: String = format!("{}/{}", DEST_REN_DIR, path);
         let mime_type: String;
 
         match rendition_cache_path(&dest_file_path) {
             Some(p) => {
-                println!("--> Found in rendition cache!");
+                debug!("--> Found in rendition cache!");
 
                 if p != dest_file_path {
-                    println!("--> Updating file path with: {}", p);
+                    debug!("--> Updating file path with: {}", p);
                     dest_file_path = p;
                 }
 
@@ -126,7 +128,7 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                                     image_data.encoding.extension()
                                 );
 
-                                println!(
+                                debug!(
                                     "Getting source file: {}",
                                     source_file_path
                                 );

@@ -2,6 +2,8 @@ use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
 use std::result::Result;
+use log::{ debug, error };
+
 use crate::db::{
     utils::mysql::{ get_row_from_query, get_rows_from_query },
     DBError, get_db_connection,
@@ -44,7 +46,7 @@ fn get_project_from_row(row_wrapped: Result<Option<Row>, Error>)
         }
 
         Err (e) => {
-            eprintln!("Error while getting rendition from query: {}", e);
+            error!("Error while getting rendition from query: {}", e);
 
             Err(DBError::OtherError)
         }
@@ -95,7 +97,7 @@ fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
         }
 
         Err(e) => {
-            eprintln!("Error while getting images from query: {}", e);
+            error!("Error while getting images from query: {}", e);
 
             Err(DBError::NOT_FOUND)
         }
@@ -275,17 +277,17 @@ impl ProjectRepository for MySQLProjectRepository {
 
     fn update(&self, _project: Project) {
         // TODO: Implement
-        println!("Updating a project");
+        debug!("Updating a project");
     }
 
     fn remove(&self, _id: Project) {
         // TODO: Implement
-        println!("Updating a project");
+        debug!("Updating a project");
     }
 
     fn remove_item(&self, _id: u32) {
         // TODO: Implement
-        println!("Updating a project");
+        debug!("Updating a project");
     }
 }
 

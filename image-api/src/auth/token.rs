@@ -10,6 +10,7 @@ use rand::{
     distributions::{Alphanumeric, DistString},
 };
 use rand_chacha::ChaCha20Core;
+use log::{ debug, error };
 
 use crate::{
     model::role::Role,
@@ -62,7 +63,7 @@ pub fn encode_jwt(claims: &SessionTokenClaims) -> String {
         Ok (t) => t,
 
         Err (e) => {
-            eprintln!("Error while generating jwt: {}", e);
+            error!("Error while generating jwt: {}", e);
 
             return String::from("");
         }
@@ -78,7 +79,7 @@ pub fn decode_jwt(token: &String) -> Result<SessionTokenClaims, ()> {
         Ok(claims) => Ok(claims.claims),
 
         Err(e) => {
-            eprintln!("Error while decoding jwt: {}", e);
+            error!("Error while decoding jwt: {}", e);
 
             return Err(());
         }
@@ -87,7 +88,7 @@ pub fn decode_jwt(token: &String) -> Result<SessionTokenClaims, ()> {
 
 /// Returns a unique string used as the refresh token cookie value.
 pub fn create_refresh_token() -> String {
-    println!("Generating refresh token");
+    debug!("Generating refresh token");
 
     let prng = ChaCha20Core::from_entropy();
     let mut reseeding_rng = ReseedingRng::new(prng, 0, OsRng);
@@ -97,7 +98,7 @@ pub fn create_refresh_token() -> String {
         REF_TOKEN_LENGTH
     );
 
-    println!("Generated token: {}", token);
+    debug!("Generated token: {}", token);
 
     token
 }
@@ -121,7 +122,7 @@ pub fn create_session_token(
 
     let token = encode_jwt(&claims);
 
-    println!("-> session token: {}", token);
+    debug!("-> session token: {}", token);
 
     token
 }

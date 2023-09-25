@@ -2,6 +2,7 @@
 
 use std::{ fs::create_dir_all, path::Path };
 use raster;
+use log::{ debug, error };
 
 use crate::{
     db::DBError,
@@ -29,14 +30,14 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
     let mut folder_id: u32 = 0;
     let mut image_id: u32 = 0;
 
-    println!("Validating project slug: {}", path_segments[0]);
+    debug!("Validating project slug: {}", path_segments[0]);
 
     // Validate project
     match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
         Ok (valid_option) => {
             match valid_option {
                 Some(id) => {
-                    println!("\t-> Project Valid!");
+                    debug!("\t-> Project Valid!");
                     project_id = id;
                 },
 
@@ -47,7 +48,7 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
         }
 
         Err (err) => {
-            eprintln!("Some error occured while getting project {}", err);
+            error!("Some error occured while getting project {}", err);
 
             return Err(Error::new(
                 ErrorType::InternalError,
@@ -66,7 +67,7 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
         let mut path_seg_owned = String::from(*path_segment);
         let mut resource_found = false;
 
-        println!("\tChecking folder with slug: {}", path_seg_owned.clone());
+        debug!("\tChecking folder with slug: {}", path_seg_owned.clone());
 
         if is_last && Encoding::match_extension(path_segment) {
             // TODO: Extract the extension here and match it with the rendition
@@ -78,13 +79,13 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
         // The last slug is usually the image rendition slug.
         if is_last && image_id != 0 {
             // Check if rendition slug
-            println!("\tValidating rendition slug: {}", path_segment);
+            debug!("\tValidating rendition slug: {}", path_segment);
             match ren_repo.get_from_image_and_slug(
                 image_id,
                 path_seg_owned.clone()
             ) {
                 Ok (rendition) => {
-                    println!("\t\t-> Returning Rendition!");
+                    debug!("\t\t-> Returning Rendition!");
 
                     return Ok(rendition);
                 }
@@ -119,7 +120,7 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
             }
         }
 
-        println!("\tChecking image with slug: {}", path_seg_owned.clone());
+        debug!("\tChecking image with slug: {}", path_seg_owned.clone());
 
         // Check if image
         match img_repo.is_valid_slug(
@@ -128,13 +129,13 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
             Ok (valid_option) => {
                 match valid_option {
                     Some(id) => {
-                        println!("\t\t-> Found image ({}), id: {}", path_seg_owned.clone(), id);
+                        debug!("\t\t-> Found image ({}), id: {}", path_seg_owned.clone(), id);
                         if is_last {
                             match ren_repo.get_from_image_and_slug(
                                 id, String::from("default")
                                 ) {
                                 Ok (rendition) => {
-                                    println!("\t\t-> Returning default rendition");
+                                    debug!("\t\t-> Returning default rendition");
                                     return Ok(rendition);
                                 }
 
@@ -178,7 +179,7 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
 
 /// Gets the path of an image
 pub fn get_image_path(image: Image) -> Result<String, DBError> {
-    println!("Getting image path");
+    debug!("Getting image path");
     let fol_repo = get_folder_repository();
     let prj_repo = get_project_repository();
 
@@ -194,13 +195,13 @@ pub fn get_image_path(image: Image) -> Result<String, DBError> {
             }
 
             Err(e) => {
-                eprintln!("Error while generating image path1: {}, folder: {}", e, folder_id);
+                error!("Error while generating image path1: {}, folder: {}", e, folder_id);
                 return Err(e);
             }
         }
     }
 
-    println!("-> Getting project");
+    debug!("-> Getting project");
 
     match prj_repo.get(image.project_id) {
         Ok(project) => {
@@ -208,12 +209,12 @@ pub fn get_image_path(image: Image) -> Result<String, DBError> {
         }
 
         Err(e) => {
-            eprintln!("Error while generating image path2: {}", e);
+            error!("Error while generating image path2: {}", e);
             return Err(e);
         }
     }
 
-    println!("-> done!");
+    debug!("-> done!");
 
     Ok(path)
 }
@@ -246,7 +247,7 @@ pub fn split_path(path: &str) -> Vec<&str> {
 
 /// Creates folder tree on the file system for the path supplied.
 pub fn create_folder_tree(path: &str) -> Result<(), ()> {
-    println!("in create_folder_tree");
+    debug!("in create_folder_tree");
     let mut path_updated = String::new();
     let mut insert_slash = false;
 
@@ -265,21 +266,21 @@ pub fn create_folder_tree(path: &str) -> Result<(), ()> {
 
     let path_str = path_updated.as_str();
 
-    println!("  -> checking if \"{}\" exists.", path_str);
+    debug!("  -> checking if \"{}\" exists.", path_str);
     if !Path::new(path_str).exists() {
         match create_dir_all(path_str) {
             std::io::Result::Ok(()) => {
-                println!("  -> Tree created.");
+                debug!("  -> Tree created.");
                 return Ok(());
             }
             std::io::Result::Err(e) => {
-                eprintln!("Error occured while creating renditions: {}", e);
+                error!("Error occured while creating renditions: {}", e);
                 return Err(());
             }
         }
     }
 
-    println!("  -> Tree exists already.");
+    debug!("  -> Tree exists already.");
 
     Ok (())
 }
@@ -312,7 +313,7 @@ pub fn rendition_cache_path(path: &str) -> Option<String> {
 
         let new_path = format!("{}{}", path, ext);
 
-        println!("Checking if {} exists", new_path);
+        debug!("Checking if {} exists", new_path);
 
         if Path::new(new_path.as_str()).exists() {
             return Some(new_path);
@@ -337,18 +338,18 @@ pub fn resize_and_save_rendition(
                 _ => {}
             }
 
-            println!("Saving rendition to path: {}", dest_path);
+            debug!("Saving rendition to path: {}", dest_path);
 
             match raster::save(&raster_img, dest_path) {
                 Ok (_) => { return Ok (()); }
                 Err(_) => {
-                    eprintln!("Error while saving file.");
+                    error!("Error while saving file.");
                     return Err(());
                 }
             }
         }
 
-        Err(_) => { eprintln!("Error while resizing."); return Err(()); }
+        Err(_) => { error!("Error while resizing."); return Err(()); }
     }
 }
 

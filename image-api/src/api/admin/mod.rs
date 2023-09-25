@@ -9,6 +9,7 @@ pub mod folder;
 use actix_web::{ HttpResponse, HttpRequest, get };
 use serde::Serialize;
 use qstring::QString;
+use log::{ debug, error };
 
 use crate::{
     api::service::path::split_path, db::DBError, auth::AuthMiddleware,
@@ -134,21 +135,21 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
     let fol_repo = get_folder_repository();
     let proj_repo = get_project_repository();
 
-    //println!("Path is: {}", path);
+    //debug!("Path is: {}", path);
 
     let project_slug: String;
     let project_id: u32;
     let mut folder_id: u32 = 0;
     let mut image_id: u32 = 0;
 
-    println!("Validating project slug: {}", path_segments[0]);
+    debug!("Validating project slug: {}", path_segments[0]);
 
     // Validate project
     match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
         Ok (valid_option) => {
             match valid_option {
                 Some(id) => {
-                    println!("\t-> Project Valid!");
+                    debug!("\t-> Project Valid!");
                     project_slug = String::from(path_segments[0]);
                     project_id = id;
                 },
@@ -160,7 +161,7 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
         }
 
         Err (err) => {
-            eprintln!("Some error occured while getting project {}", err);
+            error!("Some error occured while getting project {}", err);
 
             return HttpResponse::InternalServerError().body(
                 "Some error occured, please try again later!"
@@ -173,7 +174,7 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
     if path_segments.len() == 1
         && (_type == ResourceType::Project || _type == ResourceType::NONE)
     {
-        println!("show_all: {}", show_all);
+        debug!("show_all: {}", show_all);
 
         return generate_resource_response(
             fol_repo.get_from_project_slug(String::from(path_segments[0]), show_all),
@@ -186,7 +187,7 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
             let path_seg_owned = String::from(*path_segment);
             let mut resource_found = false;
 
-            println!("\tChecking folder with slug: {}", path_seg_owned.clone());
+            debug!("\tChecking folder with slug: {}", path_seg_owned.clone());
 
             // The last slug is usually the image rendition slug.
             if is_last && image_id != 0
@@ -195,13 +196,13 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
                     || _type == ResourceType::NONE
             ) {
                 // Check if rendition slug
-                println!("Validating rendition slug: {}", path_segment);
+                debug!("Validating rendition slug: {}", path_segment);
                 match ren_repo.get_from_project_rendition_slug(
                     project_slug.clone(),
                     path_seg_owned.clone()
                 ) {
                     Ok (rendition) => {
-                        println!("\t-> Returning Rendition!");
+                        debug!("\t-> Returning Rendition!");
 
                         // TODO: Check if the user has access.
                         return HttpResponse::Ok().json(GetChildrenResponse {
@@ -261,7 +262,7 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
                 }
             }
 
-            println!("\tChecking image with slug: {}", path_seg_owned.clone());
+            debug!("\tChecking image with slug: {}", path_seg_owned.clone());
 
             // Check if image
             match img_repo.is_valid_slug(
@@ -270,7 +271,7 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
                 Ok (valid_option) => {
                     match valid_option {
                         Some(id) => {
-                            println!("\tFound image ({}), id: {}", path_seg_owned.clone(), id);
+                            debug!("\tFound image ({}), id: {}", path_seg_owned.clone(), id);
                             if is_last {
                                 match img_repo.get(id) {
                                     Ok (image) => {
@@ -283,7 +284,7 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
                                         });
                                     }
 
-                                    Err (e) => { eprintln!("{}", e); }
+                                    Err (e) => { error!("{}", e); }
                                 }
                             }
 
@@ -350,7 +351,7 @@ fn generate_resource_response(
     // collect images
     match images_wrapped {
         Ok (images) => {
-            println!("Found wrapped images.");
+            debug!("Found wrapped images.");
             response_images = images;
 
             if !response_images.is_empty() {
@@ -360,7 +361,7 @@ fn generate_resource_response(
 
         Err (e) => {
             if e != DBError::NOT_FOUND {
-                eprintln!("Some internal error occured while fetching project images: {}", e);
+                error!("Some internal error occured while fetching project images: {}", e);
 
                 response_msg.push(String::from(
                     "Some internal error occured while fetching images."
@@ -374,7 +375,7 @@ fn generate_resource_response(
     // collect folders
     match folders_wrapped {
         Ok (folders) => {
-            println!("Found wrapped folders.");
+            debug!("Found wrapped folders.");
             response_folders = folders;
 
             if !response_folders.is_empty() {
@@ -384,7 +385,7 @@ fn generate_resource_response(
 
         Err (e) => {
             if e != DBError::NOT_FOUND {
-                eprintln!("Some internal error occured while fetching project folders: {}", e);
+                error!("Some internal error occured while fetching project folders: {}", e);
 
                 response_msg.push(String::from(
                     "Some internal error occured while fetching folders."

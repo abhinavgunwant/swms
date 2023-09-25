@@ -7,6 +7,7 @@ use actix_web::{
     cookie::{ time::Duration as ActixWebDuration, Cookie },
 };
 use serde::{ Serialize, Deserialize };
+use log::{ debug, error };
 
 use crate::{
     db::DBError, model::role::Role, server_state::ServerState,
@@ -67,7 +68,7 @@ pub async fn auth(
                     match role_repo.get(user.user_role) {
                         Ok (role) => { user_role = role },
                         Err (e) => {
-                            eprintln!(
+                            error!(
                                 "Some error occured while getting role (user-id: {}): {}",
                                 user.id,
                                 e
@@ -166,14 +167,14 @@ pub async fn auth_logout(req: HttpRequest) -> HttpResponse {
     match req.cookie("r") {
         Some(cookie) => {
             let val = String::from(cookie.value());
-            println!("found refresh token in cookie: {}", val);
+            debug!("found refresh token in cookie: {}", val);
 
             srv_state.remove_refresh_token(val);
             HttpResponse::Ok().cookie(ref_token_cookie_exp).body("Logged out")
         }
 
         None => {
-            println!("No refresh cookie found in the request!");
+            debug!("No refresh cookie found in the request!");
             HttpResponse::BadRequest().body("You're not signed in!")
         }
     }
@@ -219,7 +220,7 @@ pub async fn auth_refresh(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
         }
     }
 
-    println!("Refresh token cookie not set.");
+    error!("Refresh token cookie not set.");
     HttpResponse::BadRequest().body("You're not signed in!")
 }
 

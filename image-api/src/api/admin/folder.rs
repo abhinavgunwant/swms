@@ -1,5 +1,6 @@
 use actix_web::{ HttpResponse, HttpRequest, get, post, put, delete, web::Json };
 use qstring::QString;
+use log::debug;
 
 use crate::{
     db::DBError, auth::AuthMiddleware,
@@ -14,7 +15,7 @@ pub async fn get_folder (req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
 
     match get_folder_repository().get(folder_id) {
         Ok (folder) => {
-            println!("Got folder id: {}, title: {}", folder.id, folder.title);
+            debug!("Got folder id: {}, title: {}", folder.id, folder.title);
             HttpResponse::Ok().json(folder)
         }
 

@@ -2,6 +2,7 @@ use actix_web::{ get, post, put, web::Json, HttpRequest, HttpResponse };
 use serde::{ Serialize, Deserialize };
 use chrono::Utc;
 use qstring::QString;
+use log::{ info, error };
 
 use crate::{
     repository::user::{ get_user_repository, UserRepository },
@@ -62,6 +63,8 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>, _: AuthMiddleware)
 
     match get_user_repository().add(user) {
         Ok (id) => {
+            info!("Adding user: (id: {})", id);
+
             HttpResponse::Ok().json(UserResponseMessage{
                 success: true,
                 message: String::from("User Created!"),
@@ -69,8 +72,9 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>, _: AuthMiddleware)
             })
         }
 
-        Err (_e) => {
-            eprintln!("{}", _e);
+        Err (e) => {
+            error!("Error while adding user: {}", e);
+
             HttpResponse::Ok().json(UserResponseMessage{
                 success: false,
                 message: String::from("Some error occured, please try again!"),
@@ -193,8 +197,8 @@ pub async fn get_user_list(_: AuthMiddleware) -> HttpResponse {
             })
         }
 
-        Err (_e) => {
-            eprintln!("Some error occurred while fetching all users");
+        Err (e) => {
+            error!("Error while fetching all users: {}", e);
 
             HttpResponse::InternalServerError().json(UserListResponseMessage {
                 success: false,

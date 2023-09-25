@@ -2,6 +2,7 @@ use std::result::Result;
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
+use log::{ info, debug, error };
 
 use crate::{
     repository::image::{ Encoding, ImageRepository },
@@ -50,7 +51,7 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
         }
 
         Err (_e) => {
-            eprintln!("Error while getting images from query: {}", _e);
+            error!("Error while getting images from query: {}", _e);
 
             Err(DBError::OtherError)
         }
@@ -69,7 +70,7 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
 
                 let folder_id: u32;
 
-                println!("Getting image object...");
+                debug!("Getting image object...");
 
                 match row.take_opt("FOLDER_ID") {
                     Some (fi_result) => {
@@ -110,7 +111,7 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
         }
 
         Err(e) => {
-            eprintln!("Error while getting images from query: {}", e);
+            error!("Error while getting images from query: {}", e);
 
             Err(DBError::NOT_FOUND)
         }
@@ -214,7 +215,7 @@ impl ImageRepository for MySQLImageRepository {
     }
 
     fn add(&self, image: Image) -> Result<u32, String> {
-        println!("adding an image");
+        info!("adding an image");
 
         let error_msg: String = String::from("Error Inserting Data!");
 
@@ -251,7 +252,7 @@ impl ImageRepository for MySQLImageRepository {
 
                 match res {
                     Ok (_) => {
-                        println!("Data Inserted!");
+                        info!("Image data inserted (id: {})!", image.id);
 
                         let row_wrapped: Result<Option<Row>, Error> = tx.exec_first(
                             r"SELECT LAST_INSERT_ID() as LID;",
@@ -367,7 +368,7 @@ impl ImageRepository for MySQLImageRepository {
     fn update(&self, image: Image) -> Result<String, String> {
         let mut conn = get_db_connection();
 
-        println!("Updating an image");
+        debug!("Updating an image");
 
         let id = image.id;
 
@@ -438,7 +439,7 @@ impl ImageRepository for MySQLImageRepository {
                                             }
                                         }
 
-                                        Err (e) => { eprintln!("{}", e); }
+                                        Err (e) => { error!("{}", e); }
                                     }
 
                                     update_slug = true;
@@ -448,7 +449,7 @@ impl ImageRepository for MySQLImageRepository {
                             None => {
                                 match tx.rollback() {
                                     Ok (_) => {},
-                                    Err (e) => { eprintln!("{}", e); }
+                                    Err (e) => { error!("{}", e); }
                                 }
 
                                 return Err(
@@ -461,10 +462,10 @@ impl ImageRepository for MySQLImageRepository {
                     Err (e) => {
                         match tx.rollback() {
                             Ok (_) => {},
-                            Err (e) => { eprintln!("{}", e); }
+                            Err (e) => { error!("{}", e); }
                         }
 
-                        eprintln!("{}", e);
+                        error!("{}", e);
                         return Err(String::from("Some error occured."));
                     }
                 }
@@ -488,7 +489,7 @@ impl ImageRepository for MySQLImageRepository {
                         );
                     }
 
-                    println!("{}", set_clause);
+                    debug!("{}", set_clause);
 
                     match tx.exec_drop(
                         format!(
@@ -499,7 +500,7 @@ impl ImageRepository for MySQLImageRepository {
                     ) {
                         Ok (_) => {},
                         Err (e) => {
-                            eprintln!("{}", e);
+                            error!("{}", e);
                         }
                     }
                 } else {
@@ -507,7 +508,7 @@ impl ImageRepository for MySQLImageRepository {
             }
 
             Err (e) => {
-                eprintln!("{}", e);
+                error!("{}", e);
 
                 return Err(String::from("Some unknown error occured."))
             }
@@ -534,7 +535,7 @@ impl ImageRepository for MySQLImageRepository {
             Ok(_) => Ok(String::from("Successfully updated image!")),
 
             Err (e) => {
-                eprintln!("Error while updating image: {}", e);
+                error!("Error updating image: {}", e);
 
                 Err(String::from("Unable to update image."))
             }
@@ -542,13 +543,13 @@ impl ImageRepository for MySQLImageRepository {
     }
 
     fn remove(&self, image: Image) -> Result<String, String> {
-        println!("Removing an image");
+        debug!("Removing an image");
 
         self.remove_item(image.id)
     }
 
     fn remove_item(&self, id: u32) -> Result<String, String> {
-        println!("Removing an image item");
+        debug!("Removing an image item");
         let mut conn = get_db_connection();
 
         match conn.exec_drop(
@@ -556,13 +557,13 @@ impl ImageRepository for MySQLImageRepository {
             params! { "id" => id.clone() },
         ) {
             Ok (_) => {
-                println!("Image with ID: {} removed successfully!", id);
+                info!("Image removed successfully! (ID: {})", id);
 
                 Ok (String::from("Successfully removed image."))
             }
 
             Err (e) => {
-                eprintln!("Unable to remove image with ID: {}\nError: {}", id, e);
+                error!("Unable to remove image with ID: {}\nError: {}", id, e);
 
                 Err (String::from("Unable to remove image."))
             }

@@ -1,6 +1,8 @@
 //! Delete service
 
 use std::fs::{ read, rename, remove_file };
+use log::{ debug, error };
+
 use crate::{
     db::DBError,
     repository::{
@@ -28,9 +30,9 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
                 error = true;
 
                 if e == DBError::NOT_FOUND {
-                    eprintln!("Error in delete image api while getting image object: Image not found");
+                    error!("Error in delete image api while getting image object: Image not found");
                 } else {
-                    eprintln!("Unknown error in delete image api while getting image object!");
+                    error!("Unknown error in delete image api while getting image object!");
                 }
 
                 image = None;
@@ -47,7 +49,7 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
         if !renditions.is_empty() {
             match ren_repo.remove_all_from_image(*image_id) {
                 Ok (msg) => {
-                    println!("{} from database!", msg);
+                    debug!("{} from database!", msg);
 
                     for rendition in renditions.iter() {
                         let file_name: String = format!(
@@ -60,7 +62,7 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
                             Ok (_) => {}
 
                             Err (e) => {
-                                eprintln!(
+                                error!(
                                     "Error while deleting rendition file {} (id: {}) for image id: {}: {}",
                                     file_name,
                                     rendition.id,
@@ -75,7 +77,7 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
                 }
 
                 Err (e_msg) => {
-                    eprintln!("{}", e_msg);
+                    error!("{}", e_msg);
 
                     return Err(format!(
                         "Couldn't remove renditions for image (id: {})",
@@ -99,7 +101,7 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
                             Ok (_) => {}
 
                             Err (e) => {
-                                eprintln!("Error while deleting image file for image id: {}: {}", image_id, e);
+                                error!("Error while deleting image file for image id: {}: {}", image_id, e);
                                 error = true;
                             }
                         }
@@ -187,7 +189,7 @@ fn get_subfolders(folder_id: u32) -> Vec<u32> {
             }
         }
 
-        Err (e) => { println!("{}", e); }
+        Err (e) => { error!("{}", e); }
     }
 
     return f_ids;

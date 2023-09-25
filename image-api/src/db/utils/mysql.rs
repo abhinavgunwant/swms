@@ -1,5 +1,6 @@
 use mysql::*;
 use mysql::prelude::*;
+use log::error;
 
 use crate::db::{ get_db_connection, DBError };
 
@@ -36,7 +37,7 @@ pub fn process_id_from_row_result (row_result: std::result::Result<Option<Row>, 
         }
 
         Err (e) => {
-            eprintln!("{}", e);
+            error!("{}", e);
 
             Err (DBError::OtherError)
         }

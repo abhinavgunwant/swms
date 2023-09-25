@@ -1,0 +1,48 @@
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {h({({l}):5.5})} | {f:>20.128}:{L:4.7} - {m}{n}"
+
+  main_ap:
+    kind: rolling_file
+    path: logs/app.log
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {h({({l}):5.5})} | {f:>40.128}:{L:4.7} - {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 8 mb
+      roller:
+        kind: fixed_window
+        pattern: logs/archives/app_{}.gz
+        count: 21
+        base: 1
+
+  request_ap:
+    kind: rolling_file
+    path: logs/request.log
+      # encoder:
+      #   pattern: "{d(%Y-%m-%d %H:%M:%S)} | {h({({l}):5.5})} | {f:>40.128}:{L:4.7} - {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 8 mb
+      roller:
+        kind: fixed_window
+        pattern: logs/archives/request_{}.gz
+        count: 21
+        base: 1
+
+root:
+  level: info
+  appenders:
+    - stdout
+    - main_ap
+
+loggers:
+  request:
+    level: info
+    appenders:
+      - request_ap
+

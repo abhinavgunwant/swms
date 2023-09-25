@@ -5,6 +5,7 @@ use std::fs::{ read, rename };
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
 use chrono::Utc;
+use log::{ debug, error };
 
 use crate::{
     db::DBError, auth::AuthMiddleware,
@@ -37,7 +38,7 @@ pub struct ImageTitleUpdateRequest {
 pub async fn get_images_in_project(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let project_id: String = req.match_info().get("project_id")
         .unwrap().parse().unwrap();
-    println!("Fetching images for project: {}", project_id);
+    debug!("Fetching images for project: {}", project_id);
     let repo = get_image_repository();
     let images_wrapped = repo.get_all_from_project(project_id.parse::<u32>().unwrap());
 
@@ -53,7 +54,7 @@ pub async fn get_images_in_project(req: HttpRequest, _: AuthMiddleware) -> HttpR
                     .json(ImageResponse { images: vec![] });
             }
 
-            eprintln!("Some internal error occured while fetching project images.");
+            error!("Some internal error occured while fetching project images.");
 
             HttpResponse::InternalServerError()
                 .json(ImageResponse { images: vec![] })
@@ -68,7 +69,7 @@ pub async fn get_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
 
     match get_image_repository().get(image_id) {
         Ok (image) => {
-            println!("got id: {}, name: {}", image.id, image.name);
+            debug!("got id: {}, name: {}", image.id, image.name);
             HttpResponse::Ok().json(image)
         }
 
@@ -85,7 +86,7 @@ pub async fn get_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
 #[post("/api/admin/image-save")]
 pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
     -> HttpResponse {
-    println!("Got request for upload id: {}", req_image.upload_id);
+    debug!("Got request for upload id: {}", req_image.upload_id);
 
     let mut image = Image {
         id: 0,
@@ -111,7 +112,7 @@ pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
         image.encoding.extension()
     );
 
-    println!("source file path: {}", source_file_path);
+    debug!("source file path: {}", source_file_path);
 
     let raster_img = raster::open(source_file_path.as_str()).unwrap();
 
@@ -136,7 +137,7 @@ pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
                 }),
 
                 Err (e) => {
-                    eprintln!(
+                    error!(
                         "An I/O error occured while adding an image: {}", e
                     );
 
