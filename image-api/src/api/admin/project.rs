@@ -24,7 +24,7 @@ pub struct AddUserToProjectRequest {
 }
 
 #[get("/api/admin/project")]
-pub async fn get_projects() -> HttpResponse {
+pub async fn get_projects(_: AuthMiddleware) -> HttpResponse {
     let repo = get_project_repository();
 
     let projects_wrapped = repo.get_all();
@@ -57,7 +57,8 @@ pub async fn get_projects() -> HttpResponse {
 }
 
 #[get("/api/admin/projects-for-user")]
-pub async fn get_projects_for_user(auth: AuthMiddleware) -> HttpResponse {
+pub async fn get_projects_for_user(auth: AuthMiddleware, _: AuthMiddleware)
+    -> HttpResponse {
     println!("getting projects for user");
 
     if !auth.authorized {
@@ -125,7 +126,7 @@ pub async fn get_projects_for_user(auth: AuthMiddleware) -> HttpResponse {
 }
 
 #[post("/api/admin/project")]
-pub async fn add_project(project: Json<Project>) -> HttpResponse {
+pub async fn add_project(project: Json<Project>, _: AuthMiddleware) -> HttpResponse {
     let repo = get_project_repository();
 
     println!("{}", project);
@@ -150,7 +151,10 @@ pub async fn add_project(project: Json<Project>) -> HttpResponse {
 }
 
 #[post("/api/admin/project/add-users")]
-pub async fn add_users_to_project(req_obj: Json<AddUserToProjectRequest>) -> HttpResponse {
+pub async fn add_users_to_project(
+    req_obj: Json<AddUserToProjectRequest>,
+    _: AuthMiddleware
+) -> HttpResponse {
     let repo = get_project_repository();
 
     repo.add_users_to_project(req_obj.project_id, &req_obj.users);
@@ -163,7 +167,7 @@ pub async fn add_users_to_project(req_obj: Json<AddUserToProjectRequest>) -> Htt
 }
 
 #[get("/api/admin/project/validate-slug")]
-pub async fn validate_slug(req: HttpRequest) -> HttpResponse {
+pub async fn validate_slug(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     match qs.get("slug") {

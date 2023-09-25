@@ -2,13 +2,13 @@ use actix_web::{ get, post, put, delete, web::Json, HttpResponse };
 
 use crate::{
     repository::role::{ get_role_repository, RoleRepository },
-    db::DBError, model::role::Role,
+    db::DBError, model::role::Role, auth::AuthMiddleware,
 };
 
 
 /// Gets all roles.
 #[get("/api/admin/roles")]
-pub async fn get_all_roles() -> HttpResponse {
+pub async fn get_all_roles(_: AuthMiddleware) -> HttpResponse {
     match get_role_repository().get_all() {
         Ok (roles) => HttpResponse::Ok().json(roles),
         Err (e) => {
@@ -22,7 +22,7 @@ pub async fn get_all_roles() -> HttpResponse {
 }
 
 #[post("/api/admin/role")]
-pub async fn set_role(role: Json<Role>) -> HttpResponse {
+pub async fn set_role(role: Json<Role>, _: AuthMiddleware) -> HttpResponse {
     match get_role_repository().add(Role {
         id: role.id,
         role_name: role.role_name.clone(),
@@ -34,7 +34,7 @@ pub async fn set_role(role: Json<Role>) -> HttpResponse {
 }
 
 #[put("/api/admin/role")]
-pub async fn update_role(role: Json<Role>) -> HttpResponse {
+pub async fn update_role(role: Json<Role>, _: AuthMiddleware) -> HttpResponse {
     match get_role_repository().update(Role {
         id: role.id,
         role_name: role.role_name.clone(),
@@ -46,7 +46,7 @@ pub async fn update_role(role: Json<Role>) -> HttpResponse {
 }
 
 #[delete("/api/admin/role")]
-pub async fn delete_role(role: Json<Role>) -> HttpResponse {
+pub async fn delete_role(role: Json<Role>, _: AuthMiddleware) -> HttpResponse {
     match get_role_repository().remove(Role {
         id: role.id,
         role_name: role.role_name.clone(),

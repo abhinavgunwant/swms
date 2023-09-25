@@ -3,15 +3,20 @@ mod db;
 mod repository;
 mod auth;
 mod model;
+mod server_state;
 
-use actix_web::{ App, HttpServer, web };
+use actix_web::{ App, HttpServer, web::{ PayloadConfig, Data } };
 use actix_cors::Cors;
 use actix_web_static_files::ResourceFiles;
+
+use server_state::ServerState;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let server_state_data = Data::new(ServerState::default());
+
     HttpServer::new(move || {
         // TODO: Implement a stricter CORS policy.
         let cors = //Cors::default()
@@ -33,7 +38,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .configure(api::config)
-            .app_data(web::PayloadConfig::new(1000000 * 250))
+            .app_data(server_state_data.clone())
+            .app_data(PayloadConfig::new(1000000 * 250))
             .service(api::echo)
             .service(api::am_i_logged_in)
             .service(api::admin::get_children)
@@ -73,3 +79,4 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
+

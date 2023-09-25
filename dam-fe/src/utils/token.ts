@@ -17,13 +17,16 @@ export const sessionFromToken: (t: string) => Session = (token: string) => {
         }).join('')
     );
 
-    const p: JsonPayload = JSON.parse(jsonPayload);
+    const p: any = JSON.parse(jsonPayload);
 
     return {
         username: p.sub,
         name: p.name,
         expiry: new Date(p.exp * 1000),
-        role: p.role,
+        role: {
+            id: p.role.id,
+            ...p.role.permissions,
+        },
     };
 };
 

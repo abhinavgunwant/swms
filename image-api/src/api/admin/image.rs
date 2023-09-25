@@ -1,15 +1,15 @@
 use actix_web::{
     web::{ Json, block }, HttpResponse, HttpRequest, post, get, put, delete,
 };
-use std::fs::{ read, rename, remove_file };
+use std::fs::{ read, rename };
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
 use chrono::Utc;
 
 use crate::{
-    db::DBError,
+    db::DBError, auth::AuthMiddleware,
     repository::image::{ ImageRepository, get_image_repository },
-    model::{ image::Image, upload_image::UploadImage, rendition::Rendition, },
+    model::{ image::Image, upload_image::UploadImage },
     api::{ admin::SuccessResponse, service::remove::remove_images, },
 };
 
@@ -34,7 +34,7 @@ pub struct ImageTitleUpdateRequest {
 }
 
 #[get("/api/admin/project/{project_id}/images")]
-pub async fn get_images_in_project(req: HttpRequest) -> HttpResponse {
+pub async fn get_images_in_project(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let project_id: String = req.match_info().get("project_id")
         .unwrap().parse().unwrap();
     println!("Fetching images for project: {}", project_id);
@@ -62,7 +62,7 @@ pub async fn get_images_in_project(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/api/admin/image/{image_id}")]
-pub async fn get_image(req: HttpRequest) -> HttpResponse {
+pub async fn get_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
@@ -83,7 +83,8 @@ pub async fn get_image(req: HttpRequest) -> HttpResponse {
 }
 
 #[post("/api/admin/image-save")]
-pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
+pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
+    -> HttpResponse {
     println!("Got request for upload id: {}", req_image.upload_id);
 
     let mut image = Image {
@@ -165,7 +166,7 @@ pub async fn add_image(req_image: Json<UploadImage>) -> HttpResponse {
 /// ## URL parameters:
 /// - `id` - Comma-separated image IDs.
 #[delete("/api/admin/image")]
-pub async fn remove_image(req: HttpRequest) -> HttpResponse {
+pub async fn remove_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let image_ids: Vec<u32>;
@@ -205,7 +206,8 @@ pub async fn remove_image(req: HttpRequest) -> HttpResponse {
  * Gets the original image file for preview for admin user.
  */
 #[get("/api/admin/image-file/{image_id}")]
-pub async fn get_image_file(req: HttpRequest) -> HttpResponse {
+pub async fn get_image_file(req: HttpRequest, _: AuthMiddleware)
+    -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
@@ -240,7 +242,7 @@ pub async fn get_image_file(req: HttpRequest) -> HttpResponse {
 
 /// Updates an image.
 #[put("/api/admin/image")]
-pub async fn update(req: Json<Image>) -> HttpResponse {
+pub async fn update(req: Json<Image>, _: AuthMiddleware) -> HttpResponse {
     match get_image_repository().update(req.into_inner()) {
         Ok (msg) => HttpResponse::Ok().json(SuccessResponse::new(true, msg)),
         Err (msg) => HttpResponse::InternalServerError()

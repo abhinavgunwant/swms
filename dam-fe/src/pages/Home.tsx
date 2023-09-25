@@ -1,5 +1,5 @@
 import React, {
-    ChangeEvent, Fragment, useEffect, useState, useTransition,
+    ChangeEvent, Fragment, useEffect, useState, useTransition, useRef,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,7 +64,22 @@ const Home = (): React.ReactElement => {
 
     const { login } = useAPI();
 
+    const sessionChecked = useRef<boolean>(false);
+
     const navigate = useNavigate();
+
+    const checkSession = async () => {
+        const token = await getLatestSessionToken();
+
+        if (token) {
+            userStore.setSession(sessionFromToken(token));
+            userStore.setSessionToken(token);
+
+            navigate('/workspace');
+        } else {
+            startTransition(() => setCheckingSession(false));
+        }
+    };
 
     const onLogin = async (e: React.SyntheticEvent) => {
         if (e) {
@@ -133,20 +148,10 @@ const Home = (): React.ReactElement => {
         if (userStore.sessionToken) {
             navigate('/workspace');
         } else {
-            async function f() {
-                const token = await getLatestSessionToken();
-
-                if (token) {
-                    userStore.setSession(sessionFromToken(token));
-                    userStore.setSessionToken(token);
-
-                    navigate('/workspace');
-                } else {
-                    startTransition(() => setCheckingSession(false));
-                }
+            if (!sessionChecked.current) {
+                checkSession();
+                sessionChecked.current = true;
             }
-
-            f();
         }
     }, []);
 
@@ -162,10 +167,6 @@ const Home = (): React.ReactElement => {
                 <CardContent>
                     <Typography variant="h4">
                         Login
-                    </Typography>
-
-                    <Typography>
-                        In order to use DAM, you must login.
                     </Typography>
 
                     <form onSubmit={ onLogin }>

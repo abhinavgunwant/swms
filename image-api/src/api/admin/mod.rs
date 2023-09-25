@@ -11,8 +11,7 @@ use serde::Serialize;
 use qstring::QString;
 
 use crate::{
-    api::service::path::{ split_path },
-    db::DBError,
+    api::service::path::split_path, db::DBError, auth::AuthMiddleware,
     repository::{
         image::{ ImageRepository, get_image_repository },
         folder::{ FolderRepository, get_folder_repository },
@@ -59,7 +58,8 @@ pub enum ResourceType {
  * /api/admin/get-children?type=<type>&path=<path>
  */
 #[get("/api/admin/get-children")]
-pub async fn get_children(req: HttpRequest) -> HttpResponse {
+pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
+    -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let mut response_msg: Vec<String> = vec![];

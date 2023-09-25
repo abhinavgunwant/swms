@@ -1,32 +1,21 @@
-// use std::path::PathBuf;
-use std::io::Write;
-use std::fs::{ File, read };
-use std::path::Path;
-//use std::time::{ Duration, Instant };
+use std::{ io::Write, fs::{ File, read } };
+
 use actix_multipart::Multipart;
-use actix_web::{
-    get, post, web::block, HttpResponse, HttpRequest,
-};
-// use actix_form_data::{ handle_multipart, Error, Field, Form, Value };
+use actix_web::{ get, post, web::block, HttpResponse, HttpRequest };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::Serialize;
-use raster;
-use regex::Regex;
 use crate::{
     api::{
         DEST_REN_DIR, IMG_UPL_DIR,
         service::path::{
-            get_rendition_from_path_segments, split_path, create_folder_tree,
+            get_rendition_from_path_segments, split_path,
             rendition_cache_path, cache_rendition_file,
         }
     },
-    repository::{
-        rendition::{ RenditionRepository, get_rendition_repository },
-        image::{ ImageRepository, get_image_repository },
-    },
-    model::{ rendition::Rendition, error::ErrorType, encoding::Encoding },
-    db::DBError,
+    repository::image::{ ImageRepository, get_image_repository },
+    model::{ error::ErrorType, encoding::Encoding },
+    db::DBError, auth::AuthMiddleware,
 };
 
 #[derive(Serialize)]
@@ -56,7 +45,8 @@ fn error_response(msg: &str) -> HttpResponse {
 }
 
 #[post("/api/image")]
-pub async fn upload(mut payload: Multipart) -> HttpResponse {
+pub async fn upload(mut payload: Multipart, _: AuthMiddleware)
+    -> HttpResponse {
     // iterate over multipart stream
     while let Ok(Some(mut field)) = payload.try_next().await {
         let cd = field.content_disposition();
@@ -99,139 +89,6 @@ pub async fn upload(mut payload: Multipart) -> HttpResponse {
         upload_id: String::from(""),
         message: String::from("Some error occured while uploading..."),
     })
-}
-
-/**
- * Returns the requested image rendition.
- * 
- * Creates a file in the image-rendition-cache folder when the first request is
- * received and returns this cached file in the subsequent requests.
- * 
- * TODO: Make the cache behaviour optional with user choosing whether to make
- * renditions render eagerly or lazily.
- */
-pub async fn download2(req: HttpRequest) -> HttpResponse {
-    let path: String = req.match_info().get("path").unwrap().parse().unwrap();
-
-    // Refine path string
-    let mut path_refined: String = String::from(
-        path.as_str().trim_matches('/')
-    );
-    while path_refined.contains("//") {
-        path_refined = path_refined.replace("//", "/");
-    }
-
-    let path_list: Vec<&str> = path_refined.split("/").collect();
-    let path_list_len = path_list.len();
-
-    let img_ext_pat = Regex::new(r"\.(jpg|jpeg|gif|png|bmp)$").unwrap();
-
-
-    // Tells whether the requested image has extension
-
-    let repo = get_rendition_repository();
-    let img_repo = get_image_repository();
-
-    if path_list_len.clone() == 2 {
-        let img_has_ext: bool = img_ext_pat.is_match(path_list[1]);
-        let rendition_slug: String;
-
-        if img_has_ext {
-            rendition_slug = String::from(
-                img_ext_pat.replace_all(path_list[1], "").as_ref()
-            );
-        } else {
-            rendition_slug = String::from(path_list[1]);
-        }
-
-        let rendition_result: Result<Rendition, DBError> = repo.
-            get_from_project_rendition_slug(
-                String::from(path_list[0]),
-                rendition_slug
-            );
-
-        match rendition_result {
-            Ok (rendition) => {
-                // TODO: Check if img_has_ext is true, if it is, check if it
-                //    has any renditions that match it's extention.");
-
-                let dest_file_path = format!(
-                    "{}/{}{}",
-                    DEST_REN_DIR,
-                    rendition.id,
-                    rendition.encoding.extension()
-                );
-
-                if !Path::new(dest_file_path.as_str()).exists() {
-                    // Get source image element from the rendition
-                    // to get the source image extension
-                    match img_repo.get(rendition.image_id) {
-                        Ok (image_data) => {
-                            let source_file_path = format!(
-                                "{}/{}{}",
-                                IMG_UPL_DIR,
-                                image_data.id,
-                                image_data.encoding.extension()
-                            );
-
-                            println!("Getting source file: {}", source_file_path);
-
-                            let mut raster_img = raster::open(
-                                source_file_path.as_str()
-                            ).unwrap();
-
-                            raster::editor::resize(
-                                &mut raster_img,
-                                rendition.width as i32,
-                                rendition.height as i32,
-                                raster::ResizeMode::Fit
-                            ).unwrap();
-
-                            raster::save(
-                                &raster_img,
-                                dest_file_path.as_str()
-                            ).unwrap();
-                        }
-
-                        Err (e) => {
-                            if e == DBError::NOT_FOUND {
-                                return HttpResponse::NotFound()
-                                    .body("Not Found");
-                            }
-
-                            if e == DBError::OtherError {
-                                return HttpResponse::InternalServerError()
-                                    .body("Internal Server Error");
-                            }
-                        }
-                    }
-                }
-                
-                let image_file = block(
-                    move || read(String::from(dest_file_path))
-                ).await.unwrap().expect("Error whie downloading!");
-
-                return HttpResponse::Ok()
-                    .content_type(rendition.encoding.mime_type())
-                    .body(image_file);
-            }
-
-            Err (e) => {
-                if e == DBError::NOT_FOUND {
-                    return HttpResponse::NotFound().body("Not Found!!!!");
-                }
-
-                return HttpResponse::InternalServerError()
-                    .body("Some error occured");
-            }
-        }
-    }
-
-    if path_list_len > 2 {
-        return HttpResponse::Ok().body("Image child of a folder");
-    }
-
-    HttpResponse::NotFound().body("Not Found")
 }
 
 #[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]

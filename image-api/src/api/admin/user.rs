@@ -5,7 +5,7 @@ use qstring::QString;
 
 use crate::{
     repository::user::{ get_user_repository, UserRepository },
-    db::DBError, model::user::User,
+    db::DBError, model::user::User, auth::AuthMiddleware,
 };
 
 #[derive(Deserialize)]
@@ -44,7 +44,8 @@ pub struct EditUserRequest {
 }
 
 #[post("/api/admin/user")]
-pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
+pub async fn create_user(req_obj: Json<CreateUserRequest>, _: AuthMiddleware)
+    -> HttpResponse {
     let user = User {
         id: 0, // id is auto generated, so it does not matter
         name: req_obj.name.clone(),
@@ -86,7 +87,8 @@ pub async fn create_user(req_obj: Json<CreateUserRequest>) -> HttpResponse {
  * to submit when changing user attributes.
  */
 #[put("/api/admin/user")]
-pub async fn edit_user(req_obj: Json<EditUserRequest>) -> HttpResponse {
+pub async fn edit_user(req_obj: Json<EditUserRequest>, _: AuthMiddleware)
+    -> HttpResponse {
     match get_user_repository().update(User {
         id: req_obj.id,
         name: req_obj.name.clone(),
@@ -106,7 +108,7 @@ pub async fn edit_user(req_obj: Json<EditUserRequest>) -> HttpResponse {
 }
 
 #[get("/api/admin/user/{login_id}")]
-pub async fn get_user(req: HttpRequest) -> HttpResponse {
+pub async fn get_user(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let req_path: String = req.match_info().get("login_id")
         .unwrap().parse().unwrap();
 
@@ -169,7 +171,7 @@ pub async fn get_user(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/api/admin/users")]
-pub async fn get_user_list() -> HttpResponse {
+pub async fn get_user_list(_: AuthMiddleware) -> HttpResponse {
     match get_user_repository().get_all() {
         Ok (users) => {
             let mut user_list: Vec<EditUserRequest> = vec![];
@@ -204,7 +206,7 @@ pub async fn get_user_list() -> HttpResponse {
 }
 
 #[get("/api/admin/search/user")]
-pub async fn search_user(req: HttpRequest) -> HttpResponse {
+pub async fn search_user(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let user_query = qs.get("name").unwrap().trim();

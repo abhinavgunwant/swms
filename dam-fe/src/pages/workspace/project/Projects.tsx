@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition, MouseEvent } from 'react';
+import { useEffect, useRef, useState, useTransition, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Grid, List, Typography, CircularProgress, Box } from '@mui/material';
@@ -12,6 +12,7 @@ import { Thumbnail, ImageListItem, WorkspaceFab } from '../../../components';
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 import ProjectModel from '../../../models/Project';
 import useUserStore from '../../../store/workspace/UserStore';
+import UserState from '../../../store/workspace/UserState';
 import useAPI from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
@@ -37,6 +38,13 @@ const StyledBox = styled(Box)`
     height: 60px;
 `;
 
+const userSelector = (state: UserState) => ({
+    session: state.session,
+    sessionToken: state.sessionToken,
+    setSessionToken: state.setSessionToken,
+    setSession: state.setSession,
+});
+
 const Project = () => {
     const [ loading, setLoading ] = useState(true);
     const [ selected, setSelected ] = useState<boolean[]>([]);
@@ -44,9 +52,23 @@ const Project = () => {
     const [ _, startTransition ] = useTransition();
 
     const store = useWorkspaceStore();
-    const userStore = useUserStore();
+    const userStore = useUserStore(userSelector);
     const { getProjects } = useAPI();
     const navigate = useNavigate();
+
+    const projectsFetched = useRef<boolean>(false);
+
+    const _getProjects = async () => {
+        await getProjects();
+
+        store.setCurrentPath('/workspace');
+
+        startTransition(() => {
+            setLoading(false);
+
+            deselectAll();
+        });
+    };
 
     const onThumbnailClicked = (p: ProjectModel) => {
         return () => {
@@ -97,20 +119,13 @@ const Project = () => {
 
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
-        const func = async () => {
-            await getProjects();
-
-            store.setCurrentPath('/workspace');
-
-            startTransition(() => {
-                setLoading(false);
-
-                deselectAll();
-            });
-        };
-
-        func();
+        if (!projectsFetched.current) {
+            projectsFetched.current = true;
+            _getProjects();
+        }
     }, []);
+
+    console.log('createProject: ', userStore.session);
 
     return <div className="page page--project">
         <WorkspaceTopRow links={ ['Workspace'] } />

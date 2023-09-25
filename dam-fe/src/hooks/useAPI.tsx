@@ -13,7 +13,13 @@ const PATH_PRE = `${ HOST }/api/admin`;
 const APPLICATION_JSON = { 'Content-Type': 'application/json' };
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
 
-const success = (success: boolean, message: string) => ({ success, message });
+const success = (success: boolean, message: string, other: object = undefined) => {
+    if (other === undefined) {
+        return { success, message }
+    }
+
+    return { success, message, ...other };
+};
 
 const useAPI = () => {
     const wsStore = useWorkspaceStore();
@@ -217,8 +223,6 @@ const useAPI = () => {
 
         /**
          * Gets a single image.
-         *
-         * TODO: Verify that the response is a proper `Image` object.
          */
         getImage: async (imageId: number) => {
             const response = await apiCall(`${ PATH_PRE }/image/${ imageId }`);
@@ -369,9 +373,8 @@ const useAPI = () => {
 
         getRenditions: async (imageId: number) => {
             const response = await apiCall(
-                `${ PATH_PRE }/renditions?image-id=${ imageId }`, {
-                headers: APPLICATION_JSON,
-            });
+                `${ PATH_PRE }/renditions?image-id=${ imageId }`
+            );
 
             if (response.status === 200) {
                 const { renditions }: ({ renditions: Rendition[]}) = await response.json();
@@ -383,7 +386,11 @@ const useAPI = () => {
                 };
             }
 
-            return success(false, 'Some Unknown Error Occured');
+            return {
+                success: false,
+                message: 'Some Unknown Error Occured',
+                renditions: [],
+            };
         },
 
         deleteRendition: async(renditionId: number) => {

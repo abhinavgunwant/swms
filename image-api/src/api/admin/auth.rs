@@ -3,27 +3,24 @@
 //! Contains Authentication and Authorization related code.
 
 use actix_web::{
-    web::Json, HttpRequest, HttpResponse, get, post,
+    web::{ Json, Data }, HttpRequest, HttpResponse, get, post,
     cookie::{ time::Duration as ActixWebDuration, Cookie },
 };
 use serde::{ Serialize, Deserialize };
-use chrono::{ DateTime, Utc, Duration };
 
 use crate::{
-    db::DBError,
-    model::{ user::User, role::Role },
+    db::DBError, model::role::Role, server_state::ServerState,
     repository::{
         user::{ get_user_repository, UserRepository },
         role::{ get_role_repository, RoleRepository },
     },
     auth::{
-        pwd_hash::verify_password,
+        AuthMiddleware, pwd_hash::verify_password,
         token::{
-            create_session_token, create_refresh_token, remove_refresh_token,
+            create_session_token, create_refresh_token,
             create_session_token_from_refresh_token, TokenError,
-            create_refresh_token_cookie,
+            create_refresh_token_cookie, RefreshTokenData, get_expiry_from_now,
         },
-        utils::validate_session_token,
     },
 };
 
@@ -43,7 +40,10 @@ pub struct AuthMessage {
 }
 
 #[post("/login")]
-pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
+pub async fn auth(
+    req_obj: Json<AuthRequest>,
+    srv_state: Data<ServerState>,
+) -> HttpResponse {
     let user_repo = get_user_repository();
     let role_repo = get_role_repository();
 
@@ -101,19 +101,45 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
     }
 
     if user_valid {
-        let refresh_token: String = create_refresh_token(
+        let ref_token_data = RefreshTokenData {
             user_id,
-            req_obj.username.clone(),
-            name.clone(),
-            user_role.id
-        );
+            role_id: user_role.id,
+            username: req_obj.username.clone(),
+            name: name.clone(),
+            expiry: get_expiry_from_now()
+        };
 
-        return HttpResponse::Ok().cookie(
-            create_refresh_token_cookie(refresh_token)
-        ).json(AuthMessage {
-            success: true,
-            s: create_session_token(req_obj.username.clone(), name, user_role),
-            message: String::from("Login Successful!"),
+        let mut loop_counter: u8 = 0;
+
+        loop {
+            let rt = create_refresh_token();
+
+            if !srv_state.refresh_token_exists(&rt) {
+                srv_state.insert_refresh_token(rt.clone(), ref_token_data);
+
+                return HttpResponse::Ok().cookie(
+                    create_refresh_token_cookie(rt)
+                ).json(AuthMessage {
+                    success: true,
+                    s: create_session_token(
+                        req_obj.username.clone(), name, user_id, user_role
+                    ),
+                    message: String::from("Login Successful!"),
+                });
+            }
+
+            // after looping 100 times, just give up!
+            if loop_counter > 98 {
+                break;
+            }
+
+            loop_counter += 1;
+        }
+
+        return HttpResponse::InternalServerError().json(AuthMessage {
+            success: false,
+            s: String::from(""),
+            message: String::from("An internal error occured."),
         });
     }
 
@@ -125,7 +151,7 @@ pub async fn auth(req_obj: Json<AuthRequest>) -> HttpResponse {
 }
 
 #[get("/logout")]
-async fn auth_logout(req: HttpRequest) -> HttpResponse {
+pub async fn auth_logout(req: HttpRequest) -> HttpResponse {
     let ref_token_cookie_exp: Cookie = Cookie::build("r", "")
         .path("/")
         .domain("localhost") // TODO: make this configurable
@@ -133,6 +159,8 @@ async fn auth_logout(req: HttpRequest) -> HttpResponse {
         .max_age(ActixWebDuration::new(-1, 0))
         .http_only(true)
         .finish();
+    
+    let srv_state = req.app_data::<Data<ServerState>>().unwrap();
 
     // delete the refresh token from the hash map.
     match req.cookie("r") {
@@ -140,41 +168,40 @@ async fn auth_logout(req: HttpRequest) -> HttpResponse {
             let val = String::from(cookie.value());
             println!("found refresh token in cookie: {}", val);
 
-            unsafe {
-                remove_refresh_token(val);
-            }
+            srv_state.remove_refresh_token(val);
+            HttpResponse::Ok().cookie(ref_token_cookie_exp).body("Logged out")
         }
 
         None => {
             println!("No refresh cookie found in the request!");
-            return HttpResponse::BadRequest().body("You're not signed in!");
+            HttpResponse::BadRequest().body("You're not signed in!")
         }
     }
-
-    HttpResponse::Ok().cookie(ref_token_cookie_exp).body("Logged out")
 }
 
 #[get("/refresh")]
-async fn auth_refresh(req: HttpRequest) -> HttpResponse {
-    match req.cookie("r") {
-        Some(cookie) => {
-            let val = String::from(cookie.value());
+pub async fn auth_refresh(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
+    if let Some(cookie) = req.cookie("r") {
+        let val = String::from(cookie.value());
 
-            let token_wrapped: Result<String, TokenError>;
+        if val.is_empty() {
+            return HttpResponse::BadRequest().body("You're not signed in!");
+        }
 
-            token_wrapped = create_session_token_from_refresh_token(val);
+        let srv_state = req.app_data::<Data<ServerState>>().unwrap();
 
-            match token_wrapped {
+        if let Some(ref_token) = srv_state.get_refresh_token_data(val.clone()) {
+            match create_session_token_from_refresh_token(ref_token) {
                 Ok(token) => {
+                    srv_state.reset_refresh_token_expiry(val);
                     return HttpResponse::Ok().body(token);
-                        //.cookie( create_refresh_token_cookie(token))
                 }
 
                 Err(e) => {
                     match e {
                         TokenError::InvalidToken => {
                             return HttpResponse::UnprocessableEntity()
-                                .body("You session is either invalid or expired , please login again!");
+                                .body("You session is either invalid or expired, please login again!");
                         }
 
                         TokenError::RoleNotFound => {
@@ -190,37 +217,20 @@ async fn auth_refresh(req: HttpRequest) -> HttpResponse {
                 }
             }
         }
-
-        None => {
-            println!("No refresh cookie found in the request!");
-            return HttpResponse::BadRequest().body("You're not signed in!");
-        }
     }
+
+    println!("Refresh token cookie not set.");
+    HttpResponse::BadRequest().body("You're not signed in!")
 }
 
 /**
  * Gets permissions for the logged in user.
  */
 #[get("/api/admin/auth/permissions")]
-pub async fn get_user_permissions(req_obj: HttpRequest) -> HttpResponse {
-    match validate_session_token(req_obj) {
-        Ok (login_id) => {
-            let repo = get_user_repository();
-
-            match repo.get_permissions(login_id) {
-                Ok (perms) => {
-                    HttpResponse::Ok().json(perms)
-                }
-
-                Err (e) => {
-                    HttpResponse::Forbidden().body(e)
-                }
-            }
-        }
-
-        Err (e) => {
-            HttpResponse::Forbidden().body(e)
-        }
+pub async fn get_user_permissions(am: AuthMiddleware) -> HttpResponse {
+    match get_user_repository().get_permissions(am.login_id) {
+        Ok (perms) => HttpResponse::Ok().json(perms),
+        Err (e) => HttpResponse::Forbidden().body(e),
     }
 }
 

@@ -7,10 +7,10 @@ use qstring::QString;
 
 use crate::{
     api::{
-        DEST_REN_DIR, IMG_UPL_DIR,
+        DEST_REN_DIR,
         service::path::{ resize_and_save_rendition, get_image_path }
     },
-    db::DBError,
+    db::DBError, auth::AuthMiddleware,
     repository::{
         rendition::{ RenditionRepository, get_rendition_repository },
         image::{ ImageRepository, get_image_repository },
@@ -54,7 +54,9 @@ pub struct UnsuccessfulRendition {
 /// ## URL Parameters
 /// - `image-id` - (Required) The image id the renditions belong to.
 #[get("/api/admin/renditions")]
-pub async fn get_renditions_for_image(req: HttpRequest) -> HttpResponse {
+pub async fn get_renditions_for_image(req: HttpRequest, _: AuthMiddleware)
+    -> HttpResponse {
+    println!("getting renditions");
     let qs = QString::from(req.query_string());
 
     let image_id: Option<u32>;
@@ -95,7 +97,8 @@ pub async fn get_renditions_for_image(req: HttpRequest) -> HttpResponse {
 }
 
 #[get("/api/admin/rendition/{rendition_id}")]
-pub async fn get_rendition(req: HttpRequest) -> HttpResponse {
+pub async fn get_rendition(req: HttpRequest, _: AuthMiddleware)
+    -> HttpResponse {
     let rendition_id: String = String::from(req.match_info().get("rendition_id")
         .unwrap());
     let repo = get_rendition_repository();
@@ -120,7 +123,8 @@ pub async fn get_rendition(req: HttpRequest) -> HttpResponse {
 
 /// Creates multiple renditions for a single image.
 #[post("/api/admin/renditions")]
-pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
+pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
+    -> HttpResponse {
     let mut unsuccessful_renditions: Vec<UnsuccessfulRendition> = vec![];
     let mut internal_error: bool = false;
 
@@ -287,7 +291,8 @@ pub async fn set_rendition(req: Json<RenditionRequest>) -> HttpResponse {
 
 /// Creates multiple renditions for a single image.
 #[delete("/api/admin/rendition/{rendition_id}")]
-pub async fn delete_rendition(req: HttpRequest) -> HttpResponse {
+pub async fn delete_rendition(req: HttpRequest, _: AuthMiddleware)
+    -> HttpResponse {
     if let Some(rid) = req.match_info().get("rendition_id") {
         let repo = get_rendition_repository();
 

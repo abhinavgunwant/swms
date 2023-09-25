@@ -1,5 +1,5 @@
 import React, {
-    useEffect, useState, useTransition, MouseEvent, Fragment
+    useEffect, useRef, useState, useTransition, MouseEvent, Fragment
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -77,6 +77,8 @@ const Workspace = ():React.ReactElement => {
     const navigate = useNavigate();
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const { '*': path } = useParams();
+
+    const childrenFetched = useRef<boolean>(false);
     
     //console.log('Workspace path: ', path);
 
@@ -205,7 +207,11 @@ const Workspace = ():React.ReactElement => {
     );
 
     useEffect(() => {
-        loadImages().then(() => { startTransition(() => setLoading(false)); });
+        if (!childrenFetched.current) {
+            loadImages()
+                .then(() => { startTransition(() => setLoading(false)); });
+            childrenFetched.current = true;
+        }
     }, []);
 
     useEffect(() => {

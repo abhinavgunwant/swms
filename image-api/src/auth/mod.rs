@@ -9,7 +9,15 @@ use crate::auth::token::decode_jwt;
 
 pub mod pwd_hash;
 pub mod token;
-pub mod utils;
+
+/// API paths that are passed through to their handlers without checks.
+const BYPASS_PATHS: [&str; 5] = [
+    "/api/admin/auth/refresh",
+    "/api/admin/auth/login",
+    "/api/admin/auth/logout",
+    "/api/echo",
+    "/api/am-i-logged-in",
+];
 
 #[derive(Default)]
 pub struct AuthMiddleware {
@@ -34,11 +42,7 @@ impl FromRequest for AuthMiddleware {
 
         let path = req.path();
 
-        if path == "/api/admin/auth/refresh"
-            || path == "/api/admin/auth/login"
-            || path == "/api/admin/auth/logout"
-            || path == "/api/echo"
-            || path == "/api/am-i-logged-in" {
+        if BYPASS_PATHS.contains(&path) {
             return ready(Ok(Self::default()));
         }
 

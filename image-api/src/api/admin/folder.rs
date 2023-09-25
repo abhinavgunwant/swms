@@ -2,14 +2,13 @@ use actix_web::{ HttpResponse, HttpRequest, get, post, put, delete, web::Json };
 use qstring::QString;
 
 use crate::{
-    db::DBError,
+    db::DBError, auth::AuthMiddleware,
     repository::folder::{ FolderRepository, get_folder_repository },
-    model::folder::Folder,
-    api::service::remove::remove_folders,
+    model::folder::Folder, api::service::remove::remove_folders,
 };
 
 #[get("/api/admin/folder/{folder_id}/")]
-pub async fn get_folder (req: HttpRequest) -> HttpResponse {
+pub async fn get_folder (req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     let folder_id: u32 = req.match_info().get("folder_id").unwrap().parse()
         .unwrap();
 
@@ -30,7 +29,8 @@ pub async fn get_folder (req: HttpRequest) -> HttpResponse {
 }
 
 #[post("/api/admin/folder/")]
-pub async fn add_folder (folder: Json<Folder>) -> HttpResponse {
+pub async fn add_folder (folder: Json<Folder>, _: AuthMiddleware)
+    -> HttpResponse {
     match get_folder_repository().add(folder.into_inner()) {
         Ok (success) => HttpResponse::Ok().body(success),
         Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),
@@ -38,7 +38,8 @@ pub async fn add_folder (folder: Json<Folder>) -> HttpResponse {
 }
 
 #[put("/api/admin/folder/")]
-pub async fn update_folder (folder: Json<Folder>) -> HttpResponse {
+pub async fn update_folder (folder: Json<Folder>, _: AuthMiddleware)
+    -> HttpResponse {
     match get_folder_repository().update(folder.into_inner()) {
         Ok (success) => HttpResponse::Ok().body(success),
         Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),
@@ -50,7 +51,8 @@ pub async fn update_folder (folder: Json<Folder>) -> HttpResponse {
 /// ## URL parameters:
 /// - `id` - Comma-separated folder IDs.
 #[delete("/api/admin/folder")]
-pub async fn remove_folder (req: HttpRequest) -> HttpResponse {
+pub async fn remove_folder (req: HttpRequest, _: AuthMiddleware)
+    -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let mut folder_ids: Vec<u32>;
