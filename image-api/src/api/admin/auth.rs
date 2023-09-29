@@ -40,7 +40,7 @@ pub struct AuthMessage {
     message: String
 }
 
-#[post("/login")]
+#[post("/api/admin/auth/login")]
 pub async fn auth(
     req_obj: Json<AuthRequest>,
     srv_state: Data<ServerState>,
@@ -151,7 +151,7 @@ pub async fn auth(
     })
 }
 
-#[get("/logout")]
+#[get("/api/admin/auth/logout")]
 pub async fn auth_logout(req: HttpRequest) -> HttpResponse {
     let ref_token_cookie_exp: Cookie = Cookie::build("r", "")
         .path("/")
@@ -180,7 +180,7 @@ pub async fn auth_logout(req: HttpRequest) -> HttpResponse {
     }
 }
 
-#[get("/refresh")]
+#[get("/api/admin/auth/refresh")]
 pub async fn auth_refresh(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
     if let Some(cookie) = req.cookie("r") {
         let val = String::from(cookie.value());

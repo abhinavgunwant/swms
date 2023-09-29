@@ -5,6 +5,7 @@ mod auth;
 mod model;
 mod server_state;
 mod log_config;
+mod server;
 
 use std::env;
 
@@ -16,6 +17,7 @@ use actix_web_static_files::ResourceFiles;
 use log::info;
 
 use server_state::ServerState;
+use server::config::ServerConfig;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
@@ -31,7 +33,11 @@ async fn main() -> std::io::Result<()> {
     info!("{}\n {} v{}{}", LINE, APP_NAME, APP_VERSION, LINE);
     info!("Starting Up");
 
+    let server_config = ServerConfig::default();
+    server_config.print_info();
+
     let server_state_data = Data::new(ServerState::default());
+    let server_config_data = Data::new(server_config);
 
     HttpServer::new(move || {
         // TODO: Implement a stricter CORS policy.
@@ -54,13 +60,17 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .wrap(Logger::new("%{r}a %{Referer}i [%{User-Agent}i] %r took %D ms").log_target("request"))
-            .configure(api::config)
+            //.configure(api::config)
             .app_data(server_state_data.clone())
+            .app_data(server_config_data.clone())
             .app_data(PayloadConfig::new(1000000 * 250))
             .service(api::echo)
             .service(api::am_i_logged_in)
             .service(api::admin::get_children)
             .service(api::admin::auth::get_user_permissions)
+            .service(api::admin::auth::auth)
+            .service(api::admin::auth::auth_logout)
+            .service(api::admin::auth::auth_refresh)
             .service(api::admin::user::create_user)
             .service(api::admin::user::edit_user)
             .service(api::admin::user::get_user)

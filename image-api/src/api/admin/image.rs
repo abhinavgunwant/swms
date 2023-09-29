@@ -1,5 +1,5 @@
 use actix_web::{
-    web::{ Json, block }, HttpResponse, HttpRequest, post, get, put, delete,
+    web::{ Json, block, Data }, HttpResponse, HttpRequest, post, get, put, delete,
 };
 use std::fs::{ read, rename };
 use serde::{ Serialize, Deserialize };
@@ -8,7 +8,7 @@ use chrono::Utc;
 use log::{ debug, error };
 
 use crate::{
-    db::DBError, auth::AuthMiddleware,
+    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::image::{ ImageRepository, get_image_repository },
     model::{ image::Image, upload_image::UploadImage },
     api::{ admin::SuccessResponse, service::remove::remove_images, },
@@ -84,8 +84,9 @@ pub async fn get_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
 }
 
 #[post("/api/admin/image-save")]
-pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn add_image(
+    req_image: Json<UploadImage>, _: AuthMiddleware, conf: Data<ServerConfig>
+) -> HttpResponse {
     debug!("Got request for upload id: {}", req_image.upload_id);
 
     let mut image = Image {
@@ -124,7 +125,8 @@ pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
         Ok (id) => {
             // Finally, change temp image path
             let dest_file_path = format!(
-                "image-uploads/{}{}",
+                "{}/{}{}",
+                conf.upload_dir,
                 id,                         // id of image after add transaction committed
                 image.encoding.extension()
             );
@@ -167,7 +169,9 @@ pub async fn add_image(req_image: Json<UploadImage>, _: AuthMiddleware)
 /// ## URL parameters:
 /// - `id` - Comma-separated image IDs.
 #[delete("/api/admin/image")]
-pub async fn remove_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
+pub async fn remove_image(
+    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let image_ids: Vec<u32>;
@@ -182,7 +186,9 @@ pub async fn remove_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
         }
     }
 
-    match remove_images(&image_ids) {
+    match remove_images(
+        &image_ids, conf.rendition_cache_dir.clone(), conf.upload_dir.clone()
+    ) {
         Ok (_) => {
             if image_ids.len() > 1 {
                 return HttpResponse::Ok().body("Images deleted successfully");
@@ -207,8 +213,9 @@ pub async fn remove_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
  * Gets the original image file for preview for admin user.
  */
 #[get("/api/admin/image-file/{image_id}")]
-pub async fn get_image_file(req: HttpRequest, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn get_image_file(
+    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+) -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
@@ -217,7 +224,8 @@ pub async fn get_image_file(req: HttpRequest, _: AuthMiddleware)
     match img_repo.get(image_id) {
         Ok (image) => {
             let image_file_path = format!(
-                "image-uploads/{}{}",
+                "{}/{}{}",
+                conf.upload_dir,
                 image.id,
                 image.encoding.extension()
             );

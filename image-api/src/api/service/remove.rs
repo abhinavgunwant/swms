@@ -4,7 +4,7 @@ use std::fs::{ read, rename, remove_file };
 use log::{ debug, error };
 
 use crate::{
-    db::DBError,
+    db::DBError, server::config::ServerConfig,
     repository::{
         folder::{ FolderRepository, get_folder_repository },
         image::{ ImageRepository, get_image_repository },
@@ -14,7 +14,9 @@ use crate::{
 };
 
 /// Removes images in `image_ids`
-pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
+pub fn remove_images(
+    image_ids: &Vec<u32>, rendition_path: String, upload_path: String,
+) -> Result<String, String> {
     let mut image: Option<Image>;
     let mut error: bool = false;
 
@@ -53,7 +55,8 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
 
                     for rendition in renditions.iter() {
                         let file_name: String = format!(
-                            "image-rendition-cache/{}{}",
+                            "{}/{}{}",
+                            rendition_path,
                             rendition.id,
                             rendition.encoding.extension(),
                         );
@@ -94,7 +97,8 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
                     Some (img) => {
                         match remove_file (
                             format!(
-                                "image-uploads/{}{}",
+                                "{}/{}{}",
+                                upload_path,
                                 image_id,
                                 img.encoding.extension()
                         )) {
@@ -132,7 +136,9 @@ pub fn remove_images(image_ids: &Vec<u32>) -> Result<String, String> {
 ///
 /// ### Parameters
 /// - `folder_ids`: IDs of folders to be deleted
-pub fn remove_folders(folder_ids: &mut Vec<u32>) -> Result<String, String> {
+pub fn remove_folders(
+    folder_ids: &mut Vec<u32>, rendition_path: String, upload_path: String,
+) -> Result<String, String> {
     let mut error: bool = false;
 
     let fol_repo = get_folder_repository();
@@ -157,7 +163,11 @@ pub fn remove_folders(folder_ids: &mut Vec<u32>) -> Result<String, String> {
                             image_ids.push(image.id);
                         }
 
-                        match remove_images(&image_ids) {
+                        match remove_images(
+                            &image_ids,
+                            rendition_path.clone(),
+                            upload_path.clone(),
+                        ) {
                             Ok (_) => {}
                             Err (_) => { error = true; }
                         }

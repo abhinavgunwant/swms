@@ -29,6 +29,8 @@ jsonwebtoken = "8.3.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 log = "0.4.20"
+dirs-next = "2.0.0"
+serde_yaml = "0.9.25"
 
 [dependencies.log4rs]
 version = "1.2.0"

@@ -1,23 +1,20 @@
 use std::{ io::Write, fs::{ File, read } };
 
 use actix_multipart::Multipart;
-use actix_web::{ get, post, web::block, HttpResponse, HttpRequest };
+use actix_web::{ get, post, web::{ block, Data }, HttpResponse, HttpRequest };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::Serialize;
 use log::debug;
 
 use crate::{
-    api::{
-        DEST_REN_DIR, IMG_UPL_DIR,
-        service::path::{
-            get_rendition_from_path_segments, split_path,
-            rendition_cache_path, cache_rendition_file,
-        }
+    api::service::path::{
+        get_rendition_from_path_segments, split_path,
+        rendition_cache_path, cache_rendition_file,
     },
     repository::image::{ ImageRepository, get_image_repository },
     model::{ error::ErrorType, encoding::Encoding },
-    db::DBError, auth::AuthMiddleware,
+    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
 };
 
 #[derive(Serialize)]
@@ -94,11 +91,17 @@ pub async fn upload(mut payload: Multipart, _: AuthMiddleware)
 }
 
 #[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]
-pub async fn download(req: HttpRequest) -> HttpResponse {
+pub async fn download(req: HttpRequest, conf: Data<ServerConfig>)
+    -> HttpResponse {
     if let Some(path) = req.match_info().get("path") {
         debug!("Requested Path: \"{}\"", path);
 
-        let mut dest_file_path: String = format!("{}/{}", DEST_REN_DIR, path);
+        let mut dest_file_path: String = format!(
+            "{}/{}", conf.rendition_cache_dir, path
+        );
+
+        debug!("dest_file_path: {}", dest_file_path);
+
         let mime_type: String;
 
         match rendition_cache_path(&dest_file_path) {
@@ -123,7 +126,7 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
                             Ok (image_data) => {
                                 let source_file_path = format!(
                                     "{}/{}{}",
-                                    IMG_UPL_DIR,
+                                    conf.upload_dir,
                                     image_data.id,
                                     image_data.encoding.extension()
                                 );
@@ -135,9 +138,6 @@ pub async fn download(req: HttpRequest) -> HttpResponse {
 
                                 let ren_slug = rendition.slug.as_str();
                                 let end_indx = path_segments.len() - 1;
-                                dest_file_path = format!(
-                                    "{}/{}", DEST_REN_DIR, path
-                                );
 
                                 let ext = rendition.encoding.extension();
                                 let ext_str = ext.as_str();

@@ -1,17 +1,16 @@
 use std::rc::Rc;
 
-use actix_web::{ HttpResponse, HttpRequest, get, post, delete, web::Json };
+use actix_web::{
+    HttpResponse, HttpRequest, get, post, delete, web::{ Json, Data }
+};
 use serde::{ Serialize, Deserialize };
 use raster::Image as RasterImage;
 use qstring::QString;
 use log::{ debug, error };
 
 use crate::{
-    api::{
-        DEST_REN_DIR,
-        service::path::{ resize_and_save_rendition, get_image_path }
-    },
-    db::DBError, auth::AuthMiddleware,
+    api::service::path::{ resize_and_save_rendition, get_image_path },
+    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::{
         rendition::{ RenditionRepository, get_rendition_repository },
         image::{ ImageRepository, get_image_repository },
@@ -124,8 +123,9 @@ pub async fn get_rendition(req: HttpRequest, _: AuthMiddleware)
 
 /// Creates multiple renditions for a single image.
 #[post("/api/admin/renditions")]
-pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn set_rendition(
+    req: Json<RenditionRequest>, _: AuthMiddleware, conf: Data<ServerConfig>
+) -> HttpResponse {
     let mut unsuccessful_renditions: Vec<UnsuccessfulRendition> = vec![];
     let mut internal_error: bool = false;
 
@@ -193,11 +193,13 @@ pub async fn set_rendition(req: Json<RenditionRequest>, _: AuthMiddleware)
 
         debug!("Got the image path: {}", image_path);
 
-        let dest_path_prefix = format!("{}/{}", DEST_REN_DIR, image_path);
+        let dest_path_prefix = format!(
+            "{}/{}", conf.rendition_cache_dir, image_path
+        );
 
         if req.eager {
             let src_file_path = format!(
-                "image-uploads/{}{}", image.id, image.encoding.extension()
+                "{}/{}{}", conf.upload_dir, image.id, image.encoding.extension()
             );
 
             match raster::open(src_file_path.as_str()) {

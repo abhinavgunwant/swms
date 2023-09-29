@@ -1,9 +1,11 @@
-use actix_web::{ HttpResponse, HttpRequest, get, post, put, delete, web::Json };
+use actix_web::{
+    HttpResponse, HttpRequest, get, post, put, delete, web::{ Json, Data },
+};
 use qstring::QString;
 use log::debug;
 
 use crate::{
-    db::DBError, auth::AuthMiddleware,
+    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::folder::{ FolderRepository, get_folder_repository },
     model::folder::Folder, api::service::remove::remove_folders,
 };
@@ -52,8 +54,9 @@ pub async fn update_folder (folder: Json<Folder>, _: AuthMiddleware)
 /// ## URL parameters:
 /// - `id` - Comma-separated folder IDs.
 #[delete("/api/admin/folder")]
-pub async fn remove_folder (req: HttpRequest, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn remove_folder (
+    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let mut folder_ids: Vec<u32>;
@@ -68,7 +71,11 @@ pub async fn remove_folder (req: HttpRequest, _: AuthMiddleware)
         }
     }
 
-    match remove_folders(&mut folder_ids) {
+    match remove_folders(
+        &mut folder_ids,
+        conf.rendition_cache_dir.clone(),
+        conf.upload_dir.clone(),
+    ) {
         Ok (_) => {
             if folder_ids.len() > 1 {
                 return HttpResponse::Ok().body("Folders deleted successfully");

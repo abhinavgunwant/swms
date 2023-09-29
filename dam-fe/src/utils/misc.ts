@@ -58,15 +58,17 @@ export const apiCall = async (
             token = userStore.getState().sessionToken;
         }
 
-        let headers: HeadersInit = new Headers();
+        let headers: HeadersInit;
+
+        if (options.headers) {
+            headers = new Headers(options.headers);
+        } else {
+            headers = new Headers();
+        }
 
         headers.set('Authorization', 'Bearer ' + token);
 
-        if (options.headers) {
-            Object.assign(options.headers, headers);
-        } else {
-            options.headers = headers;
-        }
+        options.headers = headers;
     }
 
     return fetch(url, options);
