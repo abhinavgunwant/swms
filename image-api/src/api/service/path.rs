@@ -178,12 +178,12 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
 }
 
 /// Gets the path of an image
-pub fn get_image_path(image: Image) -> Result<String, DBError> {
+pub fn get_image_path(image: &Image) -> Result<String, DBError> {
     debug!("Getting image path");
     let fol_repo = get_folder_repository();
     let prj_repo = get_project_repository();
 
-    let mut path: String = image.slug;
+    let mut path: String = image.slug.clone();
 
     let mut folder_id: u32 = image.folder_id;
 

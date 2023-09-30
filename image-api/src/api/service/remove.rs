@@ -1,10 +1,10 @@
 //! Delete service
 
-use std::fs::{ read, rename, remove_file };
-use log::{ debug, error };
+use std::fs::{ remove_file, remove_dir_all };
+use log::{ debug, error, info };
 
 use crate::{
-    db::DBError, server::config::ServerConfig,
+    db::DBError, api::service::path::get_image_path,
     repository::{
         folder::{ FolderRepository, get_folder_repository },
         image::{ ImageRepository, get_image_repository },
@@ -27,7 +27,6 @@ pub fn remove_images(
         // Get image object
         match img_repo.get(*image_id) {
             Ok (img) => { image = Some(img); }
-
             Err (e) => {
                 error = true;
 
@@ -50,35 +49,7 @@ pub fn remove_images(
 
         if !renditions.is_empty() {
             match ren_repo.remove_all_from_image(*image_id) {
-                Ok (msg) => {
-                    debug!("{} from database!", msg);
-
-                    for rendition in renditions.iter() {
-                        let file_name: String = format!(
-                            "{}/{}{}",
-                            rendition_path,
-                            rendition.id,
-                            rendition.encoding.extension(),
-                        );
-
-                        match remove_file(file_name.clone()) {
-                            Ok (_) => {}
-
-                            Err (e) => {
-                                error!(
-                                    "Error while deleting rendition file {} (id: {}) for image id: {}: {}",
-                                    file_name,
-                                    rendition.id,
-                                    image_id,
-                                    e
-                                );
-
-                                error = true;
-                            }
-                        }
-                    }
-                }
-
+                Ok (msg) => { debug!("{} from database!", msg); }
                 Err (e_msg) => {
                     error!("{}", e_msg);
 
@@ -92,26 +63,41 @@ pub fn remove_images(
 
         match get_image_repository().remove_item(*image_id) {
             Ok (_message) => {
-                // Delete the image file if it exists
-                match image {
-                    Some (img) => {
-                        match remove_file (
-                            format!(
-                                "{}/{}{}",
-                                upload_path,
-                                image_id,
-                                img.encoding.extension()
+                if let Some(img) = image {
+                    if let Ok(image_path) = get_image_path(&img) {
+                        // Delete the image file from upload directory
+                        match remove_file(format!("{}/{}{}",
+                            upload_path, image_id, img.encoding.extension()
                         )) {
                             Ok (_) => {}
-
                             Err (e) => {
-                                error!("Error while deleting image file for image id: {}: {}", image_id, e);
+                                error!("Error while deleting image file for \
+                                    image id: {}: {}", image_id, e);
+                                error = true;
+                            }
+                        }
+
+                        // Delete the image directory
+                        match remove_dir_all(
+                            format!("{}/{}", rendition_path, image_path
+                        )) {
+                            Ok(_) => {
+                                info!(
+                                    "Deleted image directory: {}",
+                                    image_path
+                                );
+                            }
+
+                            Err(e) => {
+                                error!(
+                                    "Error deleting image directory ({}): {}",
+                                    image_path, e
+                                );
+
                                 error = true;
                             }
                         }
                     }
-
-                    None => {}
                 }
             }
 
@@ -184,6 +170,32 @@ pub fn remove_folders(
         Err (String::from("Error while removing folders"))
     } else {
         Ok (String::from("Folders removed"))
+    }
+}
+
+pub fn remove_rendition_file(
+    ren_dir: &String, image_path: &String, rendition: &Rendition
+) -> bool {
+    let file_name: String = format!(
+        "{}/{}/{}{}",
+        ren_dir,
+        image_path,
+        rendition.slug,
+        rendition.encoding.extension(),
+    );
+
+    debug!("Deleting rendition (id: {}) file: {}", rendition.id, file_name);
+
+    match remove_file(&file_name) {
+        Ok(_) => true,
+        Err(e) => {
+            error!(
+                "Error while deleting rendition file {} (id: {}): {}",
+                file_name, rendition.id, e
+            );
+
+            return false;
+        }
     }
 }
 

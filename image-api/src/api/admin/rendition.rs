@@ -9,7 +9,10 @@ use qstring::QString;
 use log::{ debug, error };
 
 use crate::{
-    api::service::path::{ resize_and_save_rendition, get_image_path },
+    api::service::{
+        path::{ resize_and_save_rendition, get_image_path },
+        remove::remove_rendition_file,
+    },
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::{
         rendition::{ RenditionRepository, get_rendition_repository },
@@ -179,7 +182,7 @@ pub async fn set_rendition(
         let mut image_raster_option: Option<Rc<RasterImage>> = None;
         let image_path;
 
-        match get_image_path(image.clone()) {
+        match get_image_path(&image) {
             Ok(i_path) => { image_path = i_path; }
             Err(_) => {
                 return HttpResponse::InternalServerError()
@@ -296,27 +299,64 @@ pub async fn set_rendition(
 
 /// Creates multiple renditions for a single image.
 #[delete("/api/admin/rendition/{rendition_id}")]
-pub async fn delete_rendition(req: HttpRequest, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn delete_rendition(
+    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+) -> HttpResponse {
     if let Some(rid) = req.match_info().get("rendition_id") {
         let repo = get_rendition_repository();
+        let img_repo = get_image_repository();
 
         if let Ok(rendition_id) = rid.parse::<u32>() {
-            match repo.remove_item(rendition_id) {
-                Ok (_) => {
-                    return HttpResponse::Ok().json(StandardResponse {
-                        success: true,
-                        message: "Rendition deleted",
-                    });
-                }
+            if let Ok(rendition) = repo.get(rendition_id) {
+                match repo.remove_item(rendition_id) {
+                    Ok(_) => {
+                        let mut image_path: String = String::default();
 
-                Err (_e) => {
-                    return HttpResponse::InternalServerError().json(StandardResponse {
-                        success: false,
-                        message: "Some error occured while deleting rendition",
-                    });
+                        if let Ok(image) = img_repo.get(rendition.image_id) {
+                            if let Ok(img_path) = get_image_path(&image) {
+                                image_path = img_path;
+                            }
+                        }
+
+                        if image_path.is_empty() {
+                            return HttpResponse::Ok().json(StandardResponse {
+                                success: true,
+                                message: "Rendition deleted but rendition cache \
+                                    file could not be deleted. The cache file \
+                                    could not be found.",
+                            });
+                        }
+
+                        if remove_rendition_file(
+                            &conf.rendition_cache_dir, &image_path, &rendition
+                        ) {
+                            return HttpResponse::Ok().json(StandardResponse {
+                                success: true,
+                                message: "Rendition deleted",
+                            });
+                        } else {
+                            return HttpResponse::InternalServerError()
+                                .json(StandardResponse {
+                                success: true,
+                                message: "Rendition deleted but error in deleting \
+                                    the rendition cache.",
+                            });
+                        }
+                    }
+
+                    Err (_e) => {
+                        return HttpResponse::InternalServerError().json(StandardResponse {
+                            success: false,
+                            message: "Some error occured while deleting rendition",
+                        });
+                    }
                 }
             }
+
+            return HttpResponse::NotFound().json(StandardResponse {
+                success: false,
+                message: "Supplied rendition was not found.",
+            });
         }
     }
 
