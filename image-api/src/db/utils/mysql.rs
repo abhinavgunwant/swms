@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use mysql::*;
 use mysql::prelude::*;
 use log::error;
@@ -11,8 +13,22 @@ pub fn get_rows_from_query(query: &str, params: Params) -> Result<Vec<Row>> {
     conn.exec(statement, params)
 }
 
+pub fn get_rows_from_query2(conn: &mut PooledConn, query: &str, params: Params)
+    -> Result<Vec<Row>> {
+    let statement = conn.prep(query).unwrap();
+
+    conn.exec(statement, params)
+}
+
 pub fn get_row_from_query(query: &str, params: Params) -> Result<Option<Row>> {
     let mut conn: PooledConn = get_db_connection();
+    let statement = conn.prep(query).unwrap();
+
+    conn.exec_first(statement, params)
+}
+
+pub fn get_row_from_query2(conn: &mut PooledConn, query: &str, params: Params)
+    -> Result<Option<Row>> {
     let statement = conn.prep(query).unwrap();
 
     conn.exec_first(statement, params)

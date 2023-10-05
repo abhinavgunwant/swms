@@ -14,7 +14,8 @@ lazy_static! {
 #[derive(PartialEq)]
 pub enum DBError {
     NOT_FOUND,
-    OtherError
+    OtherError,
+    ConnectionError,
 }
 
 impl Display for DBError {
@@ -26,6 +27,10 @@ impl Display for DBError {
 
             Self::OtherError => {
                 return write!(f, "DB: Some other error occured");
+            }
+
+            Self::ConnectionError => {
+                return write!(f, "DB: Connection error occured");
             }
         }
     }

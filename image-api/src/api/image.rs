@@ -1,4 +1,4 @@
-use std::{ io::Write, fs::{ File, read } };
+use std::{ io::Write, fs::{ File, read }, sync::Mutex, ops::Deref };
 
 use actix_multipart::Multipart;
 use actix_web::{ get, post, web::{ block, Data }, HttpResponse, HttpRequest };
@@ -91,13 +91,16 @@ pub async fn upload(mut payload: Multipart, _: AuthMiddleware)
 }
 
 #[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]
-pub async fn download(req: HttpRequest, conf: Data<ServerConfig>)
+pub async fn download(req: HttpRequest, conf: Data<Mutex<ServerConfig>>)
     -> HttpResponse {
     if let Some(path) = req.match_info().get("path") {
         debug!("Requested Path: \"{}\"", path);
 
+        let c_ = conf.lock().unwrap();
+        let config: &ServerConfig = c_.deref();
+
         let mut dest_file_path: String = format!(
-            "{}/{}", conf.rendition_cache_dir, path
+            "{}/{}", &config.rendition_cache_dir, path
         );
 
         debug!("dest_file_path: {}", dest_file_path);
@@ -126,7 +129,7 @@ pub async fn download(req: HttpRequest, conf: Data<ServerConfig>)
                             Ok (image_data) => {
                                 let source_file_path = format!(
                                     "{}/{}{}",
-                                    conf.upload_dir,
+                                    config.upload_dir,
                                     image_data.id,
                                     image_data.encoding.extension()
                                 );

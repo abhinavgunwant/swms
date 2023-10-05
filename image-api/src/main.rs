@@ -7,7 +7,7 @@ mod server_state;
 mod log_config;
 mod server;
 
-use std::env;
+use std::{ env, sync::Mutex };
 
 use actix_web::{
     App, HttpServer, web::{ PayloadConfig, Data }, middleware::Logger,
@@ -37,7 +37,7 @@ async fn main() -> std::io::Result<()> {
     server_config.print_info();
 
     let server_state_data = Data::new(ServerState::default());
-    let server_config_data = Data::new(server_config);
+    let server_config_data = Data::new(Mutex::new(server_config));
 
     HttpServer::new(move || {
         // TODO: Implement a stricter CORS policy.
