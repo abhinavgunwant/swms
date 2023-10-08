@@ -2,7 +2,6 @@
 //!
 //! Contains Authentication and Authorization related code.
 
-use std::{ sync::{ Mutex, MutexGuard }, ops::DerefMut };
 use actix_web::{
     web::{ Json, Data }, HttpRequest, HttpResponse, get, post,
     cookie::{ time::Duration as ActixWebDuration, Cookie },
@@ -12,11 +11,7 @@ use log::{ debug, error };
 
 use crate::{
     db::DBError, model::role::Role, server_state::ServerState,
-    server::config::ServerConfig,
-    repository::{
-        user::{ get_user_repository, UserRepository },
-        role::RoleRepository,
-    },
+    repository::{ Repository, user::{ get_user_repository, UserRepository }, },
     auth::{
         AuthMiddleware, pwd_hash::verify_password,
         token::{
@@ -46,7 +41,7 @@ pub struct AuthMessage {
 pub async fn auth(
     req_obj: Json<AuthRequest>,
     srv_state: Data<ServerState>,
-    conf: Data<Mutex<ServerConfig>>,
+    repo: Data<dyn Repository>,
 ) -> HttpResponse {
     let user_repo = get_user_repository();
 
@@ -67,10 +62,7 @@ pub async fn auth(
                         password_hash
                     );
 
-                    let mut c_ = conf.lock().unwrap();
-                    let config: &mut ServerConfig = c_.deref_mut();
-
-                    if let Ok(mut role_repo) = config.get_role_repo() {
+                    if let Ok(mut role_repo) = repo.get_role_repo() {
                         match role_repo.get(user.user_role) {
                             Ok (role) => { user_role = role },
                             Err (e) => {
@@ -195,7 +187,7 @@ pub async fn auth_logout(req: HttpRequest) -> HttpResponse {
 pub async fn auth_refresh(
     req: HttpRequest,
     _: AuthMiddleware,
-    srv_config: Data<Mutex<ServerConfig>>,
+    repo: Data<dyn Repository>,
 ) -> HttpResponse {
     if let Some(cookie) = req.cookie("r") {
         let val = String::from(cookie.value());
@@ -207,49 +199,39 @@ pub async fn auth_refresh(
         let srv_state = req.app_data::<Data<ServerState>>().unwrap();
 
         if let Some(ref_token) = srv_state.get_refresh_token_data(val.clone()) {
-            match srv_config.lock() {
-                Ok(mut srv_cfg) => {
-                    if let Ok(mut role_repo) = srv_cfg.get_role_repo() {
-                        match create_session_token_from_refresh_token(
-                            ref_token, &mut role_repo
-                        ) {
-                            Ok(token) => {
-                                srv_state.reset_refresh_token_expiry(val);
-                                return HttpResponse::Ok().body(token);
+            if let Ok(mut role_repo) = repo.get_role_repo() {
+                match create_session_token_from_refresh_token(
+                    ref_token, &mut role_repo
+                ) {
+                    Ok(token) => {
+                        srv_state.reset_refresh_token_expiry(val);
+                        return HttpResponse::Ok().body(token);
+                    }
+
+                    Err(e) => {
+                        match e {
+                            TokenError::InvalidToken => {
+                                return HttpResponse::UnprocessableEntity()
+                                    .body(
+                                        "You session is either invalid or \
+                                        expired, please login again!"
+                                    );
                             }
 
-                            Err(e) => {
-                                match e {
-                                    TokenError::InvalidToken => {
-                                        return HttpResponse::UnprocessableEntity()
-                                            .body(
-                                                "You session is either invalid or \
-                                                expired, please login again!"
-                                            );
-                                    }
+                            TokenError::RoleNotFound => {
+                                return HttpResponse::UnprocessableEntity()
+                                    .body(
+                                        "User role could not be found. Please \
+                                        contact your administrator!"
+                                    );
+                            }
 
-                                    TokenError::RoleNotFound => {
-                                        return HttpResponse::UnprocessableEntity()
-                                            .body(
-                                                "User role could not be found. Please \
-                                                contact your administrator!"
-                                            );
-                                    }
-
-                                    _ => {
-                                        return HttpResponse::InternalServerError()
-                                            .body("Error 500: Internal Server Error");
-                                    }
-                                }
+                            _ => {
+                                return HttpResponse::InternalServerError()
+                                    .body("Error 500: Internal Server Error");
                             }
                         }
                     }
-                }
-                Err(e) => {
-                    error!("Error while getting server config in '/api/admin/auth\
-                        /refresh': {}", e);
-                    return HttpResponse::InternalServerError()
-                        .body("500: Internal Server Error");
                 }
             }
         }

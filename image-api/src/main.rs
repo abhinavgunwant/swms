@@ -7,17 +7,18 @@ mod server_state;
 mod log_config;
 mod server;
 
-use std::{ env, sync::Mutex };
+use std::{ env, sync::{ Arc, Mutex }, io::{ Error, ErrorKind } };
 
 use actix_web::{
     App, HttpServer, web::{ PayloadConfig, Data }, middleware::Logger,
 };
 use actix_cors::Cors;
 use actix_web_static_files::ResourceFiles;
-use log::info;
+use log::{ info, error };
 
 use server_state::ServerState;
 use server::config::ServerConfig;
+use repository::{ Repository, MySQLRepository };
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
@@ -35,6 +36,26 @@ async fn main() -> std::io::Result<()> {
 
     let server_config = ServerConfig::default();
     server_config.print_info();
+
+    let repository: Data<dyn Repository + Sync + Send>;
+
+    match server_config.db.db_type {
+        server::config::DBType::MySQL => {
+            match MySQLRepository::new(
+                server_config.get_connection_string().as_str()
+            ) {
+                Ok(r) => {
+                    let repo: Arc<dyn Repository + Sync + Send> = Arc::new(r);
+                    repository = Data::from(repo);
+                }
+                Err(e) => {
+                    let error_msg = "Could not connect to MySQL database!";
+                    error!("{}{}", error_msg, e);
+                    return Err(Error::new(ErrorKind::InvalidData, error_msg));
+                }
+            }
+        }
+    }
 
     let server_state_data = Data::new(ServerState::default());
     let server_config_data = Data::new(Mutex::new(server_config));
@@ -63,6 +84,8 @@ async fn main() -> std::io::Result<()> {
             //.configure(api::config)
             .app_data(server_state_data.clone())
             .app_data(server_config_data.clone())
+            .app_data(repository.clone())
+            //.app_data(db_context_data.clone())
             .app_data(PayloadConfig::new(1000000 * 250))
             .service(api::echo)
             .service(api::am_i_logged_in)

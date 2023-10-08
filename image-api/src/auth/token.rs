@@ -1,6 +1,4 @@
-use actix_web::{
-    web::Data, cookie::{ time::Duration as ActixWebDuration, Cookie },
-};
+use actix_web::cookie::{ time::Duration as ActixWebDuration, Cookie };
 use jsonwebtoken::{
     encode, decode, EncodingKey, DecodingKey, Header, Validation
 };
@@ -16,7 +14,6 @@ use log::{ debug, error };
 use crate::{
     model::role::Role,
     repository::role::RoleRepository, db::DBError,
-    server::config::ServerConfig,
 };
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -132,7 +129,7 @@ pub fn create_session_token(
 /// Returns session token from the supplied refresh token.
 pub fn create_session_token_from_refresh_token(
     ref_tok_data: RefreshTokenData,
-    role_repo: &mut impl RoleRepository,
+    role_repo: &mut Box<dyn RoleRepository>,
 ) -> Result<String, TokenError> {
     match role_repo.get(ref_tok_data.role_id) {
         Ok(role) => {

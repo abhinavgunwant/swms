@@ -13,7 +13,9 @@ use crate::{
     model::folder::Folder,
 };
 
-pub struct MySQLFolderRepository {}
+pub struct MySQLFolderRepository {
+    pub connection: PooledConn,
+}
 
 fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
     -> std::result::Result<Folder, DBError> {

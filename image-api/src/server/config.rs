@@ -1,15 +1,11 @@
 use std::{
-    convert::From, path::Path, sync::Mutex,
-    fs::{ create_dir_all, read_to_string, write }
+    convert::From, path::Path, fs::{ create_dir_all, read_to_string, write },
 };
 
-use mysql::{ Pool, PooledConn };
 use serde::{ Serialize, Deserialize };
 use serde_yaml;
 use dirs_next::{ data_local_dir, config_dir };
 use log::{ info, debug, error, warn };
-
-use crate::repository::role::{RoleRepository, db::mysql::MySQLRoleRepository};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -19,9 +15,6 @@ pub struct ServerConfig {
     pub upload_dir: String,
     pub rendition_cache_dir: String,
     pub db: DBConfig,
-
-    #[serde(skip_serializing, skip_deserializing)]
-    mysql_conn_pool: Option<Pool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -52,16 +45,6 @@ pub struct DBConnectionInfo {
 const DEF_ROOT_DIR_NAME: &str = "dam";
 const DEF_IMG_UPL_DIR_NAME: &str = "uploads";
 const DEF_REN_DIR_NAME: &str = "renditions";
-
-fn get_conn_from_pool(pool: &Pool) -> Result<PooledConn, ()> {
-    match pool.get_conn() {
-        Ok(connection) => Ok(connection),
-        Err(e) => {
-            error!("Error in creating connection from pool: {}", e);
-            Err(())
-        }
-    }
-}
 
 impl Default for ServerConfig {
     fn default() -> Self {
@@ -130,7 +113,6 @@ impl Default for ServerConfig {
                         upload_dir: upload_dir.clone(),
                         rendition_cache_dir: rendition_cache_dir.clone(),
                         db: DBConfig::default(),
-                        mysql_conn_pool: None,
                     };
 
                     match serde_yaml::to_string(&temp_config) {
@@ -178,14 +160,12 @@ impl Default for ServerConfig {
         }
 
         // Return default server config (no config file)
-
         Self {
             hostname,
             port,
             upload_dir,
             rendition_cache_dir,
             db: DBConfig::default(),
-            mysql_conn_pool: None,
         }
     }
 }
@@ -222,80 +202,7 @@ impl ServerConfig {
         String::default()
     }
 
-//    pub fn get_mysql_conn_pool(&mut self) -> Result<Pool, ()> {
-//        match &self.mysql_conn_pool {
-//            Some(pool) => Ok(pool),
-//            None => {
-//                let con_string = self.get_connection_string();
-//
-//                match Pool::new(con_string.as_str()) {
-//                    Ok(pool) => {
-//                        self.mysql_conn_pool = Some(pool);
-//
-//                        Ok(pool)
-//                    }
-//
-//                    Err(e) => {
-//                        error!("Some error occured while creating mysql \
-//                            connection pool: {}", e);
-//
-//                        Err(())
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-    pub fn get_mysql_connection(&mut self) -> Result<PooledConn, ()> {
-        //let pool: Pool;
-        match &self.mysql_conn_pool {
-            Some(pool) => {
-                return get_conn_from_pool(&pool);
-//                match pool.get_conn() {
-//                    Ok(connection) => return Ok(connection),
-//                    Err(e) => {
-//                        error!(
-//                            "Error in creating connection from pool: {}", e
-//                        );
-//                        return Err(());
-//                    }
-//                }
-            }
-
-            None => {
-                let con_string = self.get_connection_string();
-
-                match Pool::new(con_string.as_str()) {
-                    Ok(pool) => {
-                        let conn_result = get_conn_from_pool(&pool);
-
-                        self.mysql_conn_pool = Some(pool);
-
-                        return conn_result;
-                    }
-
-                    Err(e) => {
-                        error!("Some error occured while creating mysql \
-                            connection pool: {}", e);
-
-                        return Err(())
-                    }
-                }
-            }
-        }
-
-//        match pool.get_conn() {
-//            Ok(connection) => Ok(connection),
-//            Err(e) => {
-//                error!(
-//                    "Error in creating connection from pool: {}", e
-//                );
-//                Err(())
-//            }
-//        }
-    }
-
-    fn get_connection_string(&self) -> String {
+    pub fn get_connection_string(&self) -> String {
         match self.db.db_type {
             DBType::MySQL => {
                 format!(
@@ -306,17 +213,6 @@ impl ServerConfig {
                     self.db.connection_info.port,
                     self.db.connection_info.db_name,
                 )
-            }
-        }
-    }
-
-    pub fn get_role_repo(&mut self) -> Result<impl RoleRepository, ()> {
-        match self.db.db_type {
-            DBType::MySQL => {
-                match self.get_mysql_connection() {
-                    Ok(connection) => Ok(MySQLRoleRepository { connection }),
-                    Err(_) => Err(()),
-                }
             }
         }
     }

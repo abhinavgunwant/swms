@@ -1,20 +1,16 @@
-use std::{ sync::Mutex, ops::DerefMut };
 use actix_web::{ get, post, put, delete, web::{ Json, Data }, HttpResponse };
 
 use crate::{
-    repository::role::RoleRepository, server::config::ServerConfig,
+    repository::Repository,
     db::DBError, model::role::Role, auth::AuthMiddleware,
 };
 
 
 /// Gets all roles.
 #[get("/api/admin/roles")]
-pub async fn get_all_roles(_: AuthMiddleware, conf: Data<Mutex<ServerConfig>>)
+pub async fn get_all_roles(_: AuthMiddleware, repo: Data<dyn Repository>)
     -> HttpResponse {
-    let mut c_ = conf.lock().unwrap();
-    let config: &mut ServerConfig = c_.deref_mut();
-
-    if let Ok(mut repo) = config.get_role_repo() {
+    if let Ok(mut repo) = repo.get_role_repo() {
         match repo.get_all() {
             Ok(roles) => return HttpResponse::Ok().json(roles),
             Err(e) => {
@@ -23,7 +19,6 @@ pub async fn get_all_roles(_: AuthMiddleware, conf: Data<Mutex<ServerConfig>>)
                 }
             }
         }
-        
     }
 
     HttpResponse::InternalServerError().body("Some Error Occurred")
@@ -31,12 +26,9 @@ pub async fn get_all_roles(_: AuthMiddleware, conf: Data<Mutex<ServerConfig>>)
 
 #[post("/api/admin/role")]
 pub async fn set_role(
-    role: Json<Role>, _: AuthMiddleware, conf: Data<Mutex<ServerConfig>>
+    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository>
 ) -> HttpResponse {
-    let mut c_ = conf.lock().unwrap();
-    let config: &mut ServerConfig = c_.deref_mut();
-
-    if let Ok(mut repo) = config.get_role_repo() {
+    if let Ok(mut repo) = repo.get_role_repo() {
         match repo.add(Role {
             id: role.id,
             role_name: role.role_name.clone(),
@@ -52,12 +44,9 @@ pub async fn set_role(
 
 #[put("/api/admin/role")]
 pub async fn update_role(
-    role: Json<Role>, _: AuthMiddleware, conf: Data<Mutex<ServerConfig>>
+    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository>
 ) -> HttpResponse {
-    let mut c_ = conf.lock().unwrap();
-    let config: &mut ServerConfig = c_.deref_mut();
-
-    if let Ok(mut repo) = config.get_role_repo() {
+    if let Ok(mut repo) = repo.get_role_repo() {
         match repo.update(Role {
             id: role.id,
             role_name: role.role_name.clone(),
@@ -73,12 +62,9 @@ pub async fn update_role(
 
 #[delete("/api/admin/role")]
 pub async fn delete_role(
-    role: Json<Role>, _: AuthMiddleware, conf: Data<Mutex<ServerConfig>>
+    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository>
 ) -> HttpResponse {
-    let mut c_ = conf.lock().unwrap();
-    let config: &mut ServerConfig = c_.deref_mut();
-
-    if let Ok(mut repo) = config.get_role_repo() {
+    if let Ok(mut repo) = repo.get_role_repo() {
         match repo.remove(Role {
             id: role.id,
             role_name: role.role_name.clone(),

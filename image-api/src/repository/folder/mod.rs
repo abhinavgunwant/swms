@@ -1,4 +1,4 @@
-mod db;
+pub mod db;
 
 use crate::db::{ DBError, DBImpl, get_db_context };
 use crate::model::folder::Folder;
@@ -66,7 +66,7 @@ pub fn get_folder_repository() -> impl FolderRepository {
 
     match dctxt.dbimpl {
         DBImpl::MYSQL => {
-            MySQLFolderRepository {}
+            MySQLFolderRepository { connection: mysql::Pool::new("").expect("lol").get_conn().unwrap() }
         }
     }
 }

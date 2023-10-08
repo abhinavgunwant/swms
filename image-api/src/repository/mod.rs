@@ -7,47 +7,37 @@ pub mod project;
 pub mod folder;
 pub mod role;
 
-use item::Item;
+use mysql::Pool;
 
-/**
- * Repository trait for all repositories
- */
+use crate::server::db::{ DBError, mysql_to_db_error };
+use self::role::{ RoleRepository, db::mysql::MySQLRoleRepository };
+
 pub trait Repository {
-    fn get(&self, id: u32) -> Box::<dyn Item>; // TODO: change Item to Box<Item> ??
-    fn get_all(&self) -> Vec::<Box::<dyn Item>>;
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<Box::<dyn Item>>;
-    fn add(&self, item: Box::<dyn Item>);
-    fn update(&self, item: Box::<dyn Item>);
-    fn remove_item(&self, item: Box::<dyn Item>);
-    fn remove(&self, id: u32);
+    fn get_role_repo(&self) -> Result<Box::<dyn RoleRepository>, DBError>;
 }
 
-impl<T: ?Sized> Repository for Box<T> where T: Repository {
-    fn get(&self, id: u32) -> Box::<dyn Item> {
-        (**self).get(id)
-    }
+#[derive(Clone)]
+pub struct MySQLRepository {
+    connection_pool: Pool,
+}
 
-    fn get_all(&self) -> Vec::<Box<dyn Item>> {
-        (**self).get_all()
-    }
-
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Vec::<Box::<dyn Item>> {
-        (**self).get_all_paged(page, page_length)
-    }
-
-    fn add(&self, item: Box::<dyn Item>) {
-        (**self).add(item)
-    }
-
-    fn update(&self, item: Box::<dyn Item>) {
-        (**self).update(item)
-    }
-
-    fn remove_item(&self, item: Box::<dyn Item>) {
-        (**self).remove_item(item)
-    }
-
-    fn remove(&self, id: u32) {
-        (**self).remove(id)
+impl Repository for MySQLRepository {
+    fn get_role_repo(&self) -> Result<Box::<dyn RoleRepository>, DBError> {
+        match self.connection_pool.get_conn() {
+            Ok(connection) => Ok(Box::new(MySQLRoleRepository { connection })),
+            Err(e) => Err(
+                mysql_to_db_error("Error while creating connection", e)
+            ),
+        }
     }
 }
+
+impl MySQLRepository {
+    pub fn new(connection_str: &str) -> Result<Self, DBError> {
+        match Pool::new(connection_str) {
+            Ok(pool) => Ok(MySQLRepository { connection_pool: pool }),
+            Err(e) => Err(mysql_to_db_error("Error while creating pool", e)),
+        }
+    }
+}
+
