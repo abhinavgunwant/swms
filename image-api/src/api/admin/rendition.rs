@@ -15,6 +15,7 @@ use crate::{
     },
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::{
+        Repository,
         rendition::{ RenditionRepository, get_rendition_repository },
         image::{ ImageRepository, get_image_repository },
     },
@@ -127,7 +128,7 @@ pub async fn get_rendition(req: HttpRequest, _: AuthMiddleware)
 /// Creates multiple renditions for a single image.
 #[post("/api/admin/renditions")]
 pub async fn set_rendition(
-    req: Json<RenditionRequest>, _: AuthMiddleware, conf: Data<ServerConfig>
+    repository: Data<dyn Repository + Sync + Send>, req: Json<RenditionRequest>, _: AuthMiddleware, conf: Data<ServerConfig>
 ) -> HttpResponse {
     let mut unsuccessful_renditions: Vec<UnsuccessfulRendition> = vec![];
     let mut internal_error: bool = false;
@@ -182,7 +183,7 @@ pub async fn set_rendition(
         let mut image_raster_option: Option<Rc<RasterImage>> = None;
         let image_path;
 
-        match get_image_path(&image) {
+        match get_image_path(&repository, &image) {
             Ok(i_path) => { image_path = i_path; }
             Err(_) => {
                 return HttpResponse::InternalServerError()
@@ -300,7 +301,7 @@ pub async fn set_rendition(
 /// Creates multiple renditions for a single image.
 #[delete("/api/admin/rendition/{rendition_id}")]
 pub async fn delete_rendition(
-    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+    repository: Data<dyn Repository + Sync + Send>, req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
 ) -> HttpResponse {
     if let Some(rid) = req.match_info().get("rendition_id") {
         let repo = get_rendition_repository();
@@ -313,7 +314,9 @@ pub async fn delete_rendition(
                         let mut image_path: String = String::default();
 
                         if let Ok(image) = img_repo.get(rendition.image_id) {
-                            if let Ok(img_path) = get_image_path(&image) {
+                            if let Ok(img_path) = get_image_path(
+                                &repository, &image
+                            ) {
                                 image_path = img_path;
                             }
                         }

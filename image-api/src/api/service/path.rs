@@ -1,14 +1,16 @@
 //! Path and slug service
 
 use std::{ fs::create_dir_all, path::Path };
+
+use actix_web::web::Data;
 use raster;
 use log::{ debug, error };
 
 use crate::{
     db::DBError,
     repository::{
+        Repository,
         image::{ ImageRepository, get_image_repository },
-        folder::{ FolderRepository, get_folder_repository },
         project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
@@ -19,16 +21,31 @@ use crate::{
 };
 
 /// Gets rendition that is represented by the given path
-pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
-    -> Result<Rendition, Error<'a>> {
+pub fn get_rendition_from_path_segments<'a >(
+    repo: &Data<dyn Repository + Sync + Send>,
+    path_segments: &'a Vec<&str>
+) -> Result<Rendition, Error<'a>> {
     let img_repo = get_image_repository();
     let ren_repo = get_rendition_repository();
-    let fol_repo = get_folder_repository();
+    let fol_repo;
     let proj_repo = get_project_repository();
 
     let project_id: u32;
     let mut folder_id: u32 = 0;
     let mut image_id: u32 = 0;
+
+    match repo.get_folder_repo() {
+        Ok(f_repo) => { fol_repo = f_repo },
+        Err(e) => {
+            let msg = "Error while getting folder repo";
+            error!("{}: {}", msg, e);
+
+            return Err(Error {
+                error_type: ErrorType::InternalError,
+                message: "Some internal error occured.",
+            });
+        }
+    }
 
     debug!("Validating project slug: {}", path_segments[0]);
 
@@ -178,14 +195,25 @@ pub fn get_rendition_from_path_segments<'a >(path_segments: &'a Vec<&str>)
 }
 
 /// Gets the path of an image
-pub fn get_image_path(image: &Image) -> Result<String, DBError> {
+pub fn get_image_path(
+    repo: &Data<dyn Repository + Sync + Send>,
+    image: &Image
+) -> Result<String, DBError> {
     debug!("Getting image path");
-    let fol_repo = get_folder_repository();
+    let fol_repo;
     let prj_repo = get_project_repository();
 
     let mut path: String = image.slug.clone();
 
     let mut folder_id: u32 = image.folder_id;
+
+    match repo.get_folder_repo() {
+        Ok(f_repo) => { fol_repo = f_repo; }
+        Err(e) => {
+            error!("Error while getting folder repository: {}", e);
+            return Err(DBError::OtherError);
+        }
+    }
 
     while folder_id != 0 {
         match fol_repo.get(folder_id) {

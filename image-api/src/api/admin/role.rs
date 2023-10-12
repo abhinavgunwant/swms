@@ -8,7 +8,7 @@ use crate::{
 
 /// Gets all roles.
 #[get("/api/admin/roles")]
-pub async fn get_all_roles(_: AuthMiddleware, repo: Data<dyn Repository>)
+pub async fn get_all_roles(_: AuthMiddleware, repo: Data<dyn Repository + Sync + Send>)
     -> HttpResponse {
     if let Ok(mut repo) = repo.get_role_repo() {
         match repo.get_all() {
@@ -26,7 +26,7 @@ pub async fn get_all_roles(_: AuthMiddleware, repo: Data<dyn Repository>)
 
 #[post("/api/admin/role")]
 pub async fn set_role(
-    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository>
+    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository + Sync + Send>
 ) -> HttpResponse {
     if let Ok(mut repo) = repo.get_role_repo() {
         match repo.add(Role {
@@ -44,7 +44,7 @@ pub async fn set_role(
 
 #[put("/api/admin/role")]
 pub async fn update_role(
-    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository>
+    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository + Sync + Send>
 ) -> HttpResponse {
     if let Ok(mut repo) = repo.get_role_repo() {
         match repo.update(Role {
@@ -62,7 +62,7 @@ pub async fn update_role(
 
 #[delete("/api/admin/role")]
 pub async fn delete_role(
-    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository>
+    role: Json<Role>, _: AuthMiddleware, repo: Data<dyn Repository + Sync + Send>
 ) -> HttpResponse {
     if let Ok(mut repo) = repo.get_role_repo() {
         match repo.remove(Role {

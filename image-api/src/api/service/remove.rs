@@ -1,12 +1,14 @@
 //! Delete service
 
 use std::fs::{ remove_file, remove_dir_all };
+
+use actix_web::web::Data;
 use log::{ debug, error, info };
 
 use crate::{
     db::DBError, api::service::path::get_image_path,
     repository::{
-        folder::{ FolderRepository, get_folder_repository },
+        Repository,
         image::{ ImageRepository, get_image_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
@@ -15,7 +17,8 @@ use crate::{
 
 /// Removes images in `image_ids`
 pub fn remove_images(
-    image_ids: &Vec<u32>, rendition_path: String, upload_path: String,
+    repo: &Data<dyn Repository + Sync + Send>, image_ids: &Vec<u32>, rendition_path: String,
+    upload_path: String,
 ) -> Result<String, String> {
     let mut image: Option<Image>;
     let mut error: bool = false;
@@ -64,7 +67,7 @@ pub fn remove_images(
         match get_image_repository().remove_item(*image_id) {
             Ok (_message) => {
                 if let Some(img) = image {
-                    if let Ok(image_path) = get_image_path(&img) {
+                    if let Ok(image_path) = get_image_path(&repo, &img) {
                         // Delete the image file from upload directory
                         match remove_file(format!("{}/{}{}",
                             upload_path, image_id, img.encoding.extension()
@@ -123,19 +126,30 @@ pub fn remove_images(
 /// ### Parameters
 /// - `folder_ids`: IDs of folders to be deleted
 pub fn remove_folders(
-    folder_ids: &mut Vec<u32>, rendition_path: String, upload_path: String,
+    repo: Data<dyn Repository + Sync + Send>, folder_ids: &mut Vec<u32>,
+    rendition_path: String, upload_path: String,
 ) -> Result<String, String> {
     let mut error: bool = false;
 
-    let fol_repo = get_folder_repository();
+    let fol_repo;
     let img_repo = get_image_repository();
+
+    match repo.get_folder_repo() {
+        Ok(repo) => { fol_repo = repo; }
+        Err(e) => {
+            let msg = "Error while getting folder repo";
+            error!("{}: {}", msg, e);
+
+            return Err(format!("{}.", msg));
+        }
+    }
 
     let mut folders_to_delete: Vec<u32> = vec![];
 
     folders_to_delete.append(folder_ids);
 
     for fid in folder_ids.iter() {
-        folders_to_delete.append(&mut get_subfolders(*fid));
+        folders_to_delete.append(&mut get_subfolders(&repo, *fid));
     }
 
     for folder_id in folders_to_delete.iter() {
@@ -150,6 +164,7 @@ pub fn remove_folders(
                         }
 
                         match remove_images(
+                            &repo,
                             &image_ids,
                             rendition_path.clone(),
                             upload_path.clone(),
@@ -199,19 +214,21 @@ pub fn remove_rendition_file(
     }
 }
 
-fn get_subfolders(folder_id: u32) -> Vec<u32> {
+fn get_subfolders(repo: &Data<dyn Repository + Sync + Send>, folder_id: u32) -> Vec<u32> {
     let mut f_ids: Vec<u32> = vec![];
 
-    match get_folder_repository().get_from_folder(folder_id) {
-        Ok (folders) => {
-            for f in folders.iter() {
-                f_ids.push(f.id);
+    if let Ok(fol_repo) = repo.get_folder_repo() {
+        match fol_repo.get_from_folder(folder_id) {
+            Ok (folders) => {
+                for f in folders.iter() {
+                    f_ids.push(f.id);
 
-                f_ids.append(&mut get_subfolders(f.id));
+                    f_ids.append(&mut get_subfolders(repo, f.id));
+                }
             }
-        }
 
-        Err (e) => { error!("{}", e); }
+            Err (e) => { error!("{}", e); }
+        }
     }
 
     return f_ids;

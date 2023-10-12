@@ -9,7 +9,7 @@ use log::{ debug, error };
 
 use crate::{
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
-    repository::image::{ ImageRepository, get_image_repository },
+    repository::{ Repository, image::{ ImageRepository, get_image_repository }},
     model::{ image::Image, upload_image::UploadImage },
     api::{ admin::SuccessResponse, service::remove::remove_images, },
 };
@@ -170,7 +170,8 @@ pub async fn add_image(
 /// - `id` - Comma-separated image IDs.
 #[delete("/api/admin/image")]
 pub async fn remove_image(
-    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+    repo: Data<dyn Repository + Sync + Send>, req: HttpRequest, _: AuthMiddleware,
+    conf: Data<ServerConfig>,
 ) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
@@ -187,7 +188,7 @@ pub async fn remove_image(
     }
 
     match remove_images(
-        &image_ids, conf.rendition_cache_dir.clone(), conf.upload_dir.clone()
+        &repo, &image_ids, conf.rendition_cache_dir.clone(), conf.upload_dir.clone()
     ) {
         Ok (_) => {
             if image_ids.len() > 1 {

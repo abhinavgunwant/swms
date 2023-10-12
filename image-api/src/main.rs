@@ -7,7 +7,7 @@ mod server_state;
 mod log_config;
 mod server;
 
-use std::{ env, sync::{ Arc, Mutex }, io::{ Error, ErrorKind } };
+use std::{ env, sync::Arc, io::{ Error, ErrorKind } };
 
 use actix_web::{
     App, HttpServer, web::{ PayloadConfig, Data }, middleware::Logger,
@@ -37,7 +37,7 @@ async fn main() -> std::io::Result<()> {
     let server_config = ServerConfig::default();
     server_config.print_info();
 
-    let repository: Data<dyn Repository + Sync + Send>;
+    let repository_arc: Arc<dyn Repository + Sync + Send>;
 
     match server_config.db.db_type {
         server::config::DBType::MySQL => {
@@ -45,12 +45,14 @@ async fn main() -> std::io::Result<()> {
                 server_config.get_connection_string().as_str()
             ) {
                 Ok(r) => {
-                    let repo: Arc<dyn Repository + Sync + Send> = Arc::new(r);
-                    repository = Data::from(repo);
+                    repository_arc = Arc::new(r);
+
+                    info!("Initializing MySQL repository.");
                 }
+
                 Err(e) => {
-                    let error_msg = "Could not connect to MySQL database!";
-                    error!("{}{}", error_msg, e);
+                    let error_msg = "Could not connect to MySQL database";
+                    error!("{}: {}", error_msg, e);
                     return Err(Error::new(ErrorKind::InvalidData, error_msg));
                 }
             }
@@ -58,9 +60,11 @@ async fn main() -> std::io::Result<()> {
     }
 
     let server_state_data = Data::new(ServerState::default());
-    let server_config_data = Data::new(Mutex::new(server_config));
 
     HttpServer::new(move || {
+        let repository_data: Data<dyn Repository + Sync + Send> = Data::from(
+            repository_arc.clone()
+        );
         // TODO: Implement a stricter CORS policy.
         let cors = //Cors::default()
             Cors::permissive();
@@ -81,11 +85,9 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .wrap(Logger::new("%{r}a %{Referer}i [%{User-Agent}i] %r took %D ms").log_target("request"))
-            //.configure(api::config)
             .app_data(server_state_data.clone())
-            .app_data(server_config_data.clone())
-            .app_data(repository.clone())
-            //.app_data(db_context_data.clone())
+            .app_data(Data::new(server_config.clone()))
+            .app_data(repository_data)
             .app_data(PayloadConfig::new(1000000 * 250))
             .service(api::echo)
             .service(api::am_i_logged_in)

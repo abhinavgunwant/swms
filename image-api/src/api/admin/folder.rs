@@ -2,50 +2,87 @@ use actix_web::{
     HttpResponse, HttpRequest, get, post, put, delete, web::{ Json, Data },
 };
 use qstring::QString;
-use log::debug;
+use log::{ debug, error };
 
 use crate::{
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
-    repository::folder::{ FolderRepository, get_folder_repository },
+    repository::Repository,
     model::folder::Folder, api::service::remove::remove_folders,
 };
 
 #[get("/api/admin/folder/{folder_id}/")]
-pub async fn get_folder (req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
+pub async fn get_folder (
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest, _: AuthMiddleware
+) -> HttpResponse {
     let folder_id: u32 = req.match_info().get("folder_id").unwrap().parse()
         .unwrap();
 
-    match get_folder_repository().get(folder_id) {
-        Ok (folder) => {
-            debug!("Got folder id: {}, title: {}", folder.id, folder.title);
-            HttpResponse::Ok().json(folder)
-        }
+    match repo.get_folder_repo() {
+        Ok(fol_repo) => {
+            match fol_repo.get(folder_id) {
+                Ok(folder) => {
+                    debug!(
+                        "Got folder id: {}, title: {}", folder.id, folder.title
+                    );
 
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound().body("Not Found");
+                    HttpResponse::Ok().json(folder)
+                }
+
+                Err(e) => {
+                    if e == DBError::NOT_FOUND {
+                        return HttpResponse::NotFound().body("Not Found");
+                    }
+
+                    HttpResponse::InternalServerError()
+                        .body("Internal Server Error")
+                }
             }
-
-            HttpResponse::InternalServerError().body("Internal Server Error")
         }
+
+        Err(e) => HttpResponse::InternalServerError()
+            .body("Internal Server Error")
     }
 }
 
 #[post("/api/admin/folder/")]
-pub async fn add_folder (folder: Json<Folder>, _: AuthMiddleware)
-    -> HttpResponse {
-    match get_folder_repository().add(folder.into_inner()) {
-        Ok (success) => HttpResponse::Ok().body(success),
-        Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),
+pub async fn add_folder (
+    repo: Data<dyn Repository + Sync + Send>, folder: Json<Folder>,
+    _: AuthMiddleware
+) -> HttpResponse {
+    match repo.get_folder_repo() {
+        Ok(fol_repo) => {
+            match fol_repo.add(folder.into_inner()) {
+                Ok(success) => HttpResponse::Ok().body(success),
+                Err(error_msg) => HttpResponse::InternalServerError()
+                    .body(error_msg),
+            }
+        }
+        
+        Err(e) => {
+            error!("Error while getting folder repo: {}", e);
+
+            HttpResponse::InternalServerError()
+                .body("Some internal error occured.")
+        }
     }
 }
 
 #[put("/api/admin/folder/")]
-pub async fn update_folder (folder: Json<Folder>, _: AuthMiddleware)
-    -> HttpResponse {
-    match get_folder_repository().update(folder.into_inner()) {
-        Ok (success) => HttpResponse::Ok().body(success),
-        Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),
+pub async fn update_folder (
+    repo: Data<dyn Repository + Sync + Send>, folder: Json<Folder>,
+    _: AuthMiddleware
+) -> HttpResponse {
+    match repo.get_folder_repo() {
+        Ok(fol_repo) => {
+            match fol_repo.update(folder.into_inner()) {
+                Ok (success) => HttpResponse::Ok().body(success),
+                Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),
+            }
+        }
+
+        Err(_) => HttpResponse::InternalServerError()
+            .body("Some error occured!")
     }
 }
 
@@ -55,7 +92,8 @@ pub async fn update_folder (folder: Json<Folder>, _: AuthMiddleware)
 /// - `id` - Comma-separated folder IDs.
 #[delete("/api/admin/folder")]
 pub async fn remove_folder (
-    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+    repo: Data<dyn Repository + Sync + Send>, req: HttpRequest,
+    _: AuthMiddleware, conf: Data<ServerConfig>
 ) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
@@ -72,6 +110,7 @@ pub async fn remove_folder (
     }
 
     match remove_folders(
+        repo,
         &mut folder_ids,
         conf.rendition_cache_dir.clone(),
         conf.upload_dir.clone(),

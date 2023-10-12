@@ -6,7 +6,7 @@ pub mod rendition;
 pub mod role;
 pub mod folder;
 
-use actix_web::{ HttpResponse, HttpRequest, get };
+use actix_web::{ HttpResponse, HttpRequest, get, web::Data };
 use serde::Serialize;
 use qstring::QString;
 use log::{ debug, error };
@@ -14,8 +14,8 @@ use log::{ debug, error };
 use crate::{
     api::service::path::split_path, db::DBError, auth::AuthMiddleware,
     repository::{
+        Repository,
         image::{ ImageRepository, get_image_repository },
-        folder::{ FolderRepository, get_folder_repository },
         project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
@@ -59,8 +59,10 @@ pub enum ResourceType {
  * /api/admin/get-children?type=<type>&path=<path>
  */
 #[get("/api/admin/get-children")]
-pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn get_children(
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest, _: AuthMiddleware
+) -> HttpResponse {
     let qs = QString::from(req.query_string());
 
     let mut response_msg: Vec<String> = vec![];
@@ -132,10 +134,20 @@ pub async fn get_children(req: HttpRequest, _: AuthMiddleware)
 
     let img_repo = get_image_repository();
     let ren_repo = get_rendition_repository();
-    let fol_repo = get_folder_repository();
+    let fol_repo;
     let proj_repo = get_project_repository();
 
     //debug!("Path is: {}", path);
+
+    match repo.get_folder_repo() {
+        Ok(f_repo) => { fol_repo = f_repo; }
+        Err(e) => {
+            error!("Error while getting folder repo: {}", e);
+
+            return HttpResponse::InternalServerError()
+                .body("Some internal error occured!");
+        }
+    }
 
     let project_slug: String;
     let project_id: u32;

@@ -12,7 +12,7 @@ use crate::{
         get_rendition_from_path_segments, split_path,
         rendition_cache_path, cache_rendition_file,
     },
-    repository::image::{ ImageRepository, get_image_repository },
+    repository::{ Repository, image::{ ImageRepository, get_image_repository }},
     model::{ error::ErrorType, encoding::Encoding },
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
 };
@@ -91,13 +91,12 @@ pub async fn upload(mut payload: Multipart, _: AuthMiddleware)
 }
 
 #[get("/api/image/{path:[/\\.\\-+a-zA-Z0-9\\(\\)]+(\\.\\w{2,5})?$}")]
-pub async fn download(req: HttpRequest, conf: Data<Mutex<ServerConfig>>)
-    -> HttpResponse {
+pub async fn download(
+    repo: Data<dyn Repository + Sync + Send>, req: HttpRequest,
+    config: Data<ServerConfig>,
+) -> HttpResponse {
     if let Some(path) = req.match_info().get("path") {
         debug!("Requested Path: \"{}\"", path);
-
-        let c_ = conf.lock().unwrap();
-        let config: &ServerConfig = c_.deref();
 
         let mut dest_file_path: String = format!(
             "{}/{}", &config.rendition_cache_dir, path
@@ -123,7 +122,7 @@ pub async fn download(req: HttpRequest, conf: Data<Mutex<ServerConfig>>)
             None => {
                 let path_segments = split_path(path);
 
-                match get_rendition_from_path_segments(&path_segments) {
+                match get_rendition_from_path_segments(&repo, &path_segments) {
                     Ok(rendition) => {
                         match get_image_repository().get(rendition.image_id) {
                             Ok (image_data) => {

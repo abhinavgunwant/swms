@@ -10,10 +10,14 @@ pub mod role;
 use mysql::Pool;
 
 use crate::server::db::{ DBError, mysql_to_db_error };
-use self::role::{ RoleRepository, db::mysql::MySQLRoleRepository };
+use self::{
+    folder::{ FolderRepository, db::mysql::MySQLFolderRepository },
+    role::{ RoleRepository, db::mysql::MySQLRoleRepository },
+};
 
 pub trait Repository {
     fn get_role_repo(&self) -> Result<Box::<dyn RoleRepository>, DBError>;
+    fn get_folder_repo(&self) -> Result<Box::<dyn FolderRepository>, DBError>;
 }
 
 #[derive(Clone)]
@@ -25,6 +29,15 @@ impl Repository for MySQLRepository {
     fn get_role_repo(&self) -> Result<Box::<dyn RoleRepository>, DBError> {
         match self.connection_pool.get_conn() {
             Ok(connection) => Ok(Box::new(MySQLRoleRepository { connection })),
+            Err(e) => Err(
+                mysql_to_db_error("Error while creating connection", e)
+            ),
+        }
+    }
+
+    fn get_folder_repo(&self) -> Result<Box::<dyn FolderRepository>, DBError> {
+        match self.connection_pool.get_conn() {
+            Ok(connection) => Ok(Box::new(MySQLFolderRepository { connection })),
             Err(e) => Err(
                 mysql_to_db_error("Error while creating connection", e)
             ),

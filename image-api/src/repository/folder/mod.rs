@@ -61,13 +61,13 @@ pub trait FolderRepository {
     fn remove_item(&self, id: u32) -> Result<String, String>;
 }
 
-pub fn get_folder_repository() -> impl FolderRepository {
-    let dctxt = get_db_context();
-
-    match dctxt.dbimpl {
-        DBImpl::MYSQL => {
-            MySQLFolderRepository { connection: mysql::Pool::new("").expect("lol").get_conn().unwrap() }
-        }
-    }
-}
+//pub fn get_folder_repository() -> impl FolderRepository {
+//    let dctxt = get_db_context();
+//
+//    match dctxt.dbimpl {
+//        DBImpl::MYSQL => {
+//            MySQLFolderRepository { connection: mysql::Pool::new("").expect("lol").get_conn().unwrap() }
+//        }
+//    }
+//}
 

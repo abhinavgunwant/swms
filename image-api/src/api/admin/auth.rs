@@ -41,7 +41,7 @@ pub struct AuthMessage {
 pub async fn auth(
     req_obj: Json<AuthRequest>,
     srv_state: Data<ServerState>,
-    repo: Data<dyn Repository>,
+    repo: Data<dyn Repository + Sync + Send>,
 ) -> HttpResponse {
     let user_repo = get_user_repository();
 
@@ -187,7 +187,7 @@ pub async fn auth_logout(req: HttpRequest) -> HttpResponse {
 pub async fn auth_refresh(
     req: HttpRequest,
     _: AuthMiddleware,
-    repo: Data<dyn Repository>,
+    repo: Data<dyn Repository + Sync + Send>,
 ) -> HttpResponse {
     if let Some(cookie) = req.cookie("r") {
         let val = String::from(cookie.value());
