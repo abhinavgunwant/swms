@@ -210,14 +210,14 @@ pub async fn auth_refresh(
 
                     Err(e) => {
                         match e {
-                            TokenError::InvalidToken => {
-                                return HttpResponse::UnprocessableEntity()
-                                    .body(
-                                        "You session is either invalid or \
-                                        expired, please login again!"
-                                    );
-                            }
-
+//                            TokenError::InvalidToken => {
+//                                return HttpResponse::UnprocessableEntity()
+//                                    .body(
+//                                        "You session is either invalid or \
+//                                        expired, please login again!"
+//                                    );
+//                            }
+//
                             TokenError::RoleNotFound => {
                                 return HttpResponse::UnprocessableEntity()
                                     .body(

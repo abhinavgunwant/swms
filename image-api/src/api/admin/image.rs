@@ -2,7 +2,7 @@ use actix_web::{
     web::{ Json, block, Data }, HttpResponse, HttpRequest, post, get, put, delete,
 };
 use std::fs::{ read, rename };
-use serde::{ Serialize, Deserialize };
+use serde::Serialize;
 use qstring::QString;
 use chrono::Utc;
 use log::{ debug, error };
@@ -25,13 +25,6 @@ pub struct ImageSaveResponse<'a> {
     success: bool,
     message: &'a str,
     image_id: Option<u32>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImageTitleUpdateRequest {
-    image_id: u32,
-    title: String,
 }
 
 #[get("/api/admin/project/{project_id}/images")]

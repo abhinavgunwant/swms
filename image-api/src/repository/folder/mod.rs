@@ -1,8 +1,6 @@
 pub mod db;
 
-use crate::db::{ DBError, DBImpl, get_db_context };
-use crate::model::folder::Folder;
-use db::mysql::MySQLFolderRepository;
+use crate::{ db::DBError, model::folder::Folder };
 
 pub trait FolderRepository {
     fn get(&self, id: u32) -> Result<Folder, DBError>;

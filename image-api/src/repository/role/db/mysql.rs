@@ -69,7 +69,7 @@ fn get_roles_from_rows_wrapped(row_wrapped: Result<Vec<Row>, Error>)
             let mut roles: Vec<Role> = vec![];
 
             for row_ref in rows.iter() {
-                let mut row = row_ref.clone();
+                let row = row_ref.clone();
 
                 roles.push(get_role_from_row(row));
             }

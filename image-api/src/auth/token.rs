@@ -37,7 +37,7 @@ pub struct SessionTokenClaims {
 }
 
 pub enum TokenError {
-    InvalidToken,
+    //InvalidToken,
     // UserNotFound,
 
     /// User may have been found but is not assigned a role.

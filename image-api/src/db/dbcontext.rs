@@ -8,11 +8,6 @@ pub struct DBContext {
     pub db_name: String
 }
 
-pub struct MySQLContext {
-    pub db_name: String,
-    pub connection_string: String
-}
-
 impl DBContext {
     pub fn new(di: DBImpl, cs: String, dn: String) -> Self {
         Self {

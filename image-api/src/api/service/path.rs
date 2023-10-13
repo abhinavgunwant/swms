@@ -9,7 +9,7 @@ use log::{ debug, error };
 use crate::{
     db::DBError,
     repository::{
-        Repository, image::ImageRepository,
+        Repository,
         project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },

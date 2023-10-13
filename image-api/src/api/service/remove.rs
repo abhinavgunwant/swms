@@ -8,7 +8,7 @@ use log::{ debug, error, info };
 use crate::{
     db::DBError, api::service::path::get_image_path,
     repository::{
-        Repository, image::ImageRepository,
+        Repository,
         rendition::{ RenditionRepository, get_rendition_repository },
     },
     model::{ image::Image, rendition::Rendition },
@@ -24,7 +24,6 @@ pub fn remove_images(
 
     let img_repo;
     let ren_repo = get_rendition_repository();
-    let mut error_repo_init: bool = false;
 
     match repo.get_image_repo() {
         Ok(i_repo) => { img_repo = i_repo; }

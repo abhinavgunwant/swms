@@ -1,8 +1,6 @@
 pub mod db;
 
-use crate::db::{ DBImpl, get_db_context, DBError };
-use crate::model::{ encoding::Encoding, image::Image };
-use db::mysql::MySQLImageRepository;
+use crate::{ db::DBError, model::{ encoding::Encoding, image::Image } };
 
 pub trait ImageRepository {
     fn get(&self, id: u32) -> Result<Image, DBError>;

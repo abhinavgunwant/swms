@@ -1,7 +1,6 @@
 pub mod image;
 pub mod user;
 pub mod item;
-mod metadata;
 pub mod rendition;
 pub mod project;
 pub mod folder;

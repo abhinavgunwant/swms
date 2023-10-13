@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use mysql::*;
 use mysql::prelude::*;
 use log::error;
