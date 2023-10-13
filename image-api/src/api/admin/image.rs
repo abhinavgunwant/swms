@@ -9,7 +9,7 @@ use log::{ debug, error };
 
 use crate::{
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
-    repository::{ Repository, image::{ ImageRepository, get_image_repository }},
+    repository::Repository,
     model::{ image::Image, upload_image::UploadImage },
     api::{ admin::SuccessResponse, service::remove::remove_images, },
 };
@@ -35,12 +35,28 @@ pub struct ImageTitleUpdateRequest {
 }
 
 #[get("/api/admin/project/{project_id}/images")]
-pub async fn get_images_in_project(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
+pub async fn get_images_in_project(
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest,
+    _: AuthMiddleware
+) -> HttpResponse {
     let project_id: String = req.match_info().get("project_id")
         .unwrap().parse().unwrap();
     debug!("Fetching images for project: {}", project_id);
-    let repo = get_image_repository();
-    let images_wrapped = repo.get_all_from_project(project_id.parse::<u32>().unwrap());
+    let images_wrapped;
+
+    match repo.get_image_repo() {
+        Ok(img_repo) => {
+            images_wrapped = img_repo.get_all_from_project(
+                project_id.parse::<u32>().unwrap()
+            );
+        }
+
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .body("Some internal error occured!");
+        }
+    }
 
 
     match images_wrapped {
@@ -63,29 +79,44 @@ pub async fn get_images_in_project(req: HttpRequest, _: AuthMiddleware) -> HttpR
 }
 
 #[get("/api/admin/image/{image_id}")]
-pub async fn get_image(req: HttpRequest, _: AuthMiddleware) -> HttpResponse {
+pub async fn get_image(
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest,
+    _: AuthMiddleware
+) -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
-    match get_image_repository().get(image_id) {
-        Ok (image) => {
-            debug!("got id: {}, name: {}", image.id, image.name);
-            HttpResponse::Ok().json(image)
-        }
+    match repo.get_image_repo() {
+        Ok(img_repo) => {
+            match img_repo.get(image_id) {
+                Ok (image) => {
+                    debug!("got id: {}, name: {}", image.id, image.name);
+                    HttpResponse::Ok().json(image)
+                }
 
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound().body("Not Found");
+                Err (e) => {
+                    if e == DBError::NOT_FOUND {
+                        return HttpResponse::NotFound().body("Not Found");
+                    }
+
+                    HttpResponse::InternalServerError()
+                        .body("Internal Server Error")
+                }
             }
-
-            HttpResponse::InternalServerError().body("Internal Server Error")
         }
+
+        Err(_) => HttpResponse::InternalServerError()
+            .body("Internal Server Error")
     }
 }
 
 #[post("/api/admin/image-save")]
 pub async fn add_image(
-    req_image: Json<UploadImage>, _: AuthMiddleware, conf: Data<ServerConfig>
+    repo: Data<dyn Repository + Sync + Send>,
+    req_image: Json<UploadImage>,
+    _: AuthMiddleware,
+    conf: Data<ServerConfig>
 ) -> HttpResponse {
     debug!("Got request for upload id: {}", req_image.upload_id);
 
@@ -121,44 +152,54 @@ pub async fn add_image(
     image.width = raster_img.width as u16;
 
     // Add image to the db
-    match get_image_repository().add(image.clone()) {
-        Ok (id) => {
-            // Finally, change temp image path
-            let dest_file_path = format!(
-                "{}/{}{}",
-                conf.upload_dir,
-                id,                         // id of image after add transaction committed
-                image.encoding.extension()
-            );
-
-            match rename(source_file_path, dest_file_path) {
-                Ok (_) => HttpResponse::Ok().json(ImageSaveResponse {
-                    success: true,
-                    message: "Image Saved",
-                    image_id: Some(id)
-                }),
-
-                Err (e) => {
-                    error!(
-                        "An I/O error occured while adding an image: {}", e
+    match repo.get_image_repo() {
+        Ok(img_repo) => {
+            match img_repo.add(image.clone()) {
+                Ok (id) => {
+                    // Finally, change temp image path
+                    let dest_file_path = format!(
+                        "{}/{}{}",
+                        conf.upload_dir,
+                        id,                         // id of image after add transaction committed
+                        image.encoding.extension()
                     );
 
-                    return HttpResponse::InternalServerError().json(
-                        ImageSaveResponse {
-                            success: false,
-                            message:
-                                "There was some problem. Please try again.",
-                            image_id: None
-                    });
+                    match rename(source_file_path, dest_file_path) {
+                        Ok (_) => HttpResponse::Ok().json(ImageSaveResponse {
+                            success: true,
+                            message: "Image Saved",
+                            image_id: Some(id)
+                        }),
+
+                        Err (e) => {
+                            error!(
+                                "An I/O error occured while adding an image: {}", e
+                            );
+
+                            return HttpResponse::InternalServerError().json(
+                                ImageSaveResponse {
+                                    success: false,
+                                    message:
+                                        "There was some problem. Please try again.",
+                                    image_id: None
+                            });
+                        }
+                    }
                 }
+
+                Err (_s) => HttpResponse::InternalServerError().json(
+                    ImageSaveResponse {
+                        success: false,
+                        message: "There was some problem. Please try again.",
+                        image_id: None
+                })
             }
         }
 
-        Err (_s) => HttpResponse::InternalServerError().json(
-            ImageSaveResponse {
-                success: false,
-                message: "There was some problem. Please try again.",
-                image_id: None
+        Err(_) => HttpResponse::InternalServerError().json(ImageSaveResponse {
+            success: false,
+            message: "There was some problem. Please try again.",
+            image_id: None
         })
     }
 }
@@ -215,48 +256,72 @@ pub async fn remove_image(
  */
 #[get("/api/admin/image-file/{image_id}")]
 pub async fn get_image_file(
-    req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest,
+    _: AuthMiddleware,
+    conf: Data<ServerConfig>
 ) -> HttpResponse {
     let image_id:u32 = req.match_info().get("image_id").unwrap().parse()
         .unwrap();
 
-    let img_repo = get_image_repository();
+    match repo.get_image_repo() {
+        Ok(img_repo) => {
+            match img_repo.get(image_id) {
+                Ok (image) => {
+                    let image_file_path = format!(
+                        "{}/{}{}",
+                        conf.upload_dir,
+                        image.id,
+                        image.encoding.extension()
+                    );
 
-    match img_repo.get(image_id) {
-        Ok (image) => {
-            let image_file_path = format!(
-                "{}/{}{}",
-                conf.upload_dir,
-                image.id,
-                image.encoding.extension()
-            );
+                    let image_file = block(
+                        move || read(String::from(image_file_path))
+                    ).await.unwrap().expect("Error whie downloading!");
 
-            let image_file = block(
-                move || read(String::from(image_file_path))
-            ).await.unwrap().expect("Error whie downloading!");
+                    HttpResponse::Ok()
+                        .content_type(image.encoding.mime_type())
+                        .body(image_file)
+                }
 
-            HttpResponse::Ok()
-                .content_type(image.encoding.mime_type())
-                .body(image_file)
-        }
+                Err (e) => {
+                    if e == DBError::NOT_FOUND {
+                        return HttpResponse::NotFound()
+                            .body("Image not found");
+                    }
 
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound().body("Image not found");
+                    HttpResponse::InternalServerError()
+                        .body("Some error occured")
+                }
             }
-
-            return HttpResponse::InternalServerError().body("Some error occured");
         }
+
+        Err(_) => HttpResponse::InternalServerError().body("Some error occured")
     }
 }
 
 /// Updates an image.
 #[put("/api/admin/image")]
-pub async fn update(req: Json<Image>, _: AuthMiddleware) -> HttpResponse {
-    match get_image_repository().update(req.into_inner()) {
-        Ok (msg) => HttpResponse::Ok().json(SuccessResponse::new(true, msg)),
-        Err (msg) => HttpResponse::InternalServerError()
-            .json(SuccessResponse::new(false, msg)),
+pub async fn update(
+    repo: Data<dyn Repository + Sync + Send>,
+    req: Json<Image>,
+    _: AuthMiddleware
+) -> HttpResponse {
+    match repo.get_image_repo() {
+        Ok(img_repo) => {
+            match img_repo.update(req.into_inner()) {
+                Ok (msg) => HttpResponse::Ok()
+                    .json(SuccessResponse::new(true, msg)),
+                Err (msg) => HttpResponse::InternalServerError()
+                    .json(SuccessResponse::new(false, msg)),
+            }
+        }
+
+        Err(_) => HttpResponse::InternalServerError()
+                .json(SuccessResponse::new(
+                    false,
+                    String::from("Some internal server error occurred."),
+                ))
     }
 }
 

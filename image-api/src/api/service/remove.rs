@@ -8,8 +8,7 @@ use log::{ debug, error, info };
 use crate::{
     db::DBError, api::service::path::get_image_path,
     repository::{
-        Repository,
-        image::{ ImageRepository, get_image_repository },
+        Repository, image::ImageRepository,
         rendition::{ RenditionRepository, get_rendition_repository },
     },
     model::{ image::Image, rendition::Rendition },
@@ -23,8 +22,19 @@ pub fn remove_images(
     let mut image: Option<Image>;
     let mut error: bool = false;
 
-    let img_repo = get_image_repository();
+    let img_repo;
     let ren_repo = get_rendition_repository();
+    let mut error_repo_init: bool = false;
+
+    match repo.get_image_repo() {
+        Ok(i_repo) => { img_repo = i_repo; }
+        Err(e) => {
+            let msg = "Error while getting image repo";
+            error!("{}: {}", msg, e);
+
+            return Err(format!("{}.", msg));
+        }
+    }
 
     for image_id in image_ids.iter() {
         // Get image object
@@ -64,7 +74,7 @@ pub fn remove_images(
             }
         }
 
-        match get_image_repository().remove_item(*image_id) {
+        match img_repo.remove_item(*image_id) {
             Ok (_message) => {
                 if let Some(img) = image {
                     if let Ok(image_path) = get_image_path(&repo, &img) {
@@ -132,12 +142,22 @@ pub fn remove_folders(
     let mut error: bool = false;
 
     let fol_repo;
-    let img_repo = get_image_repository();
+    let img_repo;
 
     match repo.get_folder_repo() {
-        Ok(repo) => { fol_repo = repo; }
+        Ok(f_repo) => { fol_repo = f_repo; }
         Err(e) => {
             let msg = "Error while getting folder repo";
+            error!("{}: {}", msg, e);
+
+            return Err(format!("{}.", msg));
+        }
+    }
+
+    match repo.get_image_repo() {
+        Ok(i_repo) => { img_repo = i_repo },
+        Err(e) => {
+            let msg = "Error while getting image repo";
             error!("{}: {}", msg, e);
 
             return Err(format!("{}.", msg));

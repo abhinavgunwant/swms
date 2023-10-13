@@ -5,15 +5,14 @@ use actix_web::{ get, post, web::{ block, Data }, HttpResponse, HttpRequest };
 use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use serde::Serialize;
-use log::debug;
+use log::{ debug, error };
 
 use crate::{
     api::service::path::{
         get_rendition_from_path_segments, split_path,
         rendition_cache_path, cache_rendition_file,
     },
-    repository::{ Repository, image::{ ImageRepository, get_image_repository }},
-    model::{ error::ErrorType, encoding::Encoding },
+    repository::Repository, model::{ error::ErrorType, encoding::Encoding },
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
 };
 
@@ -124,62 +123,75 @@ pub async fn download(
 
                 match get_rendition_from_path_segments(&repo, &path_segments) {
                     Ok(rendition) => {
-                        match get_image_repository().get(rendition.image_id) {
-                            Ok (image_data) => {
-                                let source_file_path = format!(
-                                    "{}/{}{}",
-                                    config.upload_dir,
-                                    image_data.id,
-                                    image_data.encoding.extension()
-                                );
+                        match repo.get_image_repo() {
+                            Ok(img_repo) => {
+                                match img_repo.get(rendition.image_id) {
+                                    Ok(image_data) => {
+                                        let source_file_path = format!(
+                                            "{}/{}{}",
+                                            config.upload_dir,
+                                            image_data.id,
+                                            image_data.encoding.extension()
+                                        );
 
-                                debug!(
-                                    "Getting source file: {}",
-                                    source_file_path
-                                );
+                                        debug!(
+                                            "Getting source file: {}",
+                                            source_file_path
+                                        );
 
-                                let ren_slug = rendition.slug.as_str();
-                                let end_indx = path_segments.len() - 1;
+                                        let ren_slug = rendition.slug.as_str();
+                                        let end_indx = path_segments.len() - 1;
 
-                                let ext = rendition.encoding.extension();
-                                let ext_str = ext.as_str();
-                                // "end of path_segment" :)
-                                let eps = path_segments[end_indx];
+                                        let ext = rendition.encoding.extension();
+                                        let ext_str = ext.as_str();
+                                        // "end of path_segment" :)
+                                        let eps = path_segments[end_indx];
 
-                                // Check if supplied path contains slug
-                                // and file extension.
-                                if !eps.contains(ren_slug) {
-                                    dest_file_path.push('/');
-                                    dest_file_path.push_str(
-                                        rendition.slug.as_str()
-                                    );
-                                }
+                                        // Check if supplied path contains slug
+                                        // and file extension.
+                                        if !eps.contains(ren_slug) {
+                                            dest_file_path.push('/');
+                                            dest_file_path.push_str(
+                                                rendition.slug.as_str()
+                                            );
+                                        }
 
-                                if !eps.ends_with(ext_str) {
-                                    dest_file_path.push_str(ext_str);
-                                }
+                                        if !eps.ends_with(ext_str) {
+                                            dest_file_path.push_str(ext_str);
+                                        }
 
-                                mime_type = rendition.encoding.mime_type();
+                                        mime_type = rendition.encoding.mime_type();
 
-                                match cache_rendition_file(
-                                    &source_file_path,
-                                    &dest_file_path,
-                                    rendition.width,
-                                    rendition.height
-                                    ) {
-                                    Ok(_) => {}
-                                    Err(_) => { return error_response(""); }
+                                        match cache_rendition_file(
+                                            &source_file_path,
+                                            &dest_file_path,
+                                            rendition.width,
+                                            rendition.height
+                                            ) {
+                                            Ok(_) => {}
+                                            Err(_) => { return error_response(""); }
+                                        }
+                                    }
+
+                                    Err (e) => {
+                                        match e {
+                                            DBError::NOT_FOUND => {
+                                                return not_found_response();
+                                            }
+
+                                            _ => { return error_response(""); }
+                                        }
+                                    }
                                 }
                             }
 
-                            Err (e) => {
-                                match e {
-                                    DBError::NOT_FOUND => {
-                                        return not_found_response();
-                                    }
+                            Err(e) =>{
+                                error!(
+                                    "Error while getting image repository: {}",
+                                    e
+                                );
 
-                                    _ => { return error_response(""); }
-                                }
+                                return error_response("");
                             }
                         }
                     }

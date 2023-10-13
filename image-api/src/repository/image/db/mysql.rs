@@ -118,7 +118,9 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
     }
 }
 
-pub struct MySQLImageRepository {}
+pub struct MySQLImageRepository {
+    pub connection: PooledConn,
+}
 
 impl ImageRepository for MySQLImageRepository {
     fn get(&self, id: u32) -> Result<Image, DBError> {

@@ -71,13 +71,3 @@ pub trait ImageRepository {
     fn remove_item(&self, id: u32) -> Result<String, String>;
 }
 
-pub fn get_image_repository() -> impl ImageRepository {
-    let dctxt = get_db_context();
-
-    match dctxt.dbimpl {
-        DBImpl::MYSQL => {
-            MySQLImageRepository {}
-        }
-    }
-}
-

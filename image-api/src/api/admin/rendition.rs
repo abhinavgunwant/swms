@@ -17,7 +17,6 @@ use crate::{
     repository::{
         Repository,
         rendition::{ RenditionRepository, get_rendition_repository },
-        image::{ ImageRepository, get_image_repository },
     },
     model::{ rendition::Rendition, image::Image },
 };
@@ -128,14 +127,15 @@ pub async fn get_rendition(req: HttpRequest, _: AuthMiddleware)
 /// Creates multiple renditions for a single image.
 #[post("/api/admin/renditions")]
 pub async fn set_rendition(
-    repository: Data<dyn Repository + Sync + Send>, req: Json<RenditionRequest>, _: AuthMiddleware, conf: Data<ServerConfig>
+    repository: Data<dyn Repository + Sync + Send>,
+    req: Json<RenditionRequest>,
+    _: AuthMiddleware,
+    conf: Data<ServerConfig>
 ) -> HttpResponse {
     let mut unsuccessful_renditions: Vec<UnsuccessfulRendition> = vec![];
     let mut internal_error: bool = false;
 
     let repo = get_rendition_repository();
-    let img_repo = get_image_repository();
-
     let image_option: Option<Image>;
 
     debug!("Inside add rendition API");
@@ -166,16 +166,27 @@ pub async fn set_rendition(
     }
 
     // Get image from repo.
-    match img_repo.get(image_id) {
-        Ok(img) => { image_option = Some(img); },
-        Err (e) => {
-            error!("Error while getting image data: {}", e);
+    match repository.get_image_repo() {
+        Ok(img_repo) => {
+            match img_repo.get(image_id) {
+                Ok(img) => { image_option = Some(img); },
+                Err (e) => {
+                    error!("Error while getting image data: {}", e);
 
-            return HttpResponse::BadRequest().json(SetRenditionsResponse {
-                success: false,
-                message: format!("Image having id \"{}\" not found", image_id),
-                unsuccessful_renditions,
-            });
+                    return HttpResponse::BadRequest().json(SetRenditionsResponse {
+                        success: false,
+                        message: format!("Image having id \"{}\" not found", image_id),
+                        unsuccessful_renditions,
+                    });
+                }
+            }
+        }
+
+        Err(e) => {
+            error!("Error while getting image repo: {}", e);
+
+            return HttpResponse::InternalServerError()
+                .body("Some internal error occured!");
         }
     }
 
@@ -301,11 +312,13 @@ pub async fn set_rendition(
 /// Creates multiple renditions for a single image.
 #[delete("/api/admin/rendition/{rendition_id}")]
 pub async fn delete_rendition(
-    repository: Data<dyn Repository + Sync + Send>, req: HttpRequest, _: AuthMiddleware, conf: Data<ServerConfig>
+    repository: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest,
+    _: AuthMiddleware,
+    conf: Data<ServerConfig>
 ) -> HttpResponse {
     if let Some(rid) = req.match_info().get("rendition_id") {
         let repo = get_rendition_repository();
-        let img_repo = get_image_repository();
 
         if let Ok(rendition_id) = rid.parse::<u32>() {
             if let Ok(rendition) = repo.get(rendition_id) {
@@ -313,11 +326,23 @@ pub async fn delete_rendition(
                     Ok(_) => {
                         let mut image_path: String = String::default();
 
-                        if let Ok(image) = img_repo.get(rendition.image_id) {
-                            if let Ok(img_path) = get_image_path(
-                                &repository, &image
-                            ) {
-                                image_path = img_path;
+                        match repository.get_image_repo() {
+                            Ok(img_repo) => {
+                                if let Ok(image) = img_repo.get(
+                                    rendition.image_id
+                                ) {
+                                    if let Ok(img_path) = get_image_path(
+                                        &repository, &image
+                                    ) {
+                                        image_path = img_path;
+                                    }
+                                }
+                            }
+
+                            Err(e) => {
+                                error!(
+                                    "Error while getting image repo: {}", e
+                                );
                             }
                         }
 

@@ -9,8 +9,7 @@ use log::{ debug, error };
 use crate::{
     db::DBError,
     repository::{
-        Repository,
-        image::{ ImageRepository, get_image_repository },
+        Repository, image::ImageRepository,
         project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
@@ -25,7 +24,7 @@ pub fn get_rendition_from_path_segments<'a >(
     repo: &Data<dyn Repository + Sync + Send>,
     path_segments: &'a Vec<&str>
 ) -> Result<Rendition, Error<'a>> {
-    let img_repo = get_image_repository();
+    let img_repo;
     let ren_repo = get_rendition_repository();
     let fol_repo;
     let proj_repo = get_project_repository();
@@ -38,6 +37,20 @@ pub fn get_rendition_from_path_segments<'a >(
         Ok(f_repo) => { fol_repo = f_repo },
         Err(e) => {
             let msg = "Error while getting folder repo";
+            error!("{}: {}", msg, e);
+
+            return Err(Error {
+                error_type: ErrorType::InternalError,
+                message: "Some internal error occured.",
+            });
+        }
+    }
+
+    match repo.get_image_repo() {
+        Ok(i_repo) => { img_repo = i_repo },
+
+        Err(e) => {
+            let msg = "Error while getting image repo";
             error!("{}: {}", msg, e);
 
             return Err(Error {

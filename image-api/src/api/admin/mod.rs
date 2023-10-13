@@ -15,7 +15,6 @@ use crate::{
     api::service::path::split_path, db::DBError, auth::AuthMiddleware,
     repository::{
         Repository,
-        image::{ ImageRepository, get_image_repository },
         project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
@@ -132,7 +131,7 @@ pub async fn get_children(
         });
     }
 
-    let img_repo = get_image_repository();
+    let img_repo;
     let ren_repo = get_rendition_repository();
     let fol_repo;
     let proj_repo = get_project_repository();
@@ -143,6 +142,16 @@ pub async fn get_children(
         Ok(f_repo) => { fol_repo = f_repo; }
         Err(e) => {
             error!("Error while getting folder repo: {}", e);
+
+            return HttpResponse::InternalServerError()
+                .body("Some internal error occured!");
+        }
+    }
+
+    match repo.get_image_repo() {
+        Ok(i_repo) => { img_repo = i_repo; }
+        Err(e) => {
+            error!("Error while getting image repo: {}", e);
 
             return HttpResponse::InternalServerError()
                 .body("Some internal error occured!");

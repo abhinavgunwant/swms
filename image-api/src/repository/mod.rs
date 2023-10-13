@@ -13,11 +13,13 @@ use crate::server::db::{ DBError, mysql_to_db_error };
 use self::{
     folder::{ FolderRepository, db::mysql::MySQLFolderRepository },
     role::{ RoleRepository, db::mysql::MySQLRoleRepository },
+    image::{ ImageRepository, db::mysql::MySQLImageRepository },
 };
 
 pub trait Repository {
     fn get_role_repo(&self) -> Result<Box::<dyn RoleRepository>, DBError>;
     fn get_folder_repo(&self) -> Result<Box::<dyn FolderRepository>, DBError>;
+    fn get_image_repo(&self) -> Result<Box::<dyn ImageRepository>, DBError>;
 }
 
 #[derive(Clone)]
@@ -38,6 +40,15 @@ impl Repository for MySQLRepository {
     fn get_folder_repo(&self) -> Result<Box::<dyn FolderRepository>, DBError> {
         match self.connection_pool.get_conn() {
             Ok(connection) => Ok(Box::new(MySQLFolderRepository { connection })),
+            Err(e) => Err(
+                mysql_to_db_error("Error while creating connection", e)
+            ),
+        }
+    }
+
+    fn get_image_repo(&self) -> Result<Box::<dyn ImageRepository>, DBError> {
+        match self.connection_pool.get_conn() {
+            Ok(connection) => Ok(Box::new(MySQLImageRepository { connection })),
             Err(e) => Err(
                 mysql_to_db_error("Error while creating connection", e)
             ),

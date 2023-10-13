@@ -40,7 +40,7 @@ pub async fn get_folder (
             }
         }
 
-        Err(e) => HttpResponse::InternalServerError()
+        Err(_) => HttpResponse::InternalServerError()
             .body("Internal Server Error")
     }
 }
