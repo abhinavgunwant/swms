@@ -1,7 +1,6 @@
-mod db;
+pub mod db;
 
-use db::mysql::MySQLProjectRepository;
-use crate::db::{ DBError, DBImpl, get_db_context };
+use crate::db::DBError;
 use crate::model::project::Project;
 
 pub trait ProjectRepository {
@@ -13,23 +12,20 @@ pub trait ProjectRepository {
     fn add(&self, project: Project);
     fn add_users_to_project(&self, project_id: u32, users: &Vec<u32>);
 
-    /**
-     * Validates if a project with the provided slug doesn't exists.
-     *
-     * Used for providing real-time validation while the admin is typing the
-     * project name (or project slug) in "New Project" screen.
-     *
-     * `slug`: The slug provided (should be `lowercase`).
-     *
-     * Returns true if a project with the supplied slug doesn't exist.
-     */
+    
+    /// Validates if a project with the provided slug doesn't exists.
+    /// 
+    /// Used for providing real-time validation while the admin is typing the
+    /// project name (or project slug) in "New Project" screen.
+    /// 
+    /// `slug`: The slug provided (should be `lowercase`).
+    /// 
+    /// Returns true if a project with the supplied slug doesn't exist.
     fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError>;
 
-    /**
-     * Validates if a project with the provided slug exists.
-     *
-     * Behaves exactly opposite to `validate_new_project_slug`.
-     */
+    /// Validates if a project with the provided slug exists.
+    /// 
+    /// Behaves exactly opposite to `validate_new_project_slug`.
     fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError>;
 
     fn update(&self, project: Project);
@@ -37,12 +33,3 @@ pub trait ProjectRepository {
     fn remove_item(&self, id: u32);
 }
 
-pub fn get_project_repository() -> impl ProjectRepository {
-    let dctxt = get_db_context();
-
-    match dctxt.dbimpl {
-        DBImpl::MYSQL => {
-            MySQLProjectRepository {}
-        }
-    }
-}

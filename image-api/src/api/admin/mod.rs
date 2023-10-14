@@ -15,7 +15,6 @@ use crate::{
     api::service::path::split_path, db::DBError, auth::AuthMiddleware,
     repository::{
         Repository,
-        project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
     model::{ image::Image, folder::Folder, rendition::Rendition },
@@ -134,7 +133,6 @@ pub async fn get_children(
     let img_repo;
     let ren_repo = get_rendition_repository();
     let fol_repo;
-    let proj_repo = get_project_repository();
 
     //debug!("Path is: {}", path);
 
@@ -165,23 +163,35 @@ pub async fn get_children(
 
     debug!("Validating project slug: {}", path_segments[0]);
 
-    // Validate project
-    match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
-        Ok (valid_option) => {
-            match valid_option {
-                Some(id) => {
-                    debug!("\t-> Project Valid!");
-                    project_slug = String::from(path_segments[0]);
-                    project_id = id;
-                },
+    match repo.get_project_repo() {
+        Ok(proj_repo) => {
+            // Validate project
+            match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
+                Ok (valid_option) => {
+                    match valid_option {
+                        Some(id) => {
+                            debug!("\t-> Project Valid!");
+                            project_slug = String::from(path_segments[0]);
+                            project_id = id;
+                        },
 
-                None => {
-                    return HttpResponse::NotFound().body("NOT FOUND");
+                        None => {
+                            return HttpResponse::NotFound().body("NOT FOUND");
+                        }
+                    }
+                }
+
+                Err (err) => {
+                    error!("Some error occured while getting project {}", err);
+
+                    return HttpResponse::InternalServerError().body(
+                        "Some error occured, please try again later!"
+                    );
                 }
             }
         }
 
-        Err (err) => {
+        Err(err) => {
             error!("Some error occured while getting project {}", err);
 
             return HttpResponse::InternalServerError().body(

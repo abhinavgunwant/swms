@@ -10,7 +10,9 @@ use crate::db::{
 };
 use crate::repository::project::{ Project, ProjectRepository };
 
-pub struct MySQLProjectRepository {}
+pub struct MySQLProjectRepository {
+    pub connection: PooledConn,
+}
 
 fn get_project_from_row(row_wrapped: Result<Option<Row>, Error>)
     -> std::result::Result<Project, DBError> {

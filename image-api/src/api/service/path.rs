@@ -10,7 +10,6 @@ use crate::{
     db::DBError,
     repository::{
         Repository,
-        project::{ ProjectRepository, get_project_repository },
         rendition::{ RenditionRepository, get_rendition_repository },
     },
     model::{
@@ -27,7 +26,6 @@ pub fn get_rendition_from_path_segments<'a >(
     let img_repo;
     let ren_repo = get_rendition_repository();
     let fol_repo;
-    let proj_repo = get_project_repository();
 
     let project_id: u32;
     let mut folder_id: u32 = 0;
@@ -60,30 +58,45 @@ pub fn get_rendition_from_path_segments<'a >(
         }
     }
 
+
     debug!("Validating project slug: {}", path_segments[0]);
 
-    // Validate project
-    match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
-        Ok (valid_option) => {
-            match valid_option {
-                Some(id) => {
-                    debug!("\t-> Project Valid!");
-                    project_id = id;
-                },
+    match repo.get_project_repo() {
+        Ok(proj_repo) => {
+            // Validate project
+            match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
+                Ok (valid_option) => {
+                    match valid_option {
+                        Some(id) => {
+                            debug!("\t-> Project Valid!");
+                            project_id = id;
+                        },
 
-                None => {
-                    return Err(Error::new(ErrorType::NotFound, "NOT FOUND"));
+                        None => {
+                            return Err(Error::new(ErrorType::NotFound, "NOT FOUND"));
+                        }
+                    }
+                }
+
+                Err (err) => {
+                    error!("Some error occured while getting project {}", err);
+
+                    return Err(Error::new(
+                        ErrorType::InternalError,
+                        "Some error occured, please try again later!"
+                    ));
                 }
             }
         }
 
-        Err (err) => {
-            error!("Some error occured while getting project {}", err);
+        Err(e) => {
+            let msg = "Error while getting image repo";
+            error!("{}: {}", msg, e);
 
-            return Err(Error::new(
-                ErrorType::InternalError,
-                "Some error occured, please try again later!"
-            ));
+            return Err(Error {
+                error_type: ErrorType::InternalError,
+                message: "Some internal error occured.",
+            });
         }
     }
 
@@ -214,7 +227,6 @@ pub fn get_image_path(
 ) -> Result<String, DBError> {
     debug!("Getting image path");
     let fol_repo;
-    let prj_repo = get_project_repository();
 
     let mut path: String = image.slug.clone();
 
@@ -244,14 +256,23 @@ pub fn get_image_path(
 
     debug!("-> Getting project");
 
-    match prj_repo.get(image.project_id) {
-        Ok(project) => {
-            path = format!("{}/{}", project.slug, path);
+    match repo.get_project_repo() {
+        Ok(prj_repo) => {
+            match prj_repo.get(image.project_id) {
+                Ok(project) => {
+                    path = format!("{}/{}", project.slug, path);
+                }
+
+                Err(e) => {
+                    error!("Error while generating image path2: {}", e);
+                    return Err(e);
+                }
+            }
         }
 
         Err(e) => {
-            error!("Error while generating image path2: {}", e);
-            return Err(e);
+            error!("Error while getting project repository: {}", e);
+            return Err(DBError::OtherError);
         }
     }
 
