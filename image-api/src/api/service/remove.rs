@@ -6,11 +6,7 @@ use actix_web::web::Data;
 use log::{ debug, error, info };
 
 use crate::{
-    db::DBError, api::service::path::get_image_path,
-    repository::{
-        Repository,
-        rendition::{ RenditionRepository, get_rendition_repository },
-    },
+    db::DBError, api::service::path::get_image_path, repository::Repository,
     model::{ image::Image, rendition::Rendition },
 };
 
@@ -23,10 +19,20 @@ pub fn remove_images(
     let mut error: bool = false;
 
     let img_repo;
-    let ren_repo = get_rendition_repository();
+    let ren_repo;
 
     match repo.get_image_repo() {
         Ok(i_repo) => { img_repo = i_repo; }
+        Err(e) => {
+            let msg = "Error while getting image repo";
+            error!("{}: {}", msg, e);
+
+            return Err(format!("{}.", msg));
+        }
+    }
+
+    match repo.get_rendition_repo() {
+        Ok(r_repo) => { ren_repo = r_repo; }
         Err(e) => {
             let msg = "Error while getting image repo";
             error!("{}: {}", msg, e);

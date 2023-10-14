@@ -13,10 +13,7 @@ use log::{ debug, error };
 
 use crate::{
     api::service::path::split_path, db::DBError, auth::AuthMiddleware,
-    repository::{
-        Repository,
-        rendition::{ RenditionRepository, get_rendition_repository },
-    },
+    repository::Repository,
     model::{ image::Image, folder::Folder, rendition::Rendition },
 };
 
@@ -131,7 +128,6 @@ pub async fn get_children(
     }
 
     let img_repo;
-    let ren_repo = get_rendition_repository();
     let fol_repo;
 
     //debug!("Path is: {}", path);
@@ -228,24 +224,32 @@ pub async fn get_children(
             ) {
                 // Check if rendition slug
                 debug!("Validating rendition slug: {}", path_segment);
-                match ren_repo.get_from_project_rendition_slug(
-                    project_slug.clone(),
-                    path_seg_owned.clone()
-                ) {
-                    Ok (rendition) => {
-                        debug!("\t-> Returning Rendition!");
+                match repo.get_rendition_repo() {
+                    Ok(ren_repo) => {
+                        match ren_repo.get_from_project_rendition_slug(
+                            project_slug.clone(),
+                            path_seg_owned.clone()
+                        ) {
+                            Ok (rendition) => {
+                                debug!("\t-> Returning Rendition!");
 
-                        // TODO: Check if the user has access.
-                        return HttpResponse::Ok().json(GetChildrenResponse {
-                            images: vec![],
-                            folders: vec![],
-                            success: true,
-                            rendition: Some(rendition),
-                            message: vec![ String::from("RENDITION") ],
-                        });
+                                // TODO: Check if the user has access.
+                                return HttpResponse::Ok().json(GetChildrenResponse {
+                                    images: vec![],
+                                    folders: vec![],
+                                    success: true,
+                                    rendition: Some(rendition),
+                                    message: vec![ String::from("RENDITION") ],
+                                });
+                            }
+
+                            Err (_) => {}
+                        }
                     }
 
-                    Err (_) => {}
+                    Err(e) => {
+                        error!("Error while getting rendition repository: {}", e);
+                    }
                 }
             }
 

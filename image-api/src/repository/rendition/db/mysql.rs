@@ -85,7 +85,9 @@ fn get_renditions_from_row(row_wrapped: Result<Vec::<Row>, Error>)
     }
 }
 
-pub struct MySQLRenditionRepository {}
+pub struct MySQLRenditionRepository {
+    pub connection: PooledConn,
+}
 
 impl RenditionRepository for MySQLRenditionRepository {
     fn get(&self, id: u32) -> Result<Rendition, DBError> {
@@ -403,3 +405,4 @@ impl RenditionRepository for MySQLRenditionRepository {
         }
     }
 }
+

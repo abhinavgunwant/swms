@@ -14,11 +14,7 @@ use crate::{
         remove::remove_rendition_file,
     },
     db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
-    repository::{
-        Repository,
-        rendition::{ RenditionRepository, get_rendition_repository },
-    },
-    model::{ rendition::Rendition, image::Image },
+    repository::Repository, model::{ rendition::Rendition, image::Image },
 };
 
 #[derive(Serialize)]
@@ -57,7 +53,10 @@ pub struct UnsuccessfulRendition {
 /// ## URL Parameters
 /// - `image-id` - (Required) The image id the renditions belong to.
 #[get("/api/admin/renditions")]
-pub async fn get_renditions_for_image(req: HttpRequest, _: AuthMiddleware)
+pub async fn get_renditions_for_image(
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest,
+    _: AuthMiddleware)
     -> HttpResponse {
     debug!("getting renditions");
     let qs = QString::from(req.query_string());
@@ -78,20 +77,29 @@ pub async fn get_renditions_for_image(req: HttpRequest, _: AuthMiddleware)
         return HttpResponse::BadRequest().body("BAD REQUEST");
     }
 
-    let repo = get_rendition_repository();
+    match repo.get_rendition_repo() {
+        Ok(ren_repo) => {
+            match ren_repo.get_all_from_image(image_id.unwrap()) {
+                Ok (renditions) => {
+                    HttpResponse::Ok().json(RenditionResponse { renditions })
+                }
 
-    match repo.get_all_from_image(image_id.unwrap()) {
-        Ok (renditions) => {
-            HttpResponse::Ok().json(RenditionResponse { renditions })
+                Err (e) => {
+                    if e == DBError::NOT_FOUND {
+                        return HttpResponse::NotFound()
+                            .json(RenditionResponse { renditions: vec![] });
+                    }
+
+                    error!("Some internal error occured while fetching project images.");
+
+                    HttpResponse::InternalServerError()
+                        .json(RenditionResponse { renditions: vec![] })
+                }
+            }
         }
 
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound()
-                    .json(RenditionResponse { renditions: vec![] });
-            }
-
-            error!("Some internal error occured while fetching project images.");
+        Err(e) => {
+            error!("Error while getting rendition repository: {}", e);
 
             HttpResponse::InternalServerError()
                 .json(RenditionResponse { renditions: vec![] })
@@ -100,26 +108,38 @@ pub async fn get_renditions_for_image(req: HttpRequest, _: AuthMiddleware)
 }
 
 #[get("/api/admin/rendition/{rendition_id}")]
-pub async fn get_rendition(req: HttpRequest, _: AuthMiddleware)
-    -> HttpResponse {
+pub async fn get_rendition(
+    repo: Data<dyn Repository + Sync + Send>,
+    req: HttpRequest,
+    _: AuthMiddleware
+) -> HttpResponse {
     let rendition_id: String = String::from(req.match_info().get("rendition_id")
         .unwrap());
-    let repo = get_rendition_repository();
-    let rendition_wrapped = repo.get(rendition_id.parse::<u32>().unwrap());
 
-    match rendition_wrapped {
-        Ok (rendition) => {
-            HttpResponse::Ok().json(rendition)
+    match repo.get_rendition_repo() {
+        Ok(ren_repo) => {
+            match ren_repo.get(rendition_id.parse::<u32>().unwrap()) {
+                Ok (rendition) => {
+                    HttpResponse::Ok().json(rendition)
+                }
+
+                Err (e) => {
+                    if e == DBError::NOT_FOUND {
+                        return HttpResponse::NotFound().body("Not Found");
+                    }
+
+                    error!("Error while fetching rendition: {}", e);
+
+                    HttpResponse::InternalServerError()
+                        .body("Internal Server Error")
+                }
+            }
         }
 
-        Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound().body("Not Found");
-            }
-
-            error!("Error while fetching rendition: {}", e);
-
-            HttpResponse::InternalServerError().body("Internal Server Error")
+        Err(e) => {
+            error!("Error while getting rendition repository: {}", e);
+            HttpResponse::InternalServerError()
+                .body("Internal Server Error")
         }
     }
 }
@@ -135,7 +155,6 @@ pub async fn set_rendition(
     let mut unsuccessful_renditions: Vec<UnsuccessfulRendition> = vec![];
     let mut internal_error: bool = false;
 
-    let repo = get_rendition_repository();
     let image_option: Option<Image>;
 
     debug!("Inside add rendition API");
@@ -233,44 +252,59 @@ pub async fn set_rendition(
                 rendition_to_add.width = image.width;
             }
 
-            match repo.add(rendition_to_add.clone()) {
-                Ok (_rendition_id) => {
-                    // Create renditions files.
-                    if let Some(mut r_img) = image_raster_option.clone() {
-                        let dest_file_path = format!(
-                            "{}/{}{}",
-                            dest_path_prefix,
-                            rendition_to_add.slug,
-                            rendition_to_add.encoding.extension()
-                        );
+            match repository.get_rendition_repo() {
+                Ok(ren_repo) => {
+                    match ren_repo.add(rendition_to_add.clone()) {
+                        Ok (_rendition_id) => {
+                            // Create renditions files.
+                            if let Some(mut r_img) = image_raster_option.clone() {
+                                let dest_file_path = format!(
+                                    "{}/{}{}",
+                                    dest_path_prefix,
+                                    rendition_to_add.slug,
+                                    rendition_to_add.encoding.extension()
+                                );
 
-                        let dest_path = dest_file_path.as_str();
+                                let dest_path = dest_file_path.as_str();
 
-                        debug!(
-                            "--> Creating rendition eagerly: {} ({}x{})",
-                            dest_file_path ,
-                            rendition_to_add.width,
-                            rendition_to_add.height,
-                        );
+                                debug!(
+                                    "--> Creating rendition eagerly: {} ({}x{})",
+                                    dest_file_path ,
+                                    rendition_to_add.width,
+                                    rendition_to_add.height,
+                                );
 
-                        match resize_and_save_rendition(
-                            Rc::make_mut(&mut r_img),
-                            dest_path,
-                            rendition_to_add.width,
-                            rendition_to_add.height
-                        ) {
-                            Ok(_) => {},
-                            Err(_) => {},
-                        };
+                                match resize_and_save_rendition(
+                                    Rc::make_mut(&mut r_img),
+                                    dest_path,
+                                    rendition_to_add.width,
+                                    rendition_to_add.height
+                                ) {
+                                    Ok(_) => {},
+                                    Err(_) => {},
+                                };
+                            }
+                        }
+
+                        Err (err_msg) => {
+                            internal_error = true;
+
+                            unsuccessful_renditions.push(UnsuccessfulRendition {
+                                id: rendition.id,
+                                message: err_msg,
+                            });
+                        }
                     }
                 }
 
-                Err (err_msg) => {
+                Err(e) => {
+                    error!("Error while getting rendition repository: {}", e);
+
                     internal_error = true;
 
                     unsuccessful_renditions.push(UnsuccessfulRendition {
                         id: rendition.id,
-                        message: err_msg,
+                        message: String::from("Internal server error."),
                     });
                 }
             }
@@ -318,11 +352,25 @@ pub async fn delete_rendition(
     conf: Data<ServerConfig>
 ) -> HttpResponse {
     if let Some(rid) = req.match_info().get("rendition_id") {
-        let repo = get_rendition_repository();
+        let ren_repo;
+
+        match repository.get_rendition_repo() {
+            Ok(r_repo) => { ren_repo = r_repo; }
+            Err(e) => {
+                let msg = "Error while getting rendition repo";
+                error!("{}: {}", msg, e);
+
+                return HttpResponse::InternalServerError()
+                    .json(StandardResponse {
+                    success: false,
+                    message: "Some internal error occured!",
+                });
+            }
+        }
 
         if let Ok(rendition_id) = rid.parse::<u32>() {
-            if let Ok(rendition) = repo.get(rendition_id) {
-                match repo.remove_item(rendition_id) {
+            if let Ok(rendition) = ren_repo.get(rendition_id) {
+                match ren_repo.remove_item(rendition_id) {
                     Ok(_) => {
                         let mut image_path: String = String::default();
 

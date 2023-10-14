@@ -14,6 +14,7 @@ use self::{
     role::{ RoleRepository, db::mysql::MySQLRoleRepository },
     image::{ ImageRepository, db::mysql::MySQLImageRepository },
     project::{ ProjectRepository, db::mysql::MySQLProjectRepository },
+    rendition::{ RenditionRepository, db::mysql::MySQLRenditionRepository },
 };
 
 pub trait Repository {
@@ -21,6 +22,7 @@ pub trait Repository {
     fn get_folder_repo(&self) -> Result<Box::<dyn FolderRepository>, DBError>;
     fn get_image_repo(&self) -> Result<Box::<dyn ImageRepository>, DBError>;
     fn get_project_repo(&self) -> Result<Box::<dyn ProjectRepository>, DBError>;
+    fn get_rendition_repo(&self) -> Result<Box::<dyn RenditionRepository>, DBError>;
 }
 
 #[derive(Clone)]
@@ -59,6 +61,15 @@ impl Repository for MySQLRepository {
     fn get_project_repo(&self) -> Result<Box::<dyn ProjectRepository>, DBError> {
         match self.connection_pool.get_conn() {
             Ok(connection) => Ok(Box::new(MySQLProjectRepository { connection })),
+            Err(e) => Err(
+                mysql_to_db_error("Error while creating connection", e)
+            ),
+        }
+    }
+
+    fn get_rendition_repo(&self) -> Result<Box::<dyn RenditionRepository>, DBError> {
+        match self.connection_pool.get_conn() {
+            Ok(connection) => Ok(Box::new(MySQLRenditionRepository { connection })),
             Err(e) => Err(
                 mysql_to_db_error("Error while creating connection", e)
             ),

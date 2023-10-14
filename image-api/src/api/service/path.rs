@@ -7,11 +7,7 @@ use raster;
 use log::{ debug, error };
 
 use crate::{
-    db::DBError,
-    repository::{
-        Repository,
-        rendition::{ RenditionRepository, get_rendition_repository },
-    },
+    db::DBError, repository::Repository,
     model::{
         rendition::Rendition, error::{ Error, ErrorType }, image::Image,
         encoding::{ Encoding, RE },
@@ -24,7 +20,7 @@ pub fn get_rendition_from_path_segments<'a >(
     path_segments: &'a Vec<&str>
 ) -> Result<Rendition, Error<'a>> {
     let img_repo;
-    let ren_repo = get_rendition_repository();
+    let ren_repo;
     let fol_repo;
 
     let project_id: u32;
@@ -46,6 +42,20 @@ pub fn get_rendition_from_path_segments<'a >(
 
     match repo.get_image_repo() {
         Ok(i_repo) => { img_repo = i_repo },
+
+        Err(e) => {
+            let msg = "Error while getting image repo";
+            error!("{}: {}", msg, e);
+
+            return Err(Error {
+                error_type: ErrorType::InternalError,
+                message: "Some internal error occured.",
+            });
+        }
+    }
+
+    match repo.get_rendition_repo() {
+        Ok(r_repo) => { ren_repo = r_repo },
 
         Err(e) => {
             let msg = "Error while getting image repo";
