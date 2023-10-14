@@ -11,7 +11,7 @@ use log::{ debug, error };
 
 use crate::{
     db::DBError, model::role::Role, server_state::ServerState,
-    repository::{ Repository, user::{ get_user_repository, UserRepository }, },
+    repository::Repository,
     auth::{
         AuthMiddleware, pwd_hash::verify_password,
         token::{
@@ -43,64 +43,75 @@ pub async fn auth(
     srv_state: Data<ServerState>,
     repo: Data<dyn Repository + Sync + Send>,
 ) -> HttpResponse {
-    let user_repo = get_user_repository();
-
     let user_valid: bool;
     let user_id: u32;
     let user_role: Role;
     let name: String;
 
-    match user_repo.get_from_login_id(req_obj.username.clone()) {
-        Ok (user) => {
-            name = user.name;
-            user_id = user.id;
+    match repo.get_user_repo() {
+        Ok(user_repo) => {
+            match user_repo.get_from_login_id(req_obj.username.clone()) {
+                Ok (user) => {
+                    name = user.name;
+                    user_id = user.id;
 
-            match user_repo.get_password_for_login_id(req_obj.username.clone()) {
-                Ok (password_hash) => {
-                    user_valid = verify_password(
-                        req_obj.password.clone(),
-                        password_hash
-                    );
+                    match user_repo.get_password_for_login_id(
+                        req_obj.username.clone()
+                    ) {
+                        Ok (password_hash) => {
+                            user_valid = verify_password(
+                                req_obj.password.clone(),
+                                password_hash
+                            );
 
-                    if let Ok(mut role_repo) = repo.get_role_repo() {
-                        match role_repo.get(user.user_role) {
-                            Ok (role) => { user_role = role },
-                            Err (e) => {
-                                error!(
-                                    "Some error occured while getting role \
-                                    (user-id: {}): {}",
-                                    user.id,
-                                    e
-                                );
+                            if let Ok(mut role_repo) = repo.get_role_repo() {
+                                match role_repo.get(user.user_role) {
+                                    Ok (role) => { user_role = role },
+                                    Err (e) => {
+                                        error!(
+                                            "Some error occured while getting \
+                                            role (user-id: {}): {}",
+                                            user.id,
+                                            e
+                                        );
 
-                                user_role = Role::default()
-                            },
+                                        user_role = Role::default()
+                                    },
+                                }
+                            } else {
+                                return HttpResponse::InternalServerError()
+                                    .body("Error 500: Internal Server Error!");
+                            }
                         }
-                    } else {
-                        return HttpResponse::InternalServerError()
-                            .body("Error 500: Internal Server Error!");
+
+                        Err (_) => {
+                            return HttpResponse::InternalServerError()
+                                .body("Error 500: Internal Server Error!");
+                        }
                     }
                 }
 
-                Err (_) => {
-                    return HttpResponse::InternalServerError()
-                        .body("Error 500: Internal Server Error!");
+                Err (e) => {
+                    match e {
+                        DBError::NOT_FOUND => {
+                            return HttpResponse::NotFound()
+                                .body("Error 404: User not found!");
+                        }
+
+                        _ => {
+                            return HttpResponse::InternalServerError()
+                                .body("Error 500: Internal Server Error!");
+                        }
+                    }
                 }
             }
         }
 
-        Err (e) => {
-            match e {
-                DBError::NOT_FOUND => {
-                    return HttpResponse::NotFound()
-                        .body("Error 404: User not found!");
-                }
+        Err(e) => {
+            error!("Error while getting user repository: {}", e);
 
-                _ => {
-                    return HttpResponse::InternalServerError()
-                        .body("Error 500: Internal Server Error!");
-                }
-            }
+            return HttpResponse::InternalServerError()
+                .body("Error 500: Internal Server Error!");
         }
     }
 
@@ -245,10 +256,24 @@ pub async fn auth_refresh(
  * Gets permissions for the logged in user.
  */
 #[get("/api/admin/auth/permissions")]
-pub async fn get_user_permissions(am: AuthMiddleware) -> HttpResponse {
-    match get_user_repository().get_permissions(am.login_id) {
-        Ok (perms) => HttpResponse::Ok().json(perms),
-        Err (e) => HttpResponse::Forbidden().body(e),
+pub async fn get_user_permissions(
+    repo: Data<dyn Repository + Sync + Send>,
+    am: AuthMiddleware
+) -> HttpResponse {
+    match repo.get_user_repo() {
+        Ok(user_repo) => {
+            match user_repo.get_permissions(am.login_id) {
+                Ok (perms) => HttpResponse::Ok().json(perms),
+                Err (e) => HttpResponse::Forbidden().body(e),
+            }
+        }
+
+        Err(e) => {
+            error!("Error while getting user repository: {}", e);
+
+            HttpResponse::InternalServerError()
+                .body("Error 500: Internal Server Error!")
+        }
     }
 }
 

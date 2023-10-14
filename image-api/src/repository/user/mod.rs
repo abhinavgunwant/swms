@@ -1,12 +1,11 @@
 pub mod db;
 
 use crate::{
-    db::{ DBError, DBImpl, get_db_context },
+    db::DBError,
     model::{
         user::User, user_search::UserSearch, user_permissions::UserPermissions,
     },
 };
-use db::mysql::MySQLUserRepository;
 
 pub trait UserRepository {
     fn get(&self, id: u32) -> Result<User, DBError>;
@@ -26,12 +25,3 @@ pub trait UserRepository {
     fn remove_item(&self, id: u32);
 }
 
-pub fn get_user_repository() -> impl UserRepository {
-    let dctxt = get_db_context();
-
-    match dctxt.dbimpl {
-        DBImpl::MYSQL => {
-            MySQLUserRepository {}
-        }
-    }
-}

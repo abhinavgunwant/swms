@@ -4,8 +4,7 @@ use qstring::QString;
 use log::{ debug, error, info };
 
 use crate::{
-    auth::AuthMiddleware, db::DBError,
-    repository::{ Repository, user::{ get_user_repository, UserRepository } },
+    auth::AuthMiddleware, db::DBError, repository::Repository,
     model::{ user::User, project::{ Project, validate_project } },
 };
 
@@ -56,11 +55,15 @@ pub async fn get_projects(
             }
         }
 
-        Err(e) => HttpResponse::InternalServerError().json(ProjectResponse {
-            success: false,
-            message: vec![String::from("Internal Server Error")],
-            projects: vec![],
-        })
+        Err(e) => {
+            error!("Error while getting user repository: {}", e);
+
+            HttpResponse::InternalServerError().json(ProjectResponse {
+                success: false,
+                message: vec![String::from("Internal Server Error")],
+                projects: vec![],
+            })
+        }
     }
 }
 
@@ -82,28 +85,41 @@ pub async fn get_projects_for_user(
         });
     }
 
-    let user_repo = get_user_repository();
-    let user_res: Result<User, DBError> = user_repo.get_from_login_id(
-        auth.login_id
-    );
-
     let user: User;
 
-    match user_res {
-        Ok (usr) => {
-            user = usr;
+    match repo.get_user_repo() {
+        Ok(user_repo) => {
+            match user_repo.get_from_login_id(auth.login_id) {
+                Ok (usr) => {
+                    user = usr;
 
-            debug!("user: {} {}", &user.id, user.name.clone());
+                    debug!("user: {} {}", &user.id, user.name.clone());
+                }
+
+                Err (_e) => {
+                    return HttpResponse::InternalServerError().json(
+                        ProjectResponse {
+                            success: false,
+                            message: vec![
+                                String::from("Some unknown error occured!")
+                            ],
+                            projects: vec![],
+                        });
+                }
+            }
         }
 
-        Err (_e) => {
+        Err(e) => {
+            error!("Error while getting user repository: {}", e);
+
             return HttpResponse::InternalServerError().json(ProjectResponse {
                 success: false,
-                message: vec![String::from("Some unknown error occured!")],
+                message: vec![String::from("Internal server error!")],
                 projects: vec![],
             });
         }
     }
+
 
     match repo.get_project_repo() {
         Ok(proj_repo) => {

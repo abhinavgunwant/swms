@@ -85,7 +85,9 @@ fn get_users_from_rows(row_wrapped: Result<Vec<Row>, Error>)
     }
 }
 
-pub struct MySQLUserRepository {}
+pub struct MySQLUserRepository {
+    pub connection: PooledConn,
+}
 
 impl UserRepository for MySQLUserRepository {
     fn get(&self, id: u32) -> std::result::Result<User, DBError> {
@@ -426,3 +428,4 @@ impl UserRepository for MySQLUserRepository {
         info!("Removing user (id:{})", id);
     }
 }
+
