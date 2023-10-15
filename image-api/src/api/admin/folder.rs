@@ -5,7 +5,7 @@ use qstring::QString;
 use log::{ debug, error };
 
 use crate::{
-    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
+    server::db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::Repository,
     model::folder::Folder, api::service::remove::remove_folders,
 };
@@ -19,7 +19,7 @@ pub async fn get_folder (
         .unwrap();
 
     match repo.get_folder_repo() {
-        Ok(fol_repo) => {
+        Ok(mut fol_repo) => {
             match fol_repo.get(folder_id) {
                 Ok(folder) => {
                     debug!(
@@ -30,12 +30,13 @@ pub async fn get_folder (
                 }
 
                 Err(e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound().body("Not Found");
-                    }
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound()
+                            .body("Not Found"),
 
-                    HttpResponse::InternalServerError()
-                        .body("Internal Server Error")
+                        _ => HttpResponse::InternalServerError()
+                            .body("Internal Server Error")
+                    }
                 }
             }
         }
@@ -51,7 +52,7 @@ pub async fn add_folder (
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_folder_repo() {
-        Ok(fol_repo) => {
+        Ok(mut fol_repo) => {
             match fol_repo.add(folder.into_inner()) {
                 Ok(success) => HttpResponse::Ok().body(success),
                 Err(error_msg) => HttpResponse::InternalServerError()
@@ -74,7 +75,7 @@ pub async fn update_folder (
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_folder_repo() {
-        Ok(fol_repo) => {
+        Ok(mut fol_repo) => {
             match fol_repo.update(folder.into_inner()) {
                 Ok (success) => HttpResponse::Ok().body(success),
                 Err (error_msg) => HttpResponse::InternalServerError().body(error_msg),

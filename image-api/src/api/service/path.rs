@@ -7,7 +7,7 @@ use raster;
 use log::{ debug, error };
 
 use crate::{
-    db::DBError, repository::Repository,
+    server::db::DBError, repository::Repository,
     model::{
         rendition::Rendition, error::{ Error, ErrorType }, image::Image,
         encoding::{ Encoding, RE },
@@ -19,9 +19,9 @@ pub fn get_rendition_from_path_segments<'a >(
     repo: &Data<dyn Repository + Sync + Send>,
     path_segments: &'a Vec<&str>
 ) -> Result<Rendition, Error<'a>> {
-    let img_repo;
-    let ren_repo;
-    let fol_repo;
+    let mut img_repo;
+    let mut ren_repo;
+    let mut fol_repo;
 
     let project_id: u32;
     let mut folder_id: u32 = 0;
@@ -72,7 +72,7 @@ pub fn get_rendition_from_path_segments<'a >(
     debug!("Validating project slug: {}", path_segments[0]);
 
     match repo.get_project_repo() {
-        Ok(proj_repo) => {
+        Ok(mut proj_repo) => {
             // Validate project
             match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
                 Ok (valid_option) => {
@@ -167,8 +167,14 @@ pub fn get_rendition_from_path_segments<'a >(
             }
 
             Err (e) => {
-                if e == DBError::OtherError {
-                    return Err(Error::new(ErrorType::InternalError, "Some error occured"));
+                match e {
+                    DBError::OtherError => {
+                        return Err(Error::new(
+                            ErrorType::InternalError, "Some error occured"
+                        ));
+                    }
+
+                    _ => {}
                 }
             }
         }
@@ -193,16 +199,21 @@ pub fn get_rendition_from_path_segments<'a >(
                                 }
 
                                 Err (e) => {
-                                    if e == DBError::NOT_FOUND {
-                                        return Err(Error::new(
-                                            ErrorType::NotFound, "NOT FOUND"
-                                        ));
-                                    }
+                                    match e {
+                                        DBError::NotFound => {
+                                            return Err(Error::new(
+                                                ErrorType::NotFound,
+                                                "NOT FOUND"
+                                            ));
+                                        }
 
-                                    return Err(Error::new(
-                                        ErrorType::InternalError,
-                                        "Some error occured"
-                                    ));
+                                        _ => {
+                                            return Err(Error::new(
+                                                ErrorType::InternalError,
+                                                "Some error occured"
+                                            ));
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -216,8 +227,13 @@ pub fn get_rendition_from_path_segments<'a >(
             }
 
             Err(e) => {
-                if e == DBError::OtherError {
-                    return Err(Error::new(ErrorType::InternalError, "Some error occured"));
+                match e {
+                    DBError::OtherError => {
+                        return Err(Error::new(
+                            ErrorType::InternalError, "Some error occured"
+                        ));
+                    }
+                    _ => {}
                 }
             }
         }
@@ -236,7 +252,7 @@ pub fn get_image_path(
     image: &Image
 ) -> Result<String, DBError> {
     debug!("Getting image path");
-    let fol_repo;
+    let mut fol_repo;
 
     let mut path: String = image.slug.clone();
 
@@ -267,7 +283,7 @@ pub fn get_image_path(
     debug!("-> Getting project");
 
     match repo.get_project_repo() {
-        Ok(prj_repo) => {
+        Ok(mut prj_repo) => {
             match prj_repo.get(image.project_id) {
                 Ok(project) => {
                     path = format!("{}/{}", project.slug, path);

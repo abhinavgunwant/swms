@@ -6,6 +6,7 @@ use mysql::Error::{
 };
 
 pub enum DBError {
+    NotFound,
     IOError,
     DriverError,
     ConnectionError,
@@ -15,6 +16,7 @@ pub enum DBError {
 impl Display for DBError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
+            Self::NotFound=> write!(f, "DBError: NotFound"),
             Self::IOError=> write!(f, "DBError: IOError"),
             Self::DriverError=> write!(f, "DBError: DriverError"),
             Self::ConnectionError => write!( f, "DBError: ConnectionError"),

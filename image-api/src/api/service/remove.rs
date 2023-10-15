@@ -6,8 +6,8 @@ use actix_web::web::Data;
 use log::{ debug, error, info };
 
 use crate::{
-    db::DBError, api::service::path::get_image_path, repository::Repository,
-    model::{ image::Image, rendition::Rendition },
+    api::service::path::get_image_path, repository::Repository,
+    model::{ image::Image, rendition::Rendition }, server::db::DBError,
 };
 
 /// Removes images in `image_ids`
@@ -18,8 +18,8 @@ pub fn remove_images(
     let mut image: Option<Image>;
     let mut error: bool = false;
 
-    let img_repo;
-    let ren_repo;
+    let mut img_repo;
+    let mut ren_repo;
 
     match repo.get_image_repo() {
         Ok(i_repo) => { img_repo = i_repo; }
@@ -48,10 +48,16 @@ pub fn remove_images(
             Err (e) => {
                 error = true;
 
-                if e == DBError::NOT_FOUND {
-                    error!("Error in delete image api while getting image object: Image not found");
-                } else {
-                    error!("Unknown error in delete image api while getting image object!");
+                match e {
+                    DBError::NotFound => {
+                        error!("Error in delete image api while getting image \
+                            object: Image not found");
+                    }
+
+                    _ => {
+                        error!("Unknown error in delete image api while \
+                            getting image object!");
+                    }
                 }
 
                 image = None;
@@ -146,8 +152,8 @@ pub fn remove_folders(
 ) -> Result<String, String> {
     let mut error: bool = false;
 
-    let fol_repo;
-    let img_repo;
+    let mut fol_repo;
+    let mut img_repo;
 
     match repo.get_folder_repo() {
         Ok(f_repo) => { fol_repo = f_repo; }
@@ -242,7 +248,7 @@ pub fn remove_rendition_file(
 fn get_subfolders(repo: &Data<dyn Repository + Sync + Send>, folder_id: u32) -> Vec<u32> {
     let mut f_ids: Vec<u32> = vec![];
 
-    if let Ok(fol_repo) = repo.get_folder_repo() {
+    if let Ok(mut fol_repo) = repo.get_folder_repo() {
         match fol_repo.get_from_folder(folder_id) {
             Ok (folders) => {
                 for f in folders.iter() {

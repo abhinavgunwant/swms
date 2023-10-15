@@ -12,7 +12,7 @@ use qstring::QString;
 use log::{ debug, error };
 
 use crate::{
-    api::service::path::split_path, db::DBError, auth::AuthMiddleware,
+    api::service::path::split_path, server::db::DBError, auth::AuthMiddleware,
     repository::Repository,
     model::{ image::Image, folder::Folder, rendition::Rendition },
 };
@@ -127,8 +127,8 @@ pub async fn get_children(
         });
     }
 
-    let img_repo;
-    let fol_repo;
+    let mut img_repo;
+    let mut fol_repo;
 
     //debug!("Path is: {}", path);
 
@@ -160,7 +160,7 @@ pub async fn get_children(
     debug!("Validating project slug: {}", path_segments[0]);
 
     match repo.get_project_repo() {
-        Ok(proj_repo) => {
+        Ok(mut proj_repo) => {
             // Validate project
             match proj_repo.is_valid_slug(path_segments[0].to_owned()) {
                 Ok (valid_option) => {
@@ -225,7 +225,7 @@ pub async fn get_children(
                 // Check if rendition slug
                 debug!("Validating rendition slug: {}", path_segment);
                 match repo.get_rendition_repo() {
-                    Ok(ren_repo) => {
+                    Ok(mut ren_repo) => {
                         match ren_repo.get_from_project_rendition_slug(
                             project_slug.clone(),
                             path_seg_owned.clone()
@@ -283,16 +283,20 @@ pub async fn get_children(
                 }
 
                 Err (e) => {
-                    if e == DBError::OtherError {
-                        return HttpResponse::InternalServerError().json(GetChildrenResponse {
-                            images: vec![],
-                            folders: vec![],
-                            success: false,
-                            rendition: None,
-                            message: vec![
-                                String::from("Some error occured, please try again later!")
-                            ],
-                        });
+                    match e {
+                        DBError::OtherError => {
+                            return HttpResponse::InternalServerError().json(GetChildrenResponse {
+                                images: vec![],
+                                folders: vec![],
+                                success: false,
+                                rendition: None,
+                                message: vec![
+                                    String::from("Some error occured, please try again later!")
+                                ],
+                            });
+                        }
+
+                        _ => {}
                     }
                 }
             }
@@ -332,16 +336,22 @@ pub async fn get_children(
                 }
 
                 Err(e) => {
-                    if e == DBError::OtherError {
-                        return HttpResponse::InternalServerError().json(GetChildrenResponse {
-                            images: vec![],
-                            folders: vec![],
-                            success: false,
-                            rendition: None,
-                            message: vec![
-                                String::from("Some error occured, please try again later!")
-                            ],
-                        });
+                    match e {
+                        DBError::OtherError => {
+                            return HttpResponse::InternalServerError().json(
+                                GetChildrenResponse {
+                                images: vec![],
+                                folders: vec![],
+                                success: false,
+                                rendition: None,
+                                message: vec![
+                                    String::from("Some error occured, please \
+                                        try again later!")
+                                ],
+                            });
+                        }
+
+                        _ => {}
                     }
                 }
             }
@@ -395,14 +405,18 @@ fn generate_resource_response(
         }
 
         Err (e) => {
-            if e != DBError::NOT_FOUND {
-                error!("Some internal error occured while fetching project images: {}", e);
+            match e {
+                DBError::NotFound => {}
+                _ => {
+                    error!("Some internal error occured while fetching \
+                        project images: {}", e);
 
-                response_msg.push(String::from(
-                    "Some internal error occured while fetching images."
-                ));
+                    response_msg.push(String::from(
+                        "Some internal error occured while fetching images."
+                    ));
 
-                error = true;
+                    error = true;
+                }
             }
         }
     }
@@ -419,14 +433,17 @@ fn generate_resource_response(
         }
 
         Err (e) => {
-            if e != DBError::NOT_FOUND {
-                error!("Some internal error occured while fetching project folders: {}", e);
+            match e {
+                DBError::NotFound => {},
+                _ => {
+                    error!("Some internal error occured while fetching project folders: {}", e);
 
-                response_msg.push(String::from(
-                    "Some internal error occured while fetching folders."
-                ));
+                    response_msg.push(String::from(
+                        "Some internal error occured while fetching folders."
+                    ));
 
-                error = true;
+                    error = true;
+                }
             }
         }
     }

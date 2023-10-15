@@ -5,11 +5,9 @@ use mysql::*;
 use mysql::prelude::*;
 
 use crate::{
-    db::{
-        DBError, utils::mysql::{ get_row_from_query2, get_rows_from_query2 },
-    },
+    db::utils::mysql::{ get_row_from_query, get_rows_from_query },
     model::{ role::Role, user_permissions::UserPermissions },
-    repository::role::RoleRepository,
+    repository::role::RoleRepository, server::db::DBError,
 };
 
 pub struct MySQLRoleRepository {
@@ -50,7 +48,7 @@ fn get_role_from_row_wrapped(row_wrapped: Result<Option<Row>, Error>)
         Ok (row_option) => {
             match row_option {
                 Some(row_ref) => Ok (get_role_from_row(row_ref)),
-                None => Err(DBError::NOT_FOUND),
+                None => Err(DBError::NotFound),
             }
         }
 
@@ -87,8 +85,7 @@ fn get_roles_from_rows_wrapped(row_wrapped: Result<Vec<Row>, Error>)
 
 impl RoleRepository for MySQLRoleRepository {
     fn get(&mut self, id: u8) -> Result<Role, DBError> {
-        get_role_from_row_wrapped(get_row_from_query2(
-            &mut self.connection,
+        get_role_from_row_wrapped(self.get_row(
             r"SELECT
                 ID, ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
                 DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS,
@@ -102,8 +99,7 @@ impl RoleRepository for MySQLRoleRepository {
     }
 
     fn get_all(&mut self) -> Result<Vec<Role>, DBError> {
-        get_roles_from_rows_wrapped(get_rows_from_query2(
-            &mut self.connection,
+        get_roles_from_rows_wrapped(self.get_rows(
             r"SELECT
                 ID, ROLE_NAME, CREATE_IMAGE, READ_IMAGE, MODIFY_IMAGE,
                 DELETE_IMAGE, READ_RENDITIONS, CREATE_RENDITIONS,
@@ -238,6 +234,18 @@ impl RoleRepository for MySQLRoleRepository {
                 Err (String::from("Unable to remove role."))
             }
         }
+    }
+}
+
+impl MySQLRoleRepository {
+    fn get_row(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Option<Row>> {
+        get_row_from_query(&mut self.connection, query, params)
+    }
+
+    fn get_rows(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Vec<Row>> {
+        get_rows_from_query(&mut self.connection, query, params)
     }
 }
 

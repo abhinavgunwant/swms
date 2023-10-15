@@ -4,15 +4,12 @@ use log::{ info, debug, error };
 use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
-use crate::model::{
-    user_permissions::UserPermissions, user_search::UserSearch
+use crate::{
+    model::{ user_permissions::UserPermissions, user_search::UserSearch },
+    repository::user::{ User, UserRepository },
+    db::utils::mysql::{ get_row_from_query, get_rows_from_query },
+    auth::pwd_hash::generate_password_hash, server::db::DBError,
 };
-use crate::repository::user::{ User, UserRepository };
-use crate::db::{
-    utils::mysql::{ get_row_from_query, get_rows_from_query },
-    DBError, get_db_connection
-};
-use crate::auth::pwd_hash::generate_password_hash;
 
 fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
     -> Result<User, DBError> {
@@ -38,7 +35,7 @@ fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
                     })
                 }
 
-                None => Err(DBError::NOT_FOUND)
+                None => Err(DBError::NotFound)
             }
         }
 
@@ -90,8 +87,8 @@ pub struct MySQLUserRepository {
 }
 
 impl UserRepository for MySQLUserRepository {
-    fn get(&self, id: u32) -> std::result::Result<User, DBError> {
-        get_user_from_row(get_row_from_query(
+    fn get(&mut self, id: u32) -> std::result::Result<User, DBError> {
+        get_user_from_row(self.get_row(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY,
                 MODIFIED_BY, CREATED_ON, MODIFIED_ON, NAME
@@ -100,8 +97,8 @@ impl UserRepository for MySQLUserRepository {
         ))
     }
 
-    fn get_from_login_id(&self, login_id: String) -> std::result::Result<User, DBError> {
-        get_user_from_row(get_row_from_query(
+    fn get_from_login_id(&mut self, login_id: String) -> std::result::Result<User, DBError> {
+        get_user_from_row(self.get_row(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
                 CREATED_ON, MODIFIED_ON, NAME
@@ -110,21 +107,19 @@ impl UserRepository for MySQLUserRepository {
         ))
     }
 
-    fn get_password_for_login_id(&self, login_id: String)
+    fn get_password_for_login_id(&mut self, login_id: String)
         -> std::result::Result<String, DBError> {
-        let mut conn = get_db_connection();
-
-        let statement = conn.prep(
+        let statement = self.connection.prep(
             r"SELECT PASSWORD FROM USER WHERE LOGIN_ID = :login_id"
         ).unwrap();
 
-        let rows: Vec<Row> = conn.exec(
+        let rows: Vec<Row> = self.connection.exec(
             &statement,
             params! { "login_id" => login_id}
         ).unwrap();
 
         if rows.len() == 0 {
-            return Err(DBError::NOT_FOUND);
+            return Err(DBError::NotFound);
         }
 
         match rows.get(0) {
@@ -134,16 +129,16 @@ impl UserRepository for MySQLUserRepository {
 
                 match password {
                     Some (password) => Ok (password),
-                    None => Err(DBError::NOT_FOUND),
+                    None => Err(DBError::NotFound),
                 }
             }
 
-            None => Err(DBError::NOT_FOUND),
+            None => Err(DBError::NotFound),
         }
     }
 
-    fn get_permissions(&self, login_id: String) -> Result<UserPermissions, String> {
-        let row_result = get_row_from_query(
+    fn get_permissions(&mut self, login_id: String) -> Result<UserPermissions, String> {
+        let row_result = self.get_row(
             r"SELECT
                 R.CREATE_IMAGE, R.READ_IMAGE, R.MODIFY_IMAGE, R.DELETE_IMAGE,
                 R.READ_RENDITIONS, R.CREATE_RENDITIONS, R.MODIFY_RENDITIONS,
@@ -201,8 +196,8 @@ impl UserRepository for MySQLUserRepository {
         }
     }
 
-    fn get_all(&self) -> Result<Vec<User>, DBError> {
-        get_users_from_rows(get_rows_from_query(
+    fn get_all(&mut self) -> Result<Vec<User>, DBError> {
+        get_users_from_rows(self.get_rows(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
                 CREATED_ON, MODIFIED_ON, NAME, PASSWORD
@@ -211,8 +206,8 @@ impl UserRepository for MySQLUserRepository {
         ))
     }
 
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<User>, DBError> {
-        get_users_from_rows(get_rows_from_query(
+    fn get_all_paged(&mut self, page: u32, page_length: u32) -> Result<Vec<User>, DBError> {
+        get_users_from_rows(self.get_rows(
             r"SELECT
                 ID, LOGIN_ID, EMAIL, USER_ROLE, LAST_LOGIN_ON, CREATED_BY, MODIFIED_BY,
                 CREATED_ON, MODIFIED_ON, NAME
@@ -221,10 +216,10 @@ impl UserRepository for MySQLUserRepository {
         ))
     }
 
-    fn search_from_name(&self, name_query: String, page_length: u32)
+    fn search_from_name(&mut self, name_query: String, page_length: u32)
         -> Result<Vec<UserSearch>, DBError> {
         let nq: String = format!("%{}%", name_query.to_uppercase());
-        let rows_result = get_rows_from_query(
+        let rows_result = self.get_rows(
             r"SELECT ID, NAME FROM USER
             WHERE UPPER(NAME) LIKE :nq LIMIT :page_length",
             params! { "page_length" => page_length, "nq" => nq }
@@ -294,11 +289,10 @@ impl UserRepository for MySQLUserRepository {
         }
     }
 
-    fn add(&self, user: User) -> Result<u32, String> {
+    fn add(&mut self, user: User) -> Result<u32, String> {
         let error_msg: String = String::from("Error Inserting Data!");
 
-        let mut conn = get_db_connection();
-        let transaction_result = conn.start_transaction(TxOpts::default());
+        let transaction_result = self.connection.start_transaction(TxOpts::default());
 
         match transaction_result {
             Ok (mut tx) => {
@@ -395,10 +389,8 @@ impl UserRepository for MySQLUserRepository {
         }
     }
 
-    fn update(&self, user: User) -> Result<(), String> {
-        let mut conn = get_db_connection();
-
-        match conn.exec_drop(
+    fn update(&mut self, user: User) -> Result<(), String> {
+        match self.connection.exec_drop(
             r"UPDATE USER SET NAME = :name, EMAIL = :email,
             USER_ROLE = :user_role WHERE ID = :id",
             params! {
@@ -426,6 +418,18 @@ impl UserRepository for MySQLUserRepository {
     fn remove_item(&self, id: u32) {
         // TODO: Implement
         info!("Removing user (id:{})", id);
+    }
+}
+
+impl MySQLUserRepository {
+    fn get_row(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Option<Row>> {
+        get_row_from_query(&mut self.connection, query, params)
+    }
+
+    fn get_rows(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Vec<Row>> {
+        get_rows_from_query(&mut self.connection, query, params)
     }
 }
 

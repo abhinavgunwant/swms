@@ -4,7 +4,7 @@ use qstring::QString;
 use log::{ debug, error, info };
 
 use crate::{
-    auth::AuthMiddleware, db::DBError, repository::Repository,
+    auth::AuthMiddleware, server::db::DBError, repository::Repository,
     model::{ user::User, project::{ Project, validate_project } },
 };
 
@@ -27,7 +27,7 @@ pub async fn get_projects(
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_project_repo() {
-        Ok(proj_repo) => {
+        Ok(mut proj_repo) => {
             match proj_repo.get_all() {
                 Ok (projects) => {
                     HttpResponse::Ok().json(ProjectResponse {
@@ -38,19 +38,21 @@ pub async fn get_projects(
                 }
 
                 Err (e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound().json(ProjectResponse {
-                            success: false,
-                            message: vec![String::from("Not Found")],
-                            projects: vec![],
-                        });
-                    }
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound().json(
+                            ProjectResponse {
+                                success: false,
+                                message: vec![String::from("Not Found")],
+                                projects: vec![],
+                        }),
 
-                    HttpResponse::InternalServerError().json(ProjectResponse {
-                        success: false,
-                        message: vec![String::from("Internal Server Error")],
-                        projects: vec![],
-                    })
+                        _ => HttpResponse::InternalServerError().json(
+                            ProjectResponse {
+                            success: false,
+                            message: vec![String::from("Internal Server Error")],
+                            projects: vec![],
+                        })
+                    }
                 }
             }
         }
@@ -88,7 +90,7 @@ pub async fn get_projects_for_user(
     let user: User;
 
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.get_from_login_id(auth.login_id) {
                 Ok (usr) => {
                     user = usr;
@@ -122,7 +124,7 @@ pub async fn get_projects_for_user(
 
 
     match repo.get_project_repo() {
-        Ok(proj_repo) => {
+        Ok(mut proj_repo) => {
             match proj_repo.get_user_projects(user.id) {
                 Ok (projects) => {
                     HttpResponse::Ok().json(ProjectResponse {
@@ -133,19 +135,20 @@ pub async fn get_projects_for_user(
                 }
 
                 Err (e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound().json(ProjectResponse {
-                            success: false,
-                            message: vec![String::from("Not Found")],
-                            projects: vec![],
-                        });
-                    }
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound().json(
+                            ProjectResponse {
+                                success: false,
+                                message: vec![String::from("Not Found")],
+                                projects: vec![],
+                        }),
 
-                    HttpResponse::InternalServerError().json(ProjectResponse {
-                        success: false,
-                        message: vec![String::from("Internal Server Error")],
-                        projects: vec![],
-                    })
+                        _ => HttpResponse::InternalServerError().json(ProjectResponse {
+                            success: false,
+                            message: vec![String::from("Internal Server Error")],
+                            projects: vec![],
+                        }),
+                    }
                 }
             }
         }
@@ -174,7 +177,7 @@ pub async fn add_project(
 
     if project_is_valid {
         match repo.get_project_repo() {
-            Ok(proj_repo) => {
+            Ok(mut proj_repo) => {
                 proj_repo.add(project.0);
             
                 return HttpResponse::Ok().json(ProjectResponse {
@@ -207,7 +210,7 @@ pub async fn add_users_to_project(
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_project_repo() {
-        Ok(proj_repo) => {
+        Ok(mut proj_repo) => {
             proj_repo.add_users_to_project(req_obj.project_id, &req_obj.users);
 
             HttpResponse::Ok().json(ProjectResponse {
@@ -240,7 +243,7 @@ pub async fn validate_slug(
             let slug = String::from(slug_qs).to_lowercase();
 
             match repo.get_project_repo() {
-                Ok(proj_repo) => {
+                Ok(mut proj_repo) => {
                     match proj_repo.is_valid_new_slug(slug) {
                         Ok (valid) => HttpResponse::Ok().json(valid),
                         Err (_e) => HttpResponse::InternalServerError()

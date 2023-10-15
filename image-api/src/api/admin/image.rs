@@ -8,9 +8,8 @@ use chrono::Utc;
 use log::{ debug, error };
 
 use crate::{
-    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
-    repository::Repository,
-    model::{ image::Image, upload_image::UploadImage },
+    server::db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
+    repository::Repository, model::{ image::Image, upload_image::UploadImage },
     api::{ admin::SuccessResponse, service::remove::remove_images, },
 };
 
@@ -39,7 +38,7 @@ pub async fn get_images_in_project(
     let images_wrapped;
 
     match repo.get_image_repo() {
-        Ok(img_repo) => {
+        Ok(mut img_repo) => {
             images_wrapped = img_repo.get_all_from_project(
                 project_id.parse::<u32>().unwrap()
             );
@@ -58,15 +57,19 @@ pub async fn get_images_in_project(
         }
 
         Err (e) => {
-            if e == DBError::NOT_FOUND {
-                return HttpResponse::NotFound()
-                    .json(ImageResponse { images: vec![] });
+            match e {
+                DBError::NotFound => HttpResponse::NotFound().json(
+                    ImageResponse { images: vec![] }
+                ),
+
+                _ => {
+                    error!("Some internal error occured while fetching \
+                        project images.");
+
+                    HttpResponse::InternalServerError()
+                        .json(ImageResponse { images: vec![] })
+                }
             }
-
-            error!("Some internal error occured while fetching project images.");
-
-            HttpResponse::InternalServerError()
-                .json(ImageResponse { images: vec![] })
         }
     }
 }
@@ -81,7 +84,7 @@ pub async fn get_image(
         .unwrap();
 
     match repo.get_image_repo() {
-        Ok(img_repo) => {
+        Ok(mut img_repo) => {
             match img_repo.get(image_id) {
                 Ok (image) => {
                     debug!("got id: {}, name: {}", image.id, image.name);
@@ -89,12 +92,13 @@ pub async fn get_image(
                 }
 
                 Err (e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound().body("Not Found");
-                    }
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound()
+                            .body("Not Found"),
 
-                    HttpResponse::InternalServerError()
-                        .body("Internal Server Error")
+                        _ => HttpResponse::InternalServerError()
+                            .body("Internal Server Error")
+                    }
                 }
             }
         }
@@ -146,7 +150,7 @@ pub async fn add_image(
 
     // Add image to the db
     match repo.get_image_repo() {
-        Ok(img_repo) => {
+        Ok(mut img_repo) => {
             match img_repo.add(image.clone()) {
                 Ok (id) => {
                     // Finally, change temp image path
@@ -258,7 +262,7 @@ pub async fn get_image_file(
         .unwrap();
 
     match repo.get_image_repo() {
-        Ok(img_repo) => {
+        Ok(mut img_repo) => {
             match img_repo.get(image_id) {
                 Ok (image) => {
                     let image_file_path = format!(
@@ -278,13 +282,13 @@ pub async fn get_image_file(
                 }
 
                 Err (e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound()
-                            .body("Image not found");
-                    }
+                    match e {
+                        DBError::NotFound => return HttpResponse::NotFound()
+                                .body("Image not found"),
 
-                    HttpResponse::InternalServerError()
-                        .body("Some error occured")
+                        _ => HttpResponse::InternalServerError()
+                            .body("Some error occured")
+                    }
                 }
             }
         }
@@ -301,7 +305,7 @@ pub async fn update(
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_image_repo() {
-        Ok(img_repo) => {
+        Ok(mut img_repo) => {
             match img_repo.update(req.into_inner()) {
                 Ok (msg) => HttpResponse::Ok()
                     .json(SuccessResponse::new(true, msg)),

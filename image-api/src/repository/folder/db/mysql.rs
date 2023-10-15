@@ -5,12 +5,10 @@ use std::result::Result;
 use log::{ info, debug, error };
 
 use crate::{
-    db::{
-        utils::mysql::{ get_rows_from_query, get_row_from_query, process_id_from_row_result },
-        DBError, get_db_connection,
+    server::db::DBError, db::utils::mysql::{
+        get_rows_from_query, get_row_from_query, process_id_from_row_result
     },
-    repository::folder::FolderRepository,
-    model::folder::Folder,
+    repository::folder::FolderRepository, model::folder::Folder,
 };
 
 pub struct MySQLFolderRepository {
@@ -75,7 +73,7 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
                 }
 
                 None => {
-                    Err(DBError::NOT_FOUND)
+                    Err(DBError::NotFound)
                 }
             }
         }
@@ -161,8 +159,8 @@ impl FolderRepository for MySQLFolderRepository {
     /**
      * Gets a project based on it's ID.
      */
-    fn get(&self, id: u32) -> Result<Folder, DBError> {
-        get_folder_from_row(get_row_from_query(
+    fn get(&mut self, id: u32) -> Result<Folder, DBError> {
+        get_folder_from_row(self.get_row(
             r"SELECT
                 ID, TITLE, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, PROJECT_ID, PARENT_FOLDER_ID
@@ -172,8 +170,8 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_from_slug(&self, slug: String) -> Result<Folder, DBError> {
-        get_folder_from_row(get_row_from_query(
+    fn get_from_slug(&mut self, slug: String) -> Result<Folder, DBError> {
+        get_folder_from_row(self.get_row(
             r"SELECT
                 ID, TITLE, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, PROJECT_ID, PARENT_FOLDER_ID
@@ -183,8 +181,8 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_all_from_project(&self, project_id: u32) -> Result<Vec<Folder>, DBError> {
-        get_folders_from_row(get_rows_from_query(
+    fn get_all_from_project(&mut self, project_id: u32) -> Result<Vec<Folder>, DBError> {
+        get_folders_from_row(self.get_rows(
             r"SELECT
                 ID, TITLE, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, PROJECT_ID, PARENT_FOLDER_ID
@@ -194,9 +192,9 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_from_project_slug(&self, project_slug: String, all: bool)
+    fn get_from_project_slug(&mut self, project_slug: String, all: bool)
         -> Result<Vec<Folder>, DBError> {
-        get_folders_from_row(get_rows_from_query(
+        get_folders_from_row(self.get_rows(
             format!(
                 r"SELECT
                     F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
@@ -210,8 +208,8 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_from_folder(&self, folder_id: u32) -> Result<Vec<Folder>, DBError> {
-        get_folders_from_row(get_rows_from_query(
+    fn get_from_folder(&mut self, folder_id: u32) -> Result<Vec<Folder>, DBError> {
+        get_folders_from_row(self.get_rows(
             format!(
                 r"SELECT
                     F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
@@ -224,9 +222,9 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn get_from_folder_slug(&self, folder_slug: String, _all: bool)
+    fn get_from_folder_slug(&mut self, folder_slug: String, _all: bool)
             -> Result<Vec<Folder>, DBError> {
-        get_folders_from_row(get_rows_from_query(
+        get_folders_from_row(self.get_rows(
             format!(
                 r"SELECT
                     F.ID, F.TITLE, F.DESCRIPTION, F.CREATED_BY, F.MODIFIED_BY,
@@ -239,10 +237,8 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn add(&self, folder: Folder) -> Result<String, String> {
-        let mut conn: PooledConn = get_db_connection();
-
-        match conn.exec_drop(
+    fn add(&mut self, folder: Folder) -> Result<String, String> {
+        match self.connection.exec_drop(
             r"INSERT INTO FOLDER (
                 TITLE, DESCRIPTION, SLUG, PROJECT_ID, PARENT_FOLDER_ID,
                 CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON
@@ -282,8 +278,8 @@ impl FolderRepository for MySQLFolderRepository {
         }
     }
 
-    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError> {
-        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+    fn is_valid_new_slug(&mut self, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = self.get_row(
             r"SELECT NOT EXISTS (
                 SELECT ID FROM FOLDER WHERE SLUG = :slug
             ) AS VALID",
@@ -313,9 +309,9 @@ impl FolderRepository for MySQLFolderRepository {
         }
     }
 
-    fn is_valid_slug(&self, project_id: u32, folder_id: u32, slug: String) ->
+    fn is_valid_slug(&mut self, project_id: u32, folder_id: u32, slug: String) ->
         Result<Option<u32>, DBError> {
-        process_id_from_row_result(get_row_from_query(
+        process_id_from_row_result(self.get_row(
             "SELECT ID FROM FOLDER WHERE SLUG = :slug AND
             PROJECT_ID = :project_id AND PARENT_FOLDER_ID = :folder_id",
             params! {
@@ -326,12 +322,10 @@ impl FolderRepository for MySQLFolderRepository {
         ))
     }
 
-    fn update(&self, folder: Folder) -> Result<String, String> {
-        let mut conn = get_db_connection();
-
+    fn update(&mut self, folder: Folder) -> Result<String, String> {
         debug!("Updating a folder");
 
-        match conn.exec_drop(r"UPDATE FOLDER SET
+        match self.connection.exec_drop(r"UPDATE FOLDER SET
                 TITLE = :title, SLUG = :slug, DESCRIPTION = :description,
                 PROJECT_ID = :project_id, PARENT_FOLDER_ID = :parent_folder_id,
                 MODIFIED_BY = :modified_by, MODIFIED_ON = current_timestamp()
@@ -356,15 +350,14 @@ impl FolderRepository for MySQLFolderRepository {
         }
     }
 
-    fn remove(&self, folder: Folder) -> Result<String, String> {
+    fn remove(&mut self, folder: Folder) -> Result<String, String> {
         self.remove_item(folder.id)
     }
 
-    fn remove_item(&self, folder_id: u32) -> Result<String, String> {
+    fn remove_item(&mut self, folder_id: u32) -> Result<String, String> {
         debug!("Removing a folder item");
-        let mut conn = get_db_connection();
 
-        match conn.exec_drop(
+        match self.connection.exec_drop(
             r"DELETE FROM FOLDER WHERE ID = :id",
             params! { "id" => folder_id.clone() },
         ) {
@@ -380,6 +373,18 @@ impl FolderRepository for MySQLFolderRepository {
                 Err (String::from("Unable to remove folder."))
             }
         }
+    }
+}
+
+impl MySQLFolderRepository {
+    fn get_row(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Option<Row>> {
+        get_row_from_query(&mut self.connection, query, params)
+    }
+
+    fn get_rows(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Vec<Row>> {
+        get_rows_from_query(&mut self.connection, query, params)
     }
 }
 

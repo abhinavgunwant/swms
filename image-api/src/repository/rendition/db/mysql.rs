@@ -2,9 +2,9 @@ use std::result::Result;
 use crate::repository::rendition::{
     Rendition, RenditionRepository, Encoding
 };
-use crate::db::{
-    DBError, get_db_connection,
-    utils::mysql::{ get_rows_from_query, get_row_from_query }
+use crate::{
+    server::db::DBError,
+    db::utils::mysql::{ get_rows_from_query, get_row_from_query },
 };
 use chrono::Utc;
 use mysql::*;
@@ -35,7 +35,7 @@ fn get_rendition_from_row(row_wrapped: Result<Option<Row>, Error>) -> Result<Ren
                 }
 
                 None => {
-                    Err(DBError::NOT_FOUND)
+                    Err(DBError::NotFound)
                 }
             }
         }
@@ -80,7 +80,7 @@ fn get_renditions_from_row(row_wrapped: Result<Vec::<Row>, Error>)
         Err(e) => {
             error!("Error while getting images from query: {}", e);
 
-            Err(DBError::NOT_FOUND)
+            Err(DBError::NotFound)
         }
     }
 }
@@ -90,8 +90,8 @@ pub struct MySQLRenditionRepository {
 }
 
 impl RenditionRepository for MySQLRenditionRepository {
-    fn get(&self, id: u32) -> Result<Rendition, DBError> {
-        get_rendition_from_row(get_row_from_query(
+    fn get(&mut self, id: u32) -> Result<Rendition, DBError> {
+        get_rendition_from_row(self.get_row(
             r"SELECT
                 ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG,
                 PUBLISHED, CREATED_BY, MODIFIED_BY, CREATED_ON,
@@ -101,9 +101,9 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_from_project_rendition_slug(&self, p_slug: String, r_slug: String)
+    fn get_from_project_rendition_slug(&mut self, p_slug: String, r_slug: String)
         -> Result<Rendition, DBError> {
-        get_rendition_from_row(get_row_from_query(
+        get_rendition_from_row(self.get_row(
             r"SELECT
                 R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE,
                 R.SLUG, R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
@@ -115,9 +115,9 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_from_folder_rendition_slug(&self, f_slug: String, r_slug: String)
+    fn get_from_folder_rendition_slug(&mut self, f_slug: String, r_slug: String)
         -> Result<Rendition, DBError> {
-        get_rendition_from_row(get_row_from_query(
+        get_rendition_from_row(self.get_row(
             r"SELECT
                 IR.ID, IR.IMAGE_ID, IR.HEIGHT, IR.WIDTH, IR.TARGET_DEVICE,
                 IR.SLUG, IR.PUBLISHED, IR.CREATED_BY,
@@ -129,9 +129,9 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_from_image_and_slug(&self, image_id: u32, slug: String)
+    fn get_from_image_and_slug(&mut self, image_id: u32, slug: String)
         -> Result<Rendition, DBError> {
-        get_rendition_from_row(get_row_from_query(
+        get_rendition_from_row(self.get_row(
             r"SELECT
                 ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG, PUBLISHED,
                 CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON
@@ -141,8 +141,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all(&self) -> Result<Vec<Rendition>, DBError> {
-        get_renditions_from_row(get_rows_from_query(
+    fn get_all(&mut self) -> Result<Vec<Rendition>, DBError> {
+        get_renditions_from_row(self.get_rows(
             r"SELECT
                 ID, IMAGE_ID, HEIGHT, WIDTH, TARGET_DEVICE, SLUG, PUBLISHED,
                 CREATED_BY, MODIFIED_BY, CREATED_ON, MODIFIED_ON
@@ -151,8 +151,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all_from_image(&self, image_id: u32) -> Result<Vec<Rendition>, DBError> {
-        get_renditions_from_row(get_rows_from_query(
+    fn get_all_from_image(&mut self, image_id: u32) -> Result<Vec<Rendition>, DBError> {
+        get_renditions_from_row(self.get_rows(
             r"SELECT
                 R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE,
                 R.SLUG, R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
@@ -163,13 +163,13 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all_paged(&self, _page: u32, _page_length: u32) -> Result<Vec<Rendition>, DBError> {
+    fn get_all_paged(&mut self, _page: u32, _page_length: u32) -> Result<Vec<Rendition>, DBError> {
         // TODO: Implement
         self.get_all()
     }
 
-    fn get_all_from_project(&self, project_id: u32) -> Result<Vec::<Rendition>, DBError> {
-        get_renditions_from_row(get_rows_from_query(
+    fn get_all_from_project(&mut self, project_id: u32) -> Result<Vec::<Rendition>, DBError> {
+        get_renditions_from_row(self.get_rows(
             r"SELECT
                 R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE, R.SLUG,
                 R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
@@ -180,8 +180,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn get_all_from_project_slug(&self, project_slug: String) -> Result<Vec::<Rendition>, DBError> {
-        get_renditions_from_row(get_rows_from_query(
+    fn get_all_from_project_slug(&mut self, project_slug: String) -> Result<Vec::<Rendition>, DBError> {
+        get_renditions_from_row(self.get_rows(
             r"SELECT
                 R.ID, R.IMAGE_ID, R.HEIGHT, R.WIDTH, R.TARGET_DEVICE, R.SLUG,
                 R.PUBLISHED, R.CREATED_BY, R.MODIFIED_BY,
@@ -193,12 +193,11 @@ impl RenditionRepository for MySQLRenditionRepository {
         ))
     }
 
-    fn add(&self, rendition: Rendition) -> Result<u32, String> {
+    fn add(&mut self, rendition: Rendition) -> Result<u32, String> {
         debug!("adding a rendition");
         let error_msg: String = String::from("Error Inserting Data!");
 
-        let mut conn = get_db_connection();
-        let transaction_result = conn.start_transaction(TxOpts::default());
+        let transaction_result = self.connection.start_transaction(TxOpts::default());
 
         match transaction_result {
             Ok (mut tx) => {
@@ -311,8 +310,8 @@ impl RenditionRepository for MySQLRenditionRepository {
         }
     }
 
-    fn is_valid_new_slug(&self, image_id: u32, slug: String) -> Result<bool, DBError> {
-        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+    fn is_valid_new_slug(&mut self, image_id: u32, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = self.get_row(
             r"SELECT NOT EXISTS (
                 SELECT ID FROM IMAGE_RENDITION WHERE SLUG = :slug
                 AND IMAGE_ID = :image_id
@@ -343,28 +342,27 @@ impl RenditionRepository for MySQLRenditionRepository {
         }
     }
 
-    fn is_valid_slug(&self, image_id: u32, slug: String) -> Result<bool, DBError> {
+    fn is_valid_slug(&mut self, image_id: u32, slug: String) -> Result<bool, DBError> {
         match self.is_valid_new_slug(image_id, slug) {
             Ok (valid) => { Ok (!valid) }
             Err (e) => { Err(e) }
         }
     }
 
-    fn update(&self, _rendition: Rendition) {
+    fn update(&mut self, _rendition: Rendition) {
         // TODO: Implement
         debug!("Updating a rendition");
     }
 
-    fn remove(&self, rendition: Rendition) -> Result<String, String> {
+    fn remove(&mut self, rendition: Rendition) -> Result<String, String> {
         debug!("Removing a rendition");
         self.remove_item(rendition.id)
     }
 
-    fn remove_item(&self, id: u32) -> Result<String, String> {
+    fn remove_item(&mut self, id: u32) -> Result<String, String> {
         debug!("Removing a rendition item");
-        let mut conn = get_db_connection();
 
-        match conn.exec_drop(
+        match self.connection.exec_drop(
             r"DELETE FROM IMAGE_RENDITION WHERE ID = :id",
             params! { "id" => id.clone() },
         ) {
@@ -382,12 +380,10 @@ impl RenditionRepository for MySQLRenditionRepository {
         }
     }
 
-    fn remove_all_from_image (&self, image_id: u32) -> Result<String, String> {
+    fn remove_all_from_image (&mut self, image_id: u32) -> Result<String, String> {
         debug!("Removing all renditions from image: {}", image_id);
 
-        let mut conn = get_db_connection();
-
-        match conn.exec_drop(
+        match self.connection.exec_drop(
             r"DELETE FROM IMAGE_RENDITION WHERE IMAGE_ID = :image_id",
             params! { "image_id" => image_id }
         ) {
@@ -403,6 +399,18 @@ impl RenditionRepository for MySQLRenditionRepository {
                 Err (format!("Unable to remove rendition for image with id: {}", image_id))
             }
         }
+    }
+}
+
+impl MySQLRenditionRepository {
+    fn get_row(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Option<Row>> {
+        get_row_from_query(&mut self.connection, query, params)
+    }
+
+    fn get_rows(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Vec<Row>> {
+        get_rows_from_query(&mut self.connection, query, params)
     }
 }
 

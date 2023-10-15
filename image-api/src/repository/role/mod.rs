@@ -1,6 +1,6 @@
 pub mod db;
 
-use crate::{ db::DBError, model::role::Role, };
+use crate::{ server::db::DBError, model::role::Role, };
 
 pub trait RoleRepository {
     fn get(&mut self, id: u8) -> Result<Role, DBError>;

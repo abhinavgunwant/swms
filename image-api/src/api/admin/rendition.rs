@@ -13,7 +13,7 @@ use crate::{
         path::{ resize_and_save_rendition, get_image_path },
         remove::remove_rendition_file,
     },
-    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
+    server::db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
     repository::Repository, model::{ rendition::Rendition, image::Image },
 };
 
@@ -78,22 +78,24 @@ pub async fn get_renditions_for_image(
     }
 
     match repo.get_rendition_repo() {
-        Ok(ren_repo) => {
+        Ok(mut ren_repo) => {
             match ren_repo.get_all_from_image(image_id.unwrap()) {
                 Ok (renditions) => {
                     HttpResponse::Ok().json(RenditionResponse { renditions })
                 }
 
                 Err (e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound()
-                            .json(RenditionResponse { renditions: vec![] });
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound()
+                            .json(RenditionResponse { renditions: vec![] }),
+                        _ => {
+                            error!("Some internal error occured while fetching \
+                                project images.");
+
+                            HttpResponse::InternalServerError()
+                                .json(RenditionResponse { renditions: vec![] })
+                        }
                     }
-
-                    error!("Some internal error occured while fetching project images.");
-
-                    HttpResponse::InternalServerError()
-                        .json(RenditionResponse { renditions: vec![] })
                 }
             }
         }
@@ -117,21 +119,24 @@ pub async fn get_rendition(
         .unwrap());
 
     match repo.get_rendition_repo() {
-        Ok(ren_repo) => {
+        Ok(mut ren_repo) => {
             match ren_repo.get(rendition_id.parse::<u32>().unwrap()) {
                 Ok (rendition) => {
                     HttpResponse::Ok().json(rendition)
                 }
 
                 Err (e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound().body("Not Found");
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound()
+                            .body("Not Found"),
+
+                        _ => {
+                            error!("Error while fetching rendition: {}", e);
+
+                            HttpResponse::InternalServerError()
+                                .body("Internal Server Error")
+                        }
                     }
-
-                    error!("Error while fetching rendition: {}", e);
-
-                    HttpResponse::InternalServerError()
-                        .body("Internal Server Error")
                 }
             }
         }
@@ -186,7 +191,7 @@ pub async fn set_rendition(
 
     // Get image from repo.
     match repository.get_image_repo() {
-        Ok(img_repo) => {
+        Ok(mut img_repo) => {
             match img_repo.get(image_id) {
                 Ok(img) => { image_option = Some(img); },
                 Err (e) => {
@@ -253,7 +258,7 @@ pub async fn set_rendition(
             }
 
             match repository.get_rendition_repo() {
-                Ok(ren_repo) => {
+                Ok(mut ren_repo) => {
                     match ren_repo.add(rendition_to_add.clone()) {
                         Ok (_rendition_id) => {
                             // Create renditions files.
@@ -352,7 +357,7 @@ pub async fn delete_rendition(
     conf: Data<ServerConfig>
 ) -> HttpResponse {
     if let Some(rid) = req.match_info().get("rendition_id") {
-        let ren_repo;
+        let mut ren_repo;
 
         match repository.get_rendition_repo() {
             Ok(r_repo) => { ren_repo = r_repo; }
@@ -375,7 +380,7 @@ pub async fn delete_rendition(
                         let mut image_path: String = String::default();
 
                         match repository.get_image_repo() {
-                            Ok(img_repo) => {
+                            Ok(mut img_repo) => {
                                 if let Ok(image) = img_repo.get(
                                     rendition.image_id
                                 ) {

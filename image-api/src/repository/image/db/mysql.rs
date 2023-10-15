@@ -5,14 +5,10 @@ use mysql::prelude::*;
 use log::{ info, debug, error };
 
 use crate::{
-    repository::image::{ Encoding, ImageRepository },
-    db::{
-        utils::mysql::{
-            get_rows_from_query, get_row_from_query, process_id_from_row_result
-        },
-        DBError, get_db_connection
+    repository::image::{ Encoding, ImageRepository }, model::image::Image,
+    server::db::DBError, db::utils::mysql::{
+        get_rows_from_query, get_row_from_query, process_id_from_row_result
     },
-    model::image::Image,
 };
 
 fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image, DBError> {
@@ -45,7 +41,7 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
                 }
 
                 None => {
-                    Err(DBError::NOT_FOUND)
+                    Err(DBError::NotFound)
                 }
             }
         }
@@ -113,7 +109,7 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
         Err(e) => {
             error!("Error while getting images from query: {}", e);
 
-            Err(DBError::NOT_FOUND)
+            Err(DBError::NotFound)
         }
     }
 }
@@ -123,8 +119,8 @@ pub struct MySQLImageRepository {
 }
 
 impl ImageRepository for MySQLImageRepository {
-    fn get(&self, id: u32) -> Result<Image, DBError> {
-        get_image_from_row(get_row_from_query(
+    fn get(&mut self, id: u32) -> Result<Image, DBError> {
+        get_image_from_row(self.get_row(
             r"SELECT
                 ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
@@ -137,8 +133,8 @@ impl ImageRepository for MySQLImageRepository {
     /**
      * Gets a project from it's slug.
      */
-    fn get_from_slug(&self, slug: &str) -> Result<Image, DBError> {
-        get_image_from_row(get_row_from_query(
+    fn get_from_slug(&mut self, slug: &str) -> Result<Image, DBError> {
+        get_image_from_row(self.get_row(
             r"SELECT
                 ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
@@ -148,8 +144,8 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn get_all(&self) -> Result<Vec<Image>, DBError> {
-        get_images_from_row(get_rows_from_query(
+    fn get_all(&mut self) -> Result<Vec<Image>, DBError> {
+        get_images_from_row(self.get_rows(
             r"SELECT
                 ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
@@ -159,12 +155,13 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn get_all_paged(&self, _page: u32, _page_length: u32) -> Result<Vec<Image>, DBError> {
+    fn get_all_paged(&mut self, _page: u32, _page_length: u32)
+        -> Result<Vec<Image>, DBError> {
         self.get_all()
     }
 
-    fn get_all_from_project(&self, project_id: u32) -> Result<Vec::<Image>, DBError> {
-        get_images_from_row(get_rows_from_query(
+    fn get_all_from_project(&mut self, project_id: u32) -> Result<Vec::<Image>, DBError> {
+        get_images_from_row(self.get_rows(
             r"SELECT
                 ID, SLUG, ORIGINAL_FILENAME, TITLE, HEIGHT, WIDTH, PUBLISHED,
                 PROJECT_ID, FOLDER_ID, CREATED_BY, MODIFIED_BY, CREATED_ON,
@@ -174,9 +171,9 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn get_from_project_slug(&self, project_slug: String, all: bool)
+    fn get_from_project_slug(&mut self, project_slug: String, all: bool)
         -> Result<Vec::<Image>, DBError> {
-        get_images_from_row(get_rows_from_query(
+        get_images_from_row(self.get_rows(
             format!(
                 r"SELECT
                     I.ID, I.SLUG, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
@@ -190,9 +187,9 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn get_from_folder(&self, folder_id: u32, _all: bool)
+    fn get_from_folder(&mut self, folder_id: u32, _all: bool)
             -> Result<Vec<Image>, DBError> {
-        get_images_from_row(get_rows_from_query(
+        get_images_from_row(self.get_rows(
             r"SELECT
                 I.ID, I.SLUG, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
                 I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
@@ -203,9 +200,9 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn get_from_folder_slug(&self, folder_slug: String, _all: bool)
+    fn get_from_folder_slug(&mut self, folder_slug: String, _all: bool)
             -> Result<Vec<Image>, DBError> {
-        get_images_from_row(get_rows_from_query(
+        get_images_from_row(self.get_rows(
             r"SELECT
                 I.ID, I.SLUG, I.ORIGINAL_FILENAME, I.TITLE, I.HEIGHT, I.WIDTH,
                 I.PUBLISHED, I.PROJECT_ID, I.FOLDER_ID, I.CREATED_BY,
@@ -216,13 +213,12 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn add(&self, image: Image) -> Result<u32, String> {
+    fn add(&mut self, image: Image) -> Result<u32, String> {
         info!("adding an image");
 
         let error_msg: String = String::from("Error Inserting Data!");
 
-        let mut conn = get_db_connection();
-        let transaction_result = conn.start_transaction(TxOpts::default());
+        let transaction_result = self.connection.start_transaction(TxOpts::default());
 
         match transaction_result {
             Ok (mut tx) => {
@@ -323,8 +319,8 @@ impl ImageRepository for MySQLImageRepository {
         }
     }
 
-    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError> {
-        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+    fn is_valid_new_slug(&mut self, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = self.get_row(
             r"SELECT NOT EXISTS (
                 SELECT ID FROM IMAGE WHERE SLUG = :slug
             ) AS VALID",
@@ -354,9 +350,9 @@ impl ImageRepository for MySQLImageRepository {
         }
     }
 
-    fn is_valid_slug(&self, project_id: u32, folder_id: u32, slug: String) ->
+    fn is_valid_slug(&mut self, project_id: u32, folder_id: u32, slug: String) ->
         Result<Option<u32>, DBError> {
-        process_id_from_row_result(get_row_from_query(
+        process_id_from_row_result(self.get_row(
             "SELECT ID FROM IMAGE WHERE SLUG = :slug AND
             PROJECT_ID = :project_id AND FOLDER_ID = :folder_id",
             params! {
@@ -367,14 +363,12 @@ impl ImageRepository for MySQLImageRepository {
         ))
     }
 
-    fn update(&self, image: Image) -> Result<String, String> {
-        let mut conn = get_db_connection();
-
+    fn update(&mut self, image: Image) -> Result<String, String> {
         debug!("Updating an image");
 
         let id = image.id;
 
-        match conn.start_transaction(TxOpts::default()) {
+        match self.connection.start_transaction(TxOpts::default()) {
             Ok (mut tx) => {
                 let mut update_title: bool = false;
                 let mut update_slug: bool = false;
@@ -516,7 +510,7 @@ impl ImageRepository for MySQLImageRepository {
             }
         }
 
-        match conn.exec_drop(r"UPDATE IMAGE SET
+        match self.connection.exec_drop(r"UPDATE IMAGE SET
                 ORIGINAL_FILENAME = :original_filename, TITLE = :title,
                 HEIGHT = :height, WIDTH = :width, PUBLISHED = :published,
                 PROJECT_ID = :project_id, FOLDER_ID = :folder_id,
@@ -544,17 +538,16 @@ impl ImageRepository for MySQLImageRepository {
         }
     }
 
-    fn remove(&self, image: Image) -> Result<String, String> {
+    fn remove(&mut self, image: Image) -> Result<String, String> {
         debug!("Removing an image");
 
         self.remove_item(image.id)
     }
 
-    fn remove_item(&self, id: u32) -> Result<String, String> {
+    fn remove_item(&mut self, id: u32) -> Result<String, String> {
         debug!("Removing an image item");
-        let mut conn = get_db_connection();
 
-        match conn.exec_drop(
+        match self.connection.exec_drop(
             r"DELETE FROM IMAGE WHERE ID = :id",
             params! { "id" => id.clone() },
         ) {
@@ -570,6 +563,18 @@ impl ImageRepository for MySQLImageRepository {
                 Err (String::from("Unable to remove image."))
             }
         }
+    }
+}
+
+impl MySQLImageRepository {
+    fn get_row(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Option<Row>> {
+        get_row_from_query(&mut self.connection, query, params)
+    }
+
+    fn get_rows(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Vec<Row>> {
+        get_rows_from_query(&mut self.connection, query, params)
     }
 }
 

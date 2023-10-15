@@ -8,7 +8,7 @@ use log::{ info, error };
 
 use crate::{
     repository::Repository,
-    db::DBError, model::user::User, auth::AuthMiddleware,
+    server::db::DBError, model::user::User, auth::AuthMiddleware,
 };
 
 #[derive(Deserialize)]
@@ -67,7 +67,7 @@ pub async fn create_user(
     };
 
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.add(user) {
                 Ok (id) => {
                     info!("Adding user: (id: {})", id);
@@ -118,7 +118,7 @@ pub async fn edit_user(
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.update(User {
                 id: req_obj.id,
                 name: req_obj.name.clone(),
@@ -153,7 +153,7 @@ pub async fn get_user(
     let req_path: String = req.match_info().get("login_id")
         .unwrap().parse().unwrap();
 
-    let user_repo;
+    let mut user_repo;
 
     let parsed_num = req_path.parse::<u32>();
 
@@ -176,21 +176,25 @@ pub async fn get_user(
                 }
 
                 Err(e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound()
-                            .json(UserResponseMessage {
-                                success: false,
-                                message: String::from("404 - Not found"),
-                                user_id: None,
-                            });
-                    }
+                    match e {
+                        DBError::NotFound => {
+                            return HttpResponse::NotFound()
+                                .json(UserResponseMessage {
+                                    success: false,
+                                    message: String::from("404 - Not found"),
+                                    user_id: None,
+                                });
+                        }
 
-                    return HttpResponse::InternalServerError()
-                        .json(UserResponseMessage {
-                            success: false,
-                            message: String::from("500 - Internal Server Error"),
-                            user_id: None,
-                        })
+                        _ => {
+                            return HttpResponse::InternalServerError()
+                                .json(UserResponseMessage {
+                                    success: false,
+                                    message: String::from("500 - Internal Server Error"),
+                                    user_id: None,
+                                })
+                        }
+                    }
                 }
             }
         }
@@ -199,21 +203,20 @@ pub async fn get_user(
             match user_repo.get_from_login_id(req_path) {
                 Ok(user) => HttpResponse::Ok().json(user),
                 Err(e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound()
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound()
                             .json(UserResponseMessage {
                                 success: false,
                                 message: String::from("404 - Not found"),
                                 user_id: None,
-                            });
+                            }),
+                        _ => HttpResponse::InternalServerError()
+                            .json(UserResponseMessage {
+                                success: false,
+                                message: String::from("500 - Internal Server Error"),
+                                user_id: None,
+                            })
                     }
-
-                    HttpResponse::InternalServerError()
-                        .json(UserResponseMessage {
-                            success: false,
-                            message: String::from("500 - Internal Server Error"),
-                            user_id: None,
-                        })
                 }
             }
         }
@@ -226,7 +229,7 @@ pub async fn get_user_list(
     _: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.get_all() {
                 Ok (users) => {
                     let mut user_list: Vec<EditUserRequest> = vec![];
@@ -288,17 +291,17 @@ pub async fn search_user(
     }
 
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.search_from_name(String::from(user_query), 10) {
                 Ok (su) => HttpResponse::Ok().json(su),
 
                 Err(e) => {
-                    if e == DBError::NOT_FOUND {
-                        return HttpResponse::NotFound().body("Not Found");
+                    match e {
+                        DBError::NotFound => HttpResponse::NotFound()
+                            .body("Not Found"),
+                        _ => HttpResponse::InternalServerError()
+                            .body("Internal Server Error")
                     }
-
-                    HttpResponse::InternalServerError()
-                        .body("Internal Server Error")
                 }
             }
         }

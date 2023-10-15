@@ -10,7 +10,7 @@ use serde::{ Serialize, Deserialize };
 use log::{ debug, error };
 
 use crate::{
-    db::DBError, model::role::Role, server_state::ServerState,
+    server::db::DBError, model::role::Role, server_state::ServerState,
     repository::Repository,
     auth::{
         AuthMiddleware, pwd_hash::verify_password,
@@ -49,7 +49,7 @@ pub async fn auth(
     let name: String;
 
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.get_from_login_id(req_obj.username.clone()) {
                 Ok (user) => {
                     name = user.name;
@@ -93,7 +93,7 @@ pub async fn auth(
 
                 Err (e) => {
                     match e {
-                        DBError::NOT_FOUND => {
+                        DBError::NotFound => {
                             return HttpResponse::NotFound()
                                 .body("Error 404: User not found!");
                         }
@@ -261,7 +261,7 @@ pub async fn get_user_permissions(
     am: AuthMiddleware
 ) -> HttpResponse {
     match repo.get_user_repo() {
-        Ok(user_repo) => {
+        Ok(mut user_repo) => {
             match user_repo.get_permissions(am.login_id) {
                 Ok (perms) => HttpResponse::Ok().json(perms),
                 Err (e) => HttpResponse::Forbidden().body(e),

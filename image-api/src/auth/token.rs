@@ -12,8 +12,7 @@ use rand_chacha::ChaCha20Core;
 use log::{ debug, error };
 
 use crate::{
-    model::role::Role,
-    repository::role::RoleRepository, db::DBError,
+    model::role::Role, repository::role::RoleRepository, server::db::DBError,
 };
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -149,7 +148,7 @@ pub fn create_session_token_from_refresh_token(
 
         Err(e) => {
             match e {
-                DBError::NOT_FOUND => Err(TokenError::RoleNotFound),
+                DBError::NotFound => Err(TokenError::RoleNotFound),
                 _ => Err(TokenError::OtherError),
             }
         }

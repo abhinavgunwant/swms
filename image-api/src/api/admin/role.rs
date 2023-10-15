@@ -2,7 +2,7 @@ use actix_web::{ get, post, put, delete, web::{ Json, Data }, HttpResponse };
 
 use crate::{
     repository::Repository,
-    db::DBError, model::role::Role, auth::AuthMiddleware,
+    server::db::DBError, model::role::Role, auth::AuthMiddleware,
 };
 
 
@@ -14,8 +14,13 @@ pub async fn get_all_roles(_: AuthMiddleware, repo: Data<dyn Repository + Sync +
         match repo.get_all() {
             Ok(roles) => return HttpResponse::Ok().json(roles),
             Err(e) => {
-                if e == DBError::NOT_FOUND {
-                    return HttpResponse::NotFound().body("Not Found");
+                match e {
+                    DBError::NotFound => {
+                        return HttpResponse::NotFound()
+                        .body("Not Found");
+                    }
+
+                    _ => {}
                 }
             }
         }

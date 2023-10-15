@@ -4,11 +4,10 @@ use mysql::prelude::*;
 use std::result::Result;
 use log::{ debug, error };
 
-use crate::db::{
-    utils::mysql::{ get_row_from_query, get_rows_from_query },
-    DBError, get_db_connection,
+use crate::{
+    db::utils::mysql::{ get_row_from_query, get_rows_from_query },
+    repository::project::{ Project, ProjectRepository }, server::db::DBError,
 };
-use crate::repository::project::{ Project, ProjectRepository };
 
 pub struct MySQLProjectRepository {
     pub connection: PooledConn,
@@ -42,7 +41,7 @@ fn get_project_from_row(row_wrapped: Result<Option<Row>, Error>)
                 }
 
                 None => {
-                    Err(DBError::NOT_FOUND)
+                    Err(DBError::NotFound)
                 }
             }
         }
@@ -101,7 +100,7 @@ fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
         Err(e) => {
             error!("Error while getting images from query: {}", e);
 
-            Err(DBError::NOT_FOUND)
+            Err(DBError::NotFound)
         }
     }
 }
@@ -110,8 +109,8 @@ impl ProjectRepository for MySQLProjectRepository {
     /**
      * Gets a project based on it's ID.
      */
-    fn get(&self, id: u32) -> Result<Project, DBError> {
-        get_project_from_row(get_row_from_query(
+    fn get(&mut self, id: u32) -> Result<Project, DBError> {
+        get_project_from_row(self.get_row(
             r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, RESTRICT_USERS
@@ -124,8 +123,8 @@ impl ProjectRepository for MySQLProjectRepository {
     /**
      * Gets a project from it's slug.
      */
-    fn get_from_slug(&self, slug: String) -> Result<Project, DBError> {
-        get_project_from_row(get_row_from_query(
+    fn get_from_slug(&mut self, slug: String) -> Result<Project, DBError> {
+        get_project_from_row(self.get_row(
             r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, RESTRICT_USERS
@@ -138,8 +137,8 @@ impl ProjectRepository for MySQLProjectRepository {
     /**
      * Gets all the projects in the table.
      */
-    fn get_all(&self) -> Result<Vec::<Project>, DBError> {
-        get_projects_from_row(get_rows_from_query(
+    fn get_all(&mut self) -> Result<Vec::<Project>, DBError> {
+        get_projects_from_row(self.get_rows(
             r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, SLUG
             FROM PROJECT",
@@ -147,8 +146,8 @@ impl ProjectRepository for MySQLProjectRepository {
         ))
     }
 
-    fn get_all_paged(&self, page: u32, page_length: u32) -> Result<Vec<Project>, DBError> {
-        get_projects_from_row(get_rows_from_query(
+    fn get_all_paged(&mut self, page: u32, page_length: u32) -> Result<Vec<Project>, DBError> {
+        get_projects_from_row(self.get_rows(
             r"SELECT
                 ID, NAME, DESCRIPTION, CREATED_BY, MODIFIED_BY, CREATED_ON,
                 MODIFIED_ON, SLUG, RESTRICT_USERS
@@ -160,8 +159,8 @@ impl ProjectRepository for MySQLProjectRepository {
     /**
      * Gets the list of projects that a user has access to.
      */
-    fn get_user_projects(&self, user_id: u32) -> Result<Vec::<Project>, DBError> {
-        get_projects_from_row(get_rows_from_query(
+    fn get_user_projects(&mut self, user_id: u32) -> Result<Vec::<Project>, DBError> {
+        get_projects_from_row(self.get_rows(
             r"SELECT
                 P.ID, P.NAME, P.DESCRIPTION, P.CREATED_BY, P.MODIFIED_BY,
                 P.SLUG
@@ -177,10 +176,8 @@ impl ProjectRepository for MySQLProjectRepository {
         ))
     }
 
-    fn add(&self, project: Project) {
-        let mut conn: PooledConn = get_db_connection();
-
-        conn.exec_drop(
+    fn add(&mut self, project: Project) {
+        self.connection.exec_drop(
             r"INSERT INTO PROJECT (
                 ID, NAME, DESCRIPTION, SLUG, RESTRICT_USERS, CREATED_BY,
                 MODIFIED_BY, CREATED_ON, MODIFIED_ON
@@ -203,13 +200,11 @@ impl ProjectRepository for MySQLProjectRepository {
      * Adds a list of users to a project.
      * Takes in a u32 vector containing user IDs.
      */
-    fn add_users_to_project(&self, project_id: u32, users: &Vec<u32>) {
-        let mut conn: PooledConn = get_db_connection();
-        
+    fn add_users_to_project(&mut self, project_id: u32, users: &Vec<u32>) {
         // TODO: Remove the users who already have access to the project
         // `project_id` here...
 
-        conn.exec_batch(r"
+        self.connection.exec_batch(r"
             INSERT INTO USER_PROJECT ( USER_ID, PROJECT_ID )
             VALUES ( :user_id, :project_id )
         ", users.iter().map(|user| params! {
@@ -218,8 +213,8 @@ impl ProjectRepository for MySQLProjectRepository {
         })).expect("Error while adding users to project");
     }
 
-    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError> {
-        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+    fn is_valid_new_slug(&mut self, slug: String) -> Result<bool, DBError> {
+        let row_result: Result<Option<Row>,Error> = self.get_row(
             r"SELECT NOT EXISTS (
                 SELECT ID FROM PROJECT WHERE SLUG = :slug
             ) AS VALID",
@@ -249,8 +244,8 @@ impl ProjectRepository for MySQLProjectRepository {
         }
     }
 
-    fn is_valid_slug(&self, slug: String) -> Result<Option<u32>, DBError> {
-        let row_result: Result<Option<Row>,Error> = get_row_from_query(
+    fn is_valid_slug(&mut self, slug: String) -> Result<Option<u32>, DBError> {
+        let row_result: Result<Option<Row>,Error> = self.get_row(
             r"SELECT ID FROM PROJECT WHERE SLUG = :slug",
             params! { "slug" => slug }
         );
@@ -277,19 +272,31 @@ impl ProjectRepository for MySQLProjectRepository {
         }
     }
 
-    fn update(&self, _project: Project) {
+    fn update(&mut self, _project: Project) {
         // TODO: Implement
         debug!("Updating a project");
     }
 
-    fn remove(&self, _id: Project) {
+    fn remove(&mut self, _id: Project) {
         // TODO: Implement
         debug!("Updating a project");
     }
 
-    fn remove_item(&self, _id: u32) {
+    fn remove_item(&mut self, _id: u32) {
         // TODO: Implement
         debug!("Updating a project");
+    }
+}
+
+impl MySQLProjectRepository {
+    fn get_row(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Option<Row>> {
+        get_row_from_query(&mut self.connection, query, params)
+    }
+
+    fn get_rows(&mut self, query: &str, params: Params)
+        -> mysql::error::Result<Vec<Row>> {
+        get_rows_from_query(&mut self.connection, query, params)
     }
 }
 

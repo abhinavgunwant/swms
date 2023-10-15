@@ -13,7 +13,7 @@ use crate::{
         rendition_cache_path, cache_rendition_file,
     },
     repository::Repository, model::{ error::ErrorType, encoding::Encoding },
-    db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
+    server::db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
 };
 
 #[derive(Serialize)]
@@ -124,7 +124,7 @@ pub async fn download(
                 match get_rendition_from_path_segments(&repo, &path_segments) {
                     Ok(rendition) => {
                         match repo.get_image_repo() {
-                            Ok(img_repo) => {
+                            Ok(mut img_repo) => {
                                 match img_repo.get(rendition.image_id) {
                                     Ok(image_data) => {
                                         let source_file_path = format!(
@@ -175,7 +175,7 @@ pub async fn download(
 
                                     Err (e) => {
                                         match e {
-                                            DBError::NOT_FOUND => {
+                                            DBError::NotFound => {
                                                 return not_found_response();
                                             }
 

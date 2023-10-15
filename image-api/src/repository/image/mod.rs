@@ -1,14 +1,16 @@
 pub mod db;
 
-use crate::{ db::DBError, model::{ encoding::Encoding, image::Image } };
+use crate::{
+    server::db::DBError, model::{ encoding::Encoding, image::Image },
+};
 
 pub trait ImageRepository {
-    fn get(&self, id: u32) -> Result<Image, DBError>;
-    fn get_from_slug(&self, slug: &str) -> Result<Image, DBError>;
-    fn get_all(&self) -> Result<Vec<Image>, DBError>;
-    fn get_all_from_project(&self, project_id: u32)
+    fn get(&mut self, id: u32) -> Result<Image, DBError>;
+    fn get_from_slug(&mut self, slug: &str) -> Result<Image, DBError>;
+    fn get_all(&mut self) -> Result<Vec<Image>, DBError>;
+    fn get_all_from_project(&mut self, project_id: u32)
         -> Result<Vec::<Image>, DBError>;
-    fn get_all_paged(&self, page: u32, page_length: u32)
+    fn get_all_paged(&mut self, page: u32, page_length: u32)
         -> Result<Vec<Image>, DBError>;
 
     /// Returns images inside a folder from folder id.
@@ -18,7 +20,7 @@ pub trait ImageRepository {
     /// * `folder_id` - The folder id.
     /// * `all` -  Whether to fetch all the images inside the folder.
     /// 
-    fn get_from_folder(&self, folder_id: u32, all: bool)
+    fn get_from_folder(&mut self, folder_id: u32, all: bool)
         -> Result<Vec<Image>, DBError>;
 
     /// Returns images inside a folder from folder slug.
@@ -28,7 +30,7 @@ pub trait ImageRepository {
     /// * `folder_slug` - The folder slug.
     /// * `all` -  Whether to fetch all the images inside the folder.
     /// 
-    fn get_from_folder_slug(&self, folder_slug: String, all: bool)
+    fn get_from_folder_slug(&mut self, folder_slug: String, all: bool)
         -> Result<Vec<Image>, DBError>;
 
     /// Returns images from a project slug.
@@ -38,10 +40,10 @@ pub trait ImageRepository {
     /// * `project_slug` - The project slug.
     /// * `all` -  Whether to fetch all the images inside a project.
     /// 
-    fn get_from_project_slug(&self, project_slug: String, all: bool)
+    fn get_from_project_slug(&mut self, project_slug: String, all: bool)
         -> Result<Vec::<Image>, DBError>;
 
-    fn add(&self, image: Image) -> Result<u32, String>;
+    fn add(&mut self, image: Image) -> Result<u32, String>;
 
     /**
      * Validates if a rendition with the provided slug doesn't exists for a
@@ -54,18 +56,18 @@ pub trait ImageRepository {
      *
      * Returns true if a project with the supplied slug doesn't exist.
      */
-    fn is_valid_new_slug(&self, slug: String) -> Result<bool, DBError>;
+    fn is_valid_new_slug(&mut self, slug: String) -> Result<bool, DBError>;
 
     /**
      * Validates if a rendition with the provided slug exists for image.
      *
      * Behaves exactly opposite to `validate_new_project_slug`.
      */
-    fn is_valid_slug(&self, project_id: u32, folder_id: u32, slug: String) ->
+    fn is_valid_slug(&mut self, project_id: u32, folder_id: u32, slug: String) ->
         Result<Option<u32>, DBError>;
 
-    fn update(&self, image: Image) -> Result<String, String>;
-    fn remove(&self, id: Image) -> Result<String, String>;
-    fn remove_item(&self, id: u32) -> Result<String, String>;
+    fn update(&mut self, image: Image) -> Result<String, String>;
+    fn remove(&mut self, id: Image) -> Result<String, String>;
+    fn remove_item(&mut self, id: u32) -> Result<String, String>;
 }
 
