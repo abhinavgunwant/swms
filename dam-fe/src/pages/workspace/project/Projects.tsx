@@ -2,9 +2,7 @@ import { useEffect, useRef, useState, useTransition, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Grid, List, Typography, CircularProgress, Box } from '@mui/material';
-import {
-    Check, Deselect, Visibility, Delete, SelectAll, DriveFileMove, Add,
-} from '@mui/icons-material';
+import { Check, Deselect, Delete, SelectAll, Add } from '@mui/icons-material';
 
 import WorkspaceTopRow from '../WorkspaceTopRow';
 import { Thumbnail, ImageListItem, WorkspaceFab } from '../../../components';
@@ -125,7 +123,7 @@ const Project = () => {
         }
     }, []);
 
-    console.log('createProject: ', userStore.session);
+    // console.log('createProject: ', userStore.session);
 
     return <div className="page page--project">
         <WorkspaceTopRow links={ ['Workspace'] } />
@@ -223,13 +221,6 @@ const Project = () => {
                         onClick: deselectAll,
                         variant: "extended",
                         icon: <Deselect />,
-                        show: selecting(),
-                    },
-                    {
-                        text: 'Move',
-                        onClick: () => { /* TODO: Implement! */ },
-                        variant: "extended",
-                        icon: <DriveFileMove />,
                         show: selecting(),
                     },
                     {

@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Box, Grid, List, CircularProgress } from '@mui/material';
+import { Box, Grid, List, CircularProgress, Typography } from '@mui/material';
 
 import {
     Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove,
@@ -12,7 +12,7 @@ import {
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import {
-    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab,
+    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab, CustomDialog,
 } from '../../components';
 import { DeleteItemDialog, NewImageDialog } from '../../components/dialogs';
 
@@ -64,6 +64,7 @@ const Workspace = ():React.ReactElement => {
     const [ deleteFolderIDs, setDeleteFolderIDs ] = useState<Array<number>>([]);
     const [ openNewDialog, setOpenNewDialog ] = useState<boolean>(false);
     const [ itemsDeleted, setItemsDeleted ] = useState<boolean>(false);
+    const [ showMoveDialog, setShowMoveDialog ] = useState<boolean>(false);
     /**
      * ID of the image to be previewed
      */
@@ -204,6 +205,14 @@ const Workspace = ():React.ReactElement => {
 
     const onNewDialogClosed = () => startTransition(
         () => setOpenNewDialog(false)
+    );
+
+    const openMoveDialog = () => startTransition(
+        () => setShowMoveDialog(true)
+    );
+
+    const closeMoveDialog = () => startTransition(
+        () => setShowMoveDialog(false)
     );
 
     useEffect(() => {
@@ -389,7 +398,7 @@ const Workspace = ():React.ReactElement => {
                 },
                 {
                     text: 'Move',
-                    onClick: () => { /* TODO: Implement! */ },
+                    onClick: () => { openMoveDialog(); },
                     variant: "extended",
                     icon: <DriveFileMove  />,
                     show: store.selecting,
@@ -426,6 +435,19 @@ const Workspace = ():React.ReactElement => {
             folderIDs={ deleteFolderIDs } />
 
         <NewImageDialog open={ openNewDialog } onClose={ onNewDialogClosed } />
+
+        <CustomDialog
+            open={ showMoveDialog }
+            onClose={ closeMoveDialog }
+            title="WIP"
+            body={
+                <Typography>This feature is under development </Typography>
+            }
+            actions={ [{
+                buttonVariant: 'contained',
+                text: 'OK',
+                action: () => closeMoveDialog(),
+            }] }/>
     </div>;
 }
 
