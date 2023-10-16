@@ -52,8 +52,8 @@ const Pre = emoStyled.pre`
 `;
 
 /**
- * Implements the action when user clicks on the 'Delete' button on an
- * image thumbnail or on the image details view.
+ * Dialog displayed when user clicks on the 'Delete' button on a project
+ * thumbnail.
  */
 export const DeleteProjectDialog = (props: DeleteProjectDialogProps) => {
     const [ error, setError ] = useState<boolean>(false);

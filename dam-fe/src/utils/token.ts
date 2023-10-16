@@ -1,12 +1,4 @@
-import { UserRole, Session } from '../models';
-
-interface JsonPayload {
-    sub: string,
-    name: string,
-    exp: number,
-    iat: number,
-    role: UserRole,
-}
+import { Session } from '../models';
 
 export const sessionFromToken: (t: string) => Session = (token: string) => {
     const payload = token.split('.')[1];
