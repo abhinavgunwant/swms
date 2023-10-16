@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Box, Grid, List, CircularProgress, Typography } from '@mui/material';
+import { Box, Grid, List, CircularProgress } from '@mui/material';
 
 import {
     Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove,
@@ -14,7 +14,7 @@ import WorkspaceTopRow from './WorkspaceTopRow';
 import {
     Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab, CustomDialog,
 } from '../../components';
-import { DeleteItemDialog, NewImageDialog } from '../../components/dialogs';
+import { DeleteItemDialog, NewImageDialog, WIPDialog } from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
 
@@ -436,18 +436,7 @@ const Workspace = ():React.ReactElement => {
 
         <NewImageDialog open={ openNewDialog } onClose={ onNewDialogClosed } />
 
-        <CustomDialog
-            open={ showMoveDialog }
-            onClose={ closeMoveDialog }
-            title="WIP"
-            body={
-                <Typography>This feature is under development </Typography>
-            }
-            actions={ [{
-                buttonVariant: 'contained',
-                text: 'OK',
-                action: () => closeMoveDialog(),
-            }] }/>
+        <WIPDialog open={ showMoveDialog } onClose={ closeMoveDialog } />
     </div>;
 }
 

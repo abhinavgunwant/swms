@@ -14,6 +14,7 @@ import UserState from '../../../store/workspace/UserState';
 import useAPI from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
+import { DeleteProjectDialog, WIPDialog } from '../../../components/dialogs';
 
 const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 14rem);
@@ -44,7 +45,11 @@ const userSelector = (state: UserState) => ({
 });
 
 const Project = () => {
-    const [ loading, setLoading ] = useState(true);
+    const [ loading, setLoading ] = useState<boolean>(true);
+    const [ showWIPDialog, setShowWIPDialog ] = useState<boolean>(false);
+    const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
+    const [ projectToDelete, setProjectToDelete ]
+        = useState<Project | null>(undefined);
     const [ selected, setSelected ] = useState<boolean[]>([]);
 
     const [ _, startTransition ] = useTransition();
@@ -115,6 +120,27 @@ const Project = () => {
         startTransition(() => navigate("/workspace/new-image"));
     };
 
+    const onThumbnailDeleteClicked = (project: ProjectModel) => startTransition(() => {
+        setProjectToDelete(project);
+        setShowDeleteDialog(true);
+    });
+
+    const onThumbnailDeleteSuccess = () => _getProjects();
+
+    const onDeleteProjectFABClicked = () => startTransition(
+        () => setShowWIPDialog(true)
+    );
+
+    const onCloseWIPDialog = () => startTransition(
+        () => setShowWIPDialog(false)
+    );
+
+    const onCloseDeleteDialog = () => startTransition(() => {
+        setShowDeleteDialog(false);
+        setProjectToDelete(null);
+    });
+
+
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
         if (!projectsFetched.current) {
@@ -177,8 +203,7 @@ const Project = () => {
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
 
-                                                //startTransition(() => setDeleteImageId(t.id));
-                                                //onThumbnailDeleteClicked(t.id);
+                                                onThumbnailDeleteClicked(t);
                                             }
                                         },
                                     ]}
@@ -225,7 +250,7 @@ const Project = () => {
                     },
                     {
                         text: 'Delete',
-                        onClick: () => { /* TODO: Implement! */ },
+                        onClick: onDeleteProjectFABClicked,
                         variant: "extended",
                         color: "error",
                         icon: <Delete />,
@@ -241,6 +266,17 @@ const Project = () => {
                     },
                 ]} />
         }
+
+        <WIPDialog
+            open={ showWIPDialog }
+            optText="Please delete the projects individually for now."
+            onClose={ onCloseWIPDialog } />
+
+        <DeleteProjectDialog
+            open={ showDeleteDialog }
+            project={ projectToDelete }
+            onSuccess={ onThumbnailDeleteSuccess }
+            onClose={ onCloseDeleteDialog } />
     </div>
 }
 

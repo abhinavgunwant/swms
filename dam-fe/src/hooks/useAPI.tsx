@@ -13,7 +13,9 @@ const PATH_PRE = `${ HOST }/api/admin`;
 const APPLICATION_JSON = { 'Content-Type': 'application/json' };
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
 
-const success = (success: boolean, message: string, other: object = undefined) => {
+const success = (
+    success: boolean, message: string, other: object | undefined = undefined
+) => {
     if (other === undefined) {
         return { success, message }
     }
@@ -272,6 +274,23 @@ const useAPI = () => {
                 const json = await response.json();
                 wsStore.setImageList(json.images);
 
+                return true;
+            }
+
+            return await response.text();
+        },
+
+        /**
+         * Deletes a project with id `pid`.
+         *
+         * @param pid project id
+         */
+        deleteProject: async (pid: number) => {
+            const response = await apiCall(
+                `${ PATH_PRE }/project/${ pid }`, { method: 'DELETE' }
+            );
+
+            if (response.status === 200) {
                 return true;
             }
 

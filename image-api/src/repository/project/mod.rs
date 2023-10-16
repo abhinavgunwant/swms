@@ -28,7 +28,8 @@ pub trait ProjectRepository {
     fn is_valid_slug(&mut self, slug: String) -> Result<Option<u32>, DBError>;
 
     fn update(&mut self, project: Project);
-    fn remove(&mut self, id: Project);
-    fn remove_item(&mut self, id: u32);
+    fn remove(&mut self, id: Project) -> Result<String, String>;
+    fn remove_item(&mut self, id: u16) -> Result<String, String>;
+    fn remove_multiple(&mut self, id: Vec<u16>) -> Result<String, String>;
 }
 

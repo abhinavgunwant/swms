@@ -1,4 +1,6 @@
-use actix_web::{ web::{ Json, Data }, HttpResponse, HttpRequest, post, get };
+use actix_web::{
+    web::{ Json, Data }, HttpResponse, HttpRequest, post, get, delete,
+};
 use serde::{ Serialize, Deserialize };
 use qstring::QString;
 use log::{ debug, error, info };
@@ -21,7 +23,7 @@ pub struct AddUserToProjectRequest {
     users: Vec<u32>,
 }
 
-#[get("/api/admin/project")]
+#[get("/api/admin/projects")]
 pub async fn get_projects(
      repo: Data<dyn Repository + Sync + Send>,   
     _: AuthMiddleware
@@ -65,6 +67,50 @@ pub async fn get_projects(
                 message: vec![String::from("Internal Server Error")],
                 projects: vec![],
             })
+        }
+    }
+}
+
+#[delete("/api/admin/project/{project_id}")]
+pub async fn remove_project(
+    repo: Data<dyn Repository + Sync + Send>,
+    _: AuthMiddleware,
+    req: HttpRequest,
+) -> HttpResponse {
+    let project_id: u16;
+
+    match req.match_info().get("project_id") {
+        Some(p_id_str) => {
+            match p_id_str.parse::<u16>() {
+                Ok(p_id_u16) => { project_id = p_id_u16; }
+                Err(e) => {
+                    error!("Error getting project id from request: {}", e);
+
+                    return HttpResponse::BadRequest()
+                        .body("Invalid project id");
+                }
+            }
+        }
+
+        None => {
+            return HttpResponse::BadRequest().body("Invalid project id");
+        }
+    }
+
+    match repo.get_project_repo() {
+        Ok(mut proj_repo) => {
+            match proj_repo.remove_item(project_id) {
+                Ok(msg) => HttpResponse::Ok().body(msg),
+                Err(msg) => HttpResponse::InternalServerError().body(msg),
+            }
+        }
+
+        Err(e) => {
+            error!("Error while getting project repo: {}", e);
+
+            HttpResponse::InternalServerError()
+                .body("Could not process this request due to an internal \
+                    server error.")
         }
     }
 }

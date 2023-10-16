@@ -2,7 +2,7 @@ use chrono::Utc;
 use mysql::*;
 use mysql::prelude::*;
 use std::result::Result;
-use log::{ debug, error };
+use log::{ debug, error, info };
 
 use crate::{
     db::utils::mysql::{ get_row_from_query, get_rows_from_query },
@@ -273,18 +273,40 @@ impl ProjectRepository for MySQLProjectRepository {
     }
 
     fn update(&mut self, _project: Project) {
-        // TODO: Implement
         debug!("Updating a project");
     }
 
-    fn remove(&mut self, _id: Project) {
-        // TODO: Implement
-        debug!("Updating a project");
+    fn remove(&mut self, proj: Project) -> Result<String, String> {
+        self.remove_item(proj.id)
     }
 
-    fn remove_item(&mut self, _id: u32) {
-        // TODO: Implement
-        debug!("Updating a project");
+    fn remove_item(&mut self, id: u16) -> Result<String, String> {
+        debug!("Deleting a project with id: {}", id);
+
+        match self.connection.exec_drop(
+            r"DELETE FROM PROJECT WHERE ID = :id",
+            params! { "id" => id },
+        ) {
+            Ok (_) => {
+                info!("Project removed successfully (ID: {})!", id);
+
+                Ok (String::from("Successfully removed project."))
+            }
+
+            Err (e) => {
+                error!("Error removing folder (ID: {}): {}", id, e);
+
+                Err (String::from(
+                    "Unable to remove project: Internal server error"
+                ))
+            }
+        }
+    }
+
+    fn remove_multiple(&mut self, _ids: Vec<u16>) -> Result<String, String> {
+        debug!("Deleting multiple projects");
+
+        Err(String::from("This feature is work-in-progress!"))
     }
 }
 

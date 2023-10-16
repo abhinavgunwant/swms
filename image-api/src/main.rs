@@ -108,6 +108,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::admin::project::get_projects)
             .service(api::admin::project::add_project)
             .service(api::admin::project::get_projects_for_user)
+            .service(api::admin::project::remove_project)
             .service(api::admin::project::validate_slug)
             .service(api::admin::image::get_images_in_project)
             .service(api::admin::image::get_image)
