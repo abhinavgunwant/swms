@@ -282,10 +282,22 @@ impl ProjectRepository for MySQLProjectRepository {
 
     fn remove_item(&mut self, id: u16) -> Result<String, String> {
         debug!("Deleting a project with id: {}", id);
+        
+        let params = params! { "id" => id };
+
+        info!("Cleaning up user-project relations for project id: {}.", id);
 
         match self.connection.exec_drop(
-            r"DELETE FROM PROJECT WHERE ID = :id",
-            params! { "id" => id },
+            r"DELETE FROM USER_PROJECT WHERE PROJECT_ID = :id", params.clone(),
+        ) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+
+        info!("Now deleting project (id: {}).", id);
+
+        match self.connection.exec_drop(
+            r"DELETE FROM PROJECT WHERE ID = :id", params,
         ) {
             Ok (_) => {
                 info!("Project removed successfully (ID: {})!", id);

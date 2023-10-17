@@ -6,7 +6,8 @@ use qstring::QString;
 use log::{ debug, error, info };
 
 use crate::{
-    auth::AuthMiddleware, server::db::DBError, repository::Repository,
+    api::service::remove::{ remove_images, remove_folders },
+    auth::AuthMiddleware, server::{db::DBError, config::ServerConfig}, repository::Repository,
     model::{ user::User, project::{ Project, validate_project } },
 };
 
@@ -74,6 +75,7 @@ pub async fn get_projects(
 #[delete("/api/admin/project/{project_id}")]
 pub async fn remove_project(
     repo: Data<dyn Repository + Sync + Send>,
+    config: Data<ServerConfig>,
     _: AuthMiddleware,
     req: HttpRequest,
 ) -> HttpResponse {
@@ -99,9 +101,150 @@ pub async fn remove_project(
 
     match repo.get_project_repo() {
         Ok(mut proj_repo) => {
+            let project: Project;
+
+            match proj_repo.get(project_id.into()) {
+                Ok(prj) => { project = prj; }
+                Err(e) => {
+                    match e {
+                        DBError::NotFound => {
+                            return HttpResponse::NotFound()
+                                .body("Project not found");
+                        }
+
+                        _ => {
+                            return HttpResponse::InternalServerError()
+                                .body("Internal Server Error");
+                        }
+                    }
+                }
+            }
+
+            let mut e_msgs: Vec<String> = vec![];
+            let mut repo_err_count = 0;
+
+            match repo.get_folder_repo() {
+                Ok(mut fol_repo) => {
+                    match fol_repo.get_from_project_slug(
+                        project.slug.clone(), false
+                    ) {
+                        Ok(folders) => {
+                            let mut folder_ids: Vec<u32> = vec![];
+
+                            for f in folders.iter() {
+                                folder_ids.push(f.id);
+                            }
+
+                            match remove_folders(
+                                repo.clone(),
+                                &mut folder_ids,
+                                config.rendition_cache_dir.clone(),
+                                config.upload_dir.clone()
+                            ) {
+                                Ok(_) => {}
+                                Err(msg) => { e_msgs.push(msg); }
+                            }
+//                            for f in folders.iter() {
+//                                match fol_repo.remove_item(f.id) {
+//                                    Ok(_) => {}
+//                                    Err(msg) => {
+//                                        e_msgs.push(
+//                                            format!(
+//                                                "{}: {}", f.slug, msg
+//                                        ));
+//                                    }
+//                                }
+//                            }
+                        }
+
+                        Err(e) => {
+                            error!("Error getting folder repo: {}", e);
+                        }
+                    }
+                }
+
+                Err(e) => {
+                    repo_err_count += 1;
+                    error!("Error while getting folder repo: {}", e);
+                }
+            }
+
+            match repo.get_image_repo() {
+                Ok(mut img_repo) => {
+                    match img_repo.get_from_project_slug(
+                        project.slug, false
+                    ) {
+                        Ok(images) => {
+                            let mut image_ids: Vec<u32> = vec![];
+
+                            for i in images {
+                                image_ids.push(i.id);
+                            }
+
+                            match remove_images(
+                                &repo,
+                                &image_ids,
+                                config.rendition_cache_dir.clone(),
+                                config.upload_dir.clone()
+                            ) {
+                                Ok(_) => {}
+                                Err(msg) => { e_msgs.push(msg); }
+                            }
+//                            for i in images.iter() {
+//                                match img_repo.remove_item(i.id) {
+//                                    Ok(_) => {}
+//                                    Err(msg) => {
+//                                        e_msgs.push(
+//                                            format!(
+//                                                "{}: {}", i.slug, msg
+//                                        ));
+//                                    }
+//                                }
+//                            }
+                        }
+
+                        Err(e) => {
+                            error!("Error getting folder repo: {}", e);
+                        }
+                    }
+                }
+
+                Err(e) => {
+                    repo_err_count += 1;
+                    error!("Error while getting image repo: {}", e);
+                }
+            }
+
+            match repo_err_count {
+                2 => {
+                    return HttpResponse::InternalServerError()
+                        .body("Project deleted but error while \
+                        deleting files.");
+                }
+
+                _ => {
+                    if !e_msgs.is_empty() {
+                        let error_str = e_msgs.join("; ");
+
+                        return HttpResponse::InternalServerError()
+                            .body(
+                                format!(
+                                    "Could not delete project due to these \
+                                    errors: {}",
+                                    error_str
+                            ));
+                    }
+                }
+            }
+
             match proj_repo.remove_item(project_id) {
                 Ok(msg) => HttpResponse::Ok().body(msg),
-                Err(msg) => HttpResponse::InternalServerError().body(msg),
+                Err(e) => {
+                    error!("Error when deleting project: {}", e);
+
+                    HttpResponse::InternalServerError()
+                        .body("Internal server error")
+                }
             }
         }
 
