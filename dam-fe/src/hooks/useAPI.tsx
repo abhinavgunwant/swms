@@ -23,6 +23,10 @@ const success = (
     return { success, message, ...other };
 };
 
+type GetFolderType = Promise<{
+    success: boolean, message?: string, folder?: Folder
+}>;
+
 const useAPI = () => {
     const wsStore = useWorkspaceStore();
 
@@ -445,14 +449,14 @@ const useAPI = () => {
             }
         },
 
-        getFolder: async (folderId: number) => {
-            const response = await apiCall(`${ PATH_PRE }/folder/${folderId}/`, {
+        getFolder: async (folderId: number): GetFolderType => {
+            const response = await apiCall(`${PATH_PRE}/folder/${folderId}/`, {
                 headers: APPLICATION_JSON,
             });
 
             if (response.status === 200) {
-                const json = await response.json();
-                return { success: true, folder: json };
+                const folder: Folder = await response.json();
+                return { success: true, folder };
             }
 
             return success(false, 'NOT_FOUND');

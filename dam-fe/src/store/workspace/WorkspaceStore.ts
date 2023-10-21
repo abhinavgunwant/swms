@@ -3,7 +3,7 @@ import create from 'zustand';
 
 import WorkspaceState from './WorkspaceState';
 import LinkModel from '../../models/LinkModel';
-import Folder from '../../models/Folder';
+import Folder, { DEFAULT_FOLDER } from '../../models/Folder';
 import Project from '../../models/Project';
 
 const useWorkspaceStore = create<WorkspaceState>()(
@@ -17,18 +17,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
             imageList: [],
             folderList: [],
             projectList: [],
-            currentFolder: {
-                id: 0,
-                slug: '',
-                title: '',
-                description: '',
-                projectId: 0,
-                parentFolderId: 0,
-                createdBy: 0,
-                modifiedBy: 0,
-                createdOn: '',
-                modifiedOn: '',
-            },
+            currentFolder: DEFAULT_FOLDER,
             currentProject: {
                 id: 0,
                 name: '',

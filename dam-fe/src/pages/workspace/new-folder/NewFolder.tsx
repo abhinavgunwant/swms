@@ -5,8 +5,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Typography, Grid, TextField, Button, Box, CircularProgress, IconButton,
-    Tooltip, Alert,
+    Typography, Grid, TextField, Button, CircularProgress, IconButton, Tooltip,
+    Alert,
 } from '@mui/material';
 
 import { default as emoStyled } from '@emotion/styled';

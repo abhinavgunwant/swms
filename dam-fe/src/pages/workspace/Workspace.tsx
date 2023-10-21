@@ -1,6 +1,7 @@
 import React, {
-    useEffect, useRef, useState, useTransition, MouseEvent, Fragment
+    useEffect, useRef, useState, useTransition, MouseEvent, Fragment, useCallback,
 } from 'react';
+import { throttle } from 'lodash';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Box, Grid, List, CircularProgress } from '@mui/material';
@@ -12,7 +13,7 @@ import {
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import {
-    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab, CustomDialog,
+    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab,
 } from '../../components';
 import { DeleteItemDialog, NewImageDialog, WIPDialog } from '../../components/dialogs';
 
@@ -20,7 +21,7 @@ import useAPI from '../../hooks/useAPI';
 
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 
-import Folder from '../../models/Folder';
+import Folder, { DEFAULT_FOLDER } from '../../models/Folder';
 
 import { generateThumbnailURL } from '../../utils/PathUtils';
 
@@ -83,15 +84,15 @@ const Workspace = ():React.ReactElement => {
     
     //console.log('Workspace path: ', path);
 
-    const { getChildren } = useAPI();
+    const { getChildren, getFolder } = useAPI();
 
-    const onImageThumbnailClicked = (path: string, imageId: number) => {
+    const onImageThumbnailClicked = (imageId: number) => {
         store.setCurrentPath(window.location.pathname as string);
 
         navigate('/workspace/image/' + imageId);
     };
 
-    const onFolderThumbnailClicked = (path: string, folder: Folder) => {
+    const onFolderThumbnailClicked = (folder: Folder) => {
         store.setCurrentPath(window.location.pathname as string);
         store.setCurrentFolder(folder);
 
@@ -215,12 +216,44 @@ const Workspace = ():React.ReactElement => {
         () => setShowMoveDialog(false)
     );
 
+    const onBackButtonClicked = useCallback(throttle(() => {
+        console.log('back button pressed on workspace');
+        console.log('current folder: ', store.currentFolder);
+
+        if (store.currentFolder) {
+            if (store.currentFolder.parentFolderId) {
+                console.log('parent folder id is present');
+                getFolder(store.currentFolder.parentFolderId)
+                .then(fResp => {
+                    if (fResp && fResp.success && fResp.folder) {
+                        console.log('setting parent folder as current folder', fResp.folder);
+                        store.setCurrentFolder(fResp.folder);
+                    }
+                });
+            } else {
+                console.log('reset current folder to default');
+                store.setCurrentFolder(DEFAULT_FOLDER);
+            }
+        }
+    }, 100), []);
+
     useEffect(() => {
         if (!childrenFetched.current) {
             loadImages()
                 .then(() => { startTransition(() => setLoading(false)); });
             childrenFetched.current = true;
         }
+
+        if (path) {
+            store.setCurrentPath(path);
+        }
+
+        // Note: couldn't get addEventListener working for 'popstate'.
+        window.onpopstate = onBackButtonClicked;
+
+        return () => {
+            window.removeEventListener('popstate', onBackButtonClicked);
+        };
     }, []);
 
     useEffect(() => {
@@ -294,7 +327,7 @@ const Workspace = ():React.ReactElement => {
                                         },
                                     ]}
                                     onClick={
-                                        () => onFolderThumbnailClicked(store.currentPath, t)
+                                        () => onFolderThumbnailClicked(t)
                                     } />
                             })
                         }
@@ -350,7 +383,7 @@ const Workspace = ():React.ReactElement => {
                                         },
                                     ]}
                                     onClick={
-                                        () => onImageThumbnailClicked(store.currentPath, t.id)
+                                        () => onImageThumbnailClicked(t.id)
                                     } />
                             })
                             :
@@ -371,7 +404,7 @@ const Workspace = ():React.ReactElement => {
                                     thumbnailLocation=""
                                     isImage={true}
                                     onClick={
-                                        () => onImageThumbnailClicked(store.currentPath, t.id)
+                                        () => onImageThumbnailClicked(t.id)
                                     } />
                             )
                         }

@@ -89,9 +89,7 @@ const NewImage = () => {
 
     const store = useWorkspaceStore();
 
-    const folderPath = (
-        store.currentProject.slug+ '/' + store.currentFolder.slug
-    ).replaceAll('//', '/');
+    const folderPath = (store.currentPath).replaceAll('//', '/');
 
     const onSlugEdited = (val: boolean) => setSlugEdited(val);
 
