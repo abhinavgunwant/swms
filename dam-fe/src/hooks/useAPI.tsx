@@ -7,8 +7,8 @@ import {
 
 import { apiCall } from '../utils/misc';
 
-const HOST = 'http://localhost:8080';
-const PATH_PRE = `${ HOST }/api/admin`;
+//const HOST = 'http://localhost:8080';
+const PATH_PRE = `/api/admin`;
 
 const APPLICATION_JSON = { 'Content-Type': 'application/json' };
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
@@ -52,7 +52,7 @@ const useAPI = () => {
          * Gets a list of all the users at once.
          */
         getUsers: async () => {
-            const response = await apiCall('http://localhost:8080/api/admin/users');
+            const response = await apiCall(`${ PATH_PRE }/users`);
 
             try {
                 const json = await response.json();
@@ -73,7 +73,7 @@ const useAPI = () => {
         },
 
         createUser: async (user: CreateUserPayload) => {
-            const response = await apiCall('http://localhost:8080/api/admin/user', {
+            const response = await apiCall(`${ PATH_PRE }/user`, {
                 headers: APPLICATION_JSON,
                 method: 'POST',
                 body: JSON.stringify(user),
@@ -105,7 +105,7 @@ const useAPI = () => {
          * Edits user by replacing user attributes with ones in `user`.
          */
         editUser: async (user: UserListing) => {
-            const response = await apiCall('http://localhost:8080/api/admin/user', {
+            const response = await apiCall(`${ PATH_PRE }/user`, {
                 headers: APPLICATION_JSON,
                 method: 'PUT',
                 body: JSON.stringify(user),
@@ -122,7 +122,7 @@ const useAPI = () => {
          * Gets all the roles in the system.
          */
         getRoles: async () => {
-            const response = await apiCall('http://localhost:8080/api/admin/roles');
+            const response = await apiCall(`${ PATH_PRE }/roles`);
 
             if (response.status === 200) {
                 try {
@@ -136,7 +136,7 @@ const useAPI = () => {
         },
 
         createEditRoles: async (role: Role, mode: 'new' | 'edit' = 'new') => {
-            const response = await apiCall('http://localhost:8080/api/admin/role', {
+            const response = await apiCall(`${ PATH_PRE }/role`, {
                 headers: APPLICATION_JSON,
                 method: mode === 'new' ? 'POST' : 'PUT',
                 body: JSON.stringify(role),
@@ -150,7 +150,7 @@ const useAPI = () => {
         },
 
         deleteRole: async (role: Role) => {
-            const response = await apiCall('http://localhost:8080/api/admin/role', {
+            const response = await apiCall(`${ PATH_PRE }/role`, {
                 headers: APPLICATION_JSON,
                 method: 'DELETE',
                 body: JSON.stringify(role),
@@ -167,9 +167,7 @@ const useAPI = () => {
          * Gets the list of projects from dam api and sets it in store.
          */
         getProjects: async () => {
-            const response = await apiCall(
-                'http://localhost:8080/api/admin/projects-for-user'
-            );
+            const response = await apiCall(`${ PATH_PRE }/projects-for-user`);
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -182,7 +180,7 @@ const useAPI = () => {
          */
         getImages: async (slug:string, type:string='PROJECT') => {
             const response = await apiCall(
-                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`
+                `${ PATH_PRE }/get-children?type=${type}&path=${slug}`
             );
 
             if (response.status === 200) {
@@ -198,7 +196,7 @@ const useAPI = () => {
             // console.log('getChildren: slug: ', slug, 'type: ', type);
 
             const response = await apiCall(
-                `${HOST}/api/admin/get-children?type=${type}&path=${slug}`
+                `${ PATH_PRE }/get-children?type=${type}&path=${slug}`
             );
 
             if (response.status === 200) {
@@ -302,7 +300,7 @@ const useAPI = () => {
 
             formData.set('payload', payload);
 
-            const response = await apiCall(`${ HOST }/api/image`, {
+            const response = await apiCall(`/api/image`, {
                 method: 'POST',
                 body: formData,
             });
@@ -466,7 +464,7 @@ const useAPI = () => {
             }
 
             const response = await apiCall(
-                `${HOST}/api/admin/folder?id=${ folderId }`, {
+                `${ PATH_PRE }/folder?id=${ folderId }`, {
                 method: 'DELETE',
                 headers: APPLICATION_JSON,
             });
@@ -489,7 +487,7 @@ const useAPI = () => {
          */
         userTypeahead: async (queryText: string) => {
             const response = await apiCall(
-                `${HOST}/api/admin/search/user?name=${ queryText }`, {
+                `${ PATH_PRE }/search/user?name=${ queryText }`, {
                 headers: APPLICATION_JSON,
             });
 
