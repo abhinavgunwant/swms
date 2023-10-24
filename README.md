@@ -1,20 +1,15 @@
-# dam
+# swms: Simple Web Multimedia Server
 
-This is a prototype "Digital Asset Manager".
+A digital asset management server for storing and scaling images for the web.
 
-Contains `dam-fe` a.k.a the "Dam Frontend" and `image-api` a.k.a the "Dam Backend" folders.
+swms allows you to create different "Renditions" in which an image can be
+scaled down based on the target device screen size.
 
-## Building and executing
+## How are images accessed
 
-`cargo run` to run a development build
-`cargo watch -x 'run'` to run app in "watch mode" (auto reloading).
+Images can publicly be accessed by any web application using this simple web API:
 
-
-WORK IN PROGRESS!
-
-example file path:
-
-/api/image/product-images/books/ebooks/ebook-cover1.jpg
+Here is an example URL: /api/image/product-images/books/ebooks/ebook-cover1.jpg
 
 Here:
 - `product-images` is a project slug
@@ -22,7 +17,14 @@ Here:
 - `ebook-cover1` is the rendition slug
 - `jpg` is the image encoding
 
-## Setting up
+## Building and executing
+
+This project is still in it's early phase, in order to use it you need to:
+
+`cargo run` to run a development build
+`cargo watch -x 'run'` to run app in "watch mode" (auto reloading).
+
+### Setting up
 1. Create `image-rendition-cache` and `image-uploads` folders.
 2. Run ddl and dml SQL scripts.
 

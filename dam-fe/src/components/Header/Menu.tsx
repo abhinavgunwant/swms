@@ -124,7 +124,7 @@ const Menu = (props: MenuProps) => {
                             textAlign: 'center',
                             marginTop: '2rem',
                         }}>
-                        Dam
+                        SWMS
                     </Typography>
 
                     <List sx={{ width: 300 }}>
