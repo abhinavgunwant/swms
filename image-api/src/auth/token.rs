@@ -155,10 +155,10 @@ pub fn create_session_token_from_refresh_token(
     }
 }
 
-pub fn create_refresh_token_cookie<'a>(refresh_token: String) -> Cookie<'a> {
+pub fn create_refresh_token_cookie<'a>(host: String, refresh_token: String) -> Cookie<'a> {
     Cookie::build("r", refresh_token)
         .path("/")
-        .domain("localhost") // TODO: make this configurable
+        .domain(host) // TODO: make this configurable
         // .secure(true) // TODO: uncomment this for secure cookie!
         .max_age(ActixWebDuration::new(1800, 0))
         .http_only(true)

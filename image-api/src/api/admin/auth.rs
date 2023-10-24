@@ -10,8 +10,8 @@ use serde::{ Serialize, Deserialize };
 use log::{ debug, error };
 
 use crate::{
-    server::db::DBError, model::role::Role, server_state::ServerState,
-    repository::Repository,
+    server::{ db::DBError, config::ServerConfig },
+    model::role::Role, server_state::ServerState, repository::Repository,
     auth::{
         AuthMiddleware, pwd_hash::verify_password,
         token::{
@@ -42,6 +42,7 @@ pub async fn auth(
     req_obj: Json<AuthRequest>,
     srv_state: Data<ServerState>,
     repo: Data<dyn Repository + Sync + Send>,
+    config: Data<ServerConfig>,
 ) -> HttpResponse {
     let user_valid: bool;
     let user_id: u32;
@@ -133,7 +134,7 @@ pub async fn auth(
                 srv_state.insert_refresh_token(rt.clone(), ref_token_data);
 
                 return HttpResponse::Ok().cookie(
-                    create_refresh_token_cookie(rt)
+                    create_refresh_token_cookie(config.hostname.clone(), rt)
                 ).json(AuthMessage {
                     success: true,
                     s: create_session_token(

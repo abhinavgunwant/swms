@@ -5,7 +5,7 @@ import App from './App/App';
 // import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(
-  document.getElementById('dam-fe') as HTMLElement
+  document.getElementById('swms-fe') as HTMLElement
 );
 
 root.render(<React.StrictMode> <App /> </React.StrictMode>);

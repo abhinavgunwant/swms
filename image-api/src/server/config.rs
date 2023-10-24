@@ -42,7 +42,7 @@ pub struct DBConnectionInfo {
     pub password: String,
 }
 
-const DEF_ROOT_DIR_NAME: &str = "dam";
+const DEF_ROOT_DIR_NAME: &str = "swms";
 const DEF_IMG_UPL_DIR_NAME: &str = "uploads";
 const DEF_REN_DIR_NAME: &str = "renditions";
 

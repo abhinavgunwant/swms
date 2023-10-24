@@ -26,5 +26,8 @@ This project is still in it's early phase, in order to use it you need to:
 
 ### Setting up
 1. Create `image-rendition-cache` and `image-uploads` folders.
-2. Run ddl and dml SQL scripts.
+2. Run SQL scripts in the following order:
+    1. ddl.sql
+    2. dml.sql
+    3. con.sql
 
