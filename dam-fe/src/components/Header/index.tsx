@@ -51,7 +51,7 @@ const Header = (): React.ReactElement => {
             </IconButton>
 
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Dam
+                SWMS: Simple Web Multimedia Server
             </Typography>
             
             {
