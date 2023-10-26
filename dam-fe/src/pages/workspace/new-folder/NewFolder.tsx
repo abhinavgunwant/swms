@@ -118,8 +118,7 @@ const NewFolder = () => {
                     setSaving(false);
                     setError(true);
                     setErrorMessage(
-                        response.message
-                        || 'Some error occured, please try again later.'
+                        'Some error occured, please try again later.'
                     );
                 });
             }

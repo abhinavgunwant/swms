@@ -48,10 +48,10 @@ export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
         && props.folderIDs.length > 0;
 
     const multiItems = (validImgArray && validFolArray)
-        || (validImgArray && props.imageIDs.length > 1)
-        || (validFolArray && props.folderIDs.length > 1);
+        || (validImgArray && props.imageIDs && props.imageIDs.length > 1)
+        || (validFolArray && props.folderIDs && props.folderIDs.length > 1);
 
-    const onYes = async () => {
+    const onYes: () => void = async () => {
         startTransition(() => setDeleting(true));
 
         if (!(validImgArray || validFolArray)) {
@@ -59,7 +59,10 @@ export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
             return;
         }
 
-        if (validImgArray && validFolArray) {
+        if (
+            validImgArray && validFolArray && props.imageIDs
+            && props.folderIDs
+        ) {
             startTransition(() => setDeleting(true));
 
             console.log('Deleting images and folders');
@@ -85,7 +88,7 @@ export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
             return;
         }
 
-        if (validImgArray) {
+        if (validImgArray && props.imageIDs) {
             startTransition(() => setDeleting(true));
             console.log('Deleting images');
 
@@ -112,19 +115,21 @@ export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
         startTransition(() => setDeleting(true));
         console.log('Deleting folders');
 
-        const resp = await deleteFolders(props.folderIDs);
+        if (props.folderIDs) {
+            const resp = await deleteFolders(props.folderIDs);
 
-        if (resp.success) {
-            props.onClose(true);
+            if (resp.success) {
+                props.onClose(true);
 
-            if (props.navigateToAfterSuccess) {
-                navigate(props.navigateToAfterSuccess);
+                if (props.navigateToAfterSuccess) {
+                    navigate(props.navigateToAfterSuccess);
+                }
+
+                startTransition(() => {
+                    setError(false);
+                    setDeleting(false);
+                });
             }
-
-            startTransition(() => {
-                setError(false);
-                setDeleting(false);
-            });
         }
     };
 
@@ -180,7 +185,7 @@ export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
                 error ?
                     [{
                         text: 'Close',
-                        action: props.onClose,
+                        action: () => { props.onClose(true); },
                         buttonColor: 'error'
                     }]
                 :
@@ -189,9 +194,9 @@ export const DeleteItemDialog = (props: DeleteItemDialogProps) => {
                         action: onYes,
                         buttonColor: 'error',
                         buttonVariant: 'contained',
-                    },
-                        { text: 'No', action: onNo }
-                    ]
+                    }, {
+                        text: 'No', action: onNo
+                    }]
         }
         onClose={ () => { props.onClose(false) } }
     />

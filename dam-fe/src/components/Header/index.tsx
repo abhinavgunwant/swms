@@ -1,12 +1,13 @@
 import { useState, useTransition } from 'react'
 
-import useUserStore from '../../store/workspace/UserStore';
-
 import {
     AppBar, Toolbar, IconButton, Typography, Button,
 } from '@mui/material';
 
 import MenuIcon from '@mui/icons-material/Menu';
+
+import useUserStore from '../../store/workspace/UserStore';
+import UserState from  '../../store/workspace/UserState';
 
 import { styled } from '@mui/material/styles';
 
@@ -16,20 +17,28 @@ const CustomToolbar = styled(Toolbar)`
     justify-content: space-between;
 `;
 
+const userSelector = (state: UserState) => ({
+    session: state.session,
+    sessionToken: state.sessionToken,
+    setSessionToken: state.setSessionToken,
+    setSession: state.setSession,
+    resetSession: state.resetSession,
+});
+
 const Header = (): React.ReactElement => {
     const [ drawerOpen, setDrawerOpen ] = useState<boolean>(false);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
-    const userStore = useUserStore();
+    const userStore = useUserStore(userSelector);
 
     const onToggleDrawer = () => {
         startTransition(() => setDrawerOpen(!drawerOpen));
     }
 
     const onLogout = async () => {
-        const resp = await fetch('http://localhost/api/admin/auth/logout');
+        const resp = await fetch('/api/admin/auth/logout');
 
         if (resp.status === 200) {
             userStore.resetSession();

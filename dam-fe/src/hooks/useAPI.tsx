@@ -13,9 +13,21 @@ const PATH_PRE = `/api/admin`;
 const APPLICATION_JSON = { 'Content-Type': 'application/json' };
 const DEFAULT_ERROR_MESSAGE = 'Some unknown error occurred, please try again later';
 
+export type SuccessType = {
+    success: boolean,
+    message: string,
+    other?: object | undefined,
+};
+
+type SuccessAddRenditionType = Promise< SuccessType & {
+    renditionMessages?: { id: number, message:string }[]
+}>;
+
+type SuccessRenditionType = Promise<SuccessType & { renditions: Rendition[] }>;
+
 const success = (
     success: boolean, message: string, other: object | undefined = undefined
-) => {
+): SuccessType => {
     if (other === undefined) {
         return { success, message }
     }
@@ -364,7 +376,9 @@ const useAPI = () => {
         /**
          * API to create renditions.
          */
-        addRenditions: async (renditions: Rendition[], eager: boolean) => {
+        addRenditions: async (
+            renditions: Rendition[], eager: boolean
+        ): SuccessAddRenditionType  => {
             const response = await apiCall(`${ PATH_PRE }/renditions`, {
                 method: 'POST',
                 headers: APPLICATION_JSON,
@@ -392,7 +406,7 @@ const useAPI = () => {
             };
         },
 
-        getRenditions: async (imageId: number) => {
+        getRenditions: async (imageId: number): SuccessRenditionType => {
             const response = await apiCall(
                 `${ PATH_PRE }/renditions?image-id=${ imageId }`
             );

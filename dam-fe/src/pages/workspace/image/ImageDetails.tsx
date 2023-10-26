@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { Delete, Visibility } from '@mui/icons-material';
 
-import useAPI from '../../../hooks/useAPI';
+import useAPI, { SuccessType } from '../../../hooks/useAPI';
 
 import { styled } from '@mui/material/styles';
 
@@ -303,7 +303,8 @@ const ImageDetails = () => {
     const refreshRenditions = async () => {
         console.log('refreshing rendition list');
 
-        const renditionResp = await getRenditions(getImageId() || -1);
+        const renditionResp: SuccessType & { renditions: Rendition[] }
+            = await getRenditions(getImageId() || -1);
 
         if (renditionResp.success) {
             startTransition(() =>

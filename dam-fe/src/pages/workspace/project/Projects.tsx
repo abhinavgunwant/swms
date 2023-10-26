@@ -49,7 +49,7 @@ const Project = () => {
     const [ showWIPDialog, setShowWIPDialog ] = useState<boolean>(false);
     const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
     const [ projectToDelete, setProjectToDelete ]
-        = useState<Project | null>(undefined);
+        = useState<ProjectModel | null>(null);
     const [ selected, setSelected ] = useState<boolean[]>([]);
 
     const [ _, startTransition ] = useTransition();

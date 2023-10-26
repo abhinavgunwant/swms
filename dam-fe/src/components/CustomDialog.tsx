@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, MouseEventHandler, MouseEvent } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -20,7 +20,7 @@ interface CustomDialogAction {
     /**
      * Function to be executed when clicked.
      */
-    action: () => void,
+    action: MouseEventHandler<HTMLButtonElement>,//(() => void) | ((success: boolean) => void) | (() => Promise<void>),
 
     /**
      * Which variant of the mui `<Button>` component to render.
@@ -87,7 +87,9 @@ export const CustomDialog = (props: CustomDialogProps) => {
             {
                 props?.actions?.map((action, i) => <Button
                     key={ i }
-                    onClick={ action.action }
+                    onClick={ (e: MouseEvent<HTMLButtonElement>) => {
+                        action.action(e);
+                    }}
                     variant={ action.buttonVariant || 'outlined' }
                     color={ action.buttonColor || 'primary' }>
                         { action.text }

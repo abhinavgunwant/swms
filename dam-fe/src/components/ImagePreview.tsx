@@ -199,12 +199,11 @@ export const ImagePreview = (props: ImagePreviewProps) => {
                         <img
                             src={
                                 props.previewType === 'rendition' ?
-                                    'http://localhost:8080/api/image'
+                                    '/api/image'
                                     + store.currentPath.replace('workspace/tree/', '')
                                     + props.slug
                                 :
-                                'http://localhost:8080/api/admin/image-file/'
-                                + props.imageId
+                                '/api/admin/image-file/' + props.imageId
                             }
                             onLoad={ onImageLoaded }
                             ref={ imageRef } />

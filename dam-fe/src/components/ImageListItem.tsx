@@ -35,8 +35,17 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
 
     const selected = store.isSelected(props.id);
 
-    const fileNameContent = props.thumbnailLocation.split('/');
-    const subtitle = fileNameContent[fileNameContent.length - 1];
+    const getSubtitle = () => {
+        if (props.thumbnailLocation) {
+            const fileNameContent = props.thumbnailLocation.split('/');
+
+            if (fileNameContent.length) {
+                return fileNameContent[fileNameContent.length - 1];
+            }
+        }
+
+        return '';
+    };
 
     const onSelectClicked = () => {
         if (selected) {
@@ -73,7 +82,7 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
 
                 <ImageText>
                     <Typography variant="subtitle1">
-                        { subtitle }
+                        { getSubtitle() }
                     </Typography>
                 </ImageText>
             </ListItemButton>

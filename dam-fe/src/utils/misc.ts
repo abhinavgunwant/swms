@@ -28,7 +28,7 @@ export const generateId = (length: number = 8) => {
 }
 
 export const getLatestSessionToken = async () => {
-    const response = await fetch('http://localhost/api/admin/auth/refresh', {
+    const response = await fetch('/api/admin/auth/refresh', {
         credentials: 'include',
     });
 
