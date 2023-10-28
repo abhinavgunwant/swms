@@ -9,8 +9,8 @@ use log::{ debug, error };
 
 use crate::{
     api::service::path::{
-        get_rendition_from_path_segments, split_path,
-        rendition_cache_path, cache_rendition_file,
+        get_rendition_from_path_segments, split_path, rendition_cache_path,
+        generate_dest_rendition_path, cache_rendition_file,
     },
     repository::Repository, model::{ error::ErrorType, encoding::Encoding },
     server::db::DBError, auth::AuthMiddleware, server::config::ServerConfig,
@@ -97,8 +97,8 @@ pub async fn download(
     if let Some(path) = req.match_info().get("path") {
         debug!("Requested Path: \"{}\"", path);
 
-        let mut dest_file_path: String = format!(
-            "{}/{}", &config.rendition_cache_dir, path
+        let mut dest_file_path: String = generate_dest_rendition_path(
+            &config.rendition_cache_dir, path
         );
 
         debug!("dest_file_path: {}", dest_file_path);

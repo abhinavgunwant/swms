@@ -3,8 +3,10 @@
 use std::{ fs::create_dir_all, path::Path };
 
 use actix_web::web::Data;
+use log4rs::encode::Encode;
 use raster;
 use log::{ debug, error };
+use regex::Regex;
 
 use crate::{
     server::db::DBError, repository::Repository,
@@ -333,30 +335,50 @@ pub fn split_path(path: &str) -> Vec<&str> {
     }
 }
 
-/// Creates folder tree on the file system for the path supplied.
-pub fn create_folder_tree(path: &str) -> Result<(), ()> {
-    debug!("in create_folder_tree");
-    let mut path_updated = String::new();
-    let mut insert_slash = false;
+/// Generates the destination path of the renditions on the server
+pub fn generate_dest_rendition_path(
+    rendition_dir: &str, requested_path: &str
+) -> String {
+    let mut path: String = format!("{}/{}", rendition_dir, requested_path);
 
-    for p in split_path(path).iter() {
-        if Encoding::match_extension(p) {
-            break;
-        }
-
-        if insert_slash {
-            path_updated.push('/');
-        }
-
-        path_updated.push_str(p);
-        insert_slash = true;
+    // Update path for windows with back-slashes
+    if cfg!(target_os = "windows") {
+        path = path.replace("/", "\\");
     }
 
-    let path_str = path_updated.as_str();
+    return path
+}
 
-    debug!("  -> checking if \"{}\" exists.", path_str);
-    if !Path::new(path_str).exists() {
-        match create_dir_all(path_str) {
+/// Creates folder tree on the file system for the path supplied.
+pub fn create_folder_tree(input_path: &str) -> Result<(), ()> {
+    debug!("  -> checking if \"{}\" exists.", input_path);
+
+    let path: &str;
+
+    if Encoding::match_extension(input_path) {
+        let mut path_chars = input_path.chars();
+
+        loop {
+            match path_chars.next_back() {
+                Some(c) => {
+                    if c == '/' || c == '\\' {
+                        break;
+                    }
+                }
+
+                None => { break; }
+            }
+        }
+
+        path = path_chars.as_str();
+    } else {
+        path = input_path;
+    }
+
+    if !Path::new(path).exists() {
+        debug!("creating tree for: {}", path);
+
+        match create_dir_all(path) {
             std::io::Result::Ok(()) => {
                 debug!("  -> Tree created.");
                 return Ok(());
