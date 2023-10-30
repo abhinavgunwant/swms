@@ -49,8 +49,8 @@ const NewProject = () => {
     const [ titleEdited, setTitleEdited ] = useState<boolean>(false);
     const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
 
-    const { addProject, validateProjectSlug } = useAPI();
     const navigate = useNavigate();
+    const { addProject, validateProjectSlug } = useAPI(navigate);
 
     const generateSlug = (slg: string) => {
         if (slg.trim()) {

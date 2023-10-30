@@ -81,9 +81,9 @@ const NewImage = () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
 
-    const { uploadImage, addRenditions } = useAPI();
-
     const navigate = useNavigate();
+
+    const { uploadImage, addRenditions } = useAPI(navigate);
 
     const fileUploadRef = useRef<HTMLInputElement>(null);
 

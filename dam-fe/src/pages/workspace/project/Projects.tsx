@@ -56,8 +56,9 @@ const Project = () => {
 
     const store = useWorkspaceStore();
     const userStore = useUserStore(userSelector);
-    const { getProjects } = useAPI();
     const navigate = useNavigate();
+
+    const { getProjects } = useAPI(navigate);
 
     const projectsFetched = useRef<boolean>(false);
 
@@ -117,7 +118,7 @@ const Project = () => {
     };
 
     const newProject = () => {
-        startTransition(() => navigate("/workspace/new-image"));
+        startTransition(() => navigate("/workspace/new-project"));
     };
 
     const onThumbnailDeleteClicked = (project: ProjectModel) => startTransition(() => {

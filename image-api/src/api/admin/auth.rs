@@ -205,7 +205,7 @@ pub async fn auth_refresh(
         let val = String::from(cookie.value());
 
         if val.is_empty() {
-            return HttpResponse::BadRequest().body("You're not signed in!");
+            return HttpResponse::Unauthorized().body("You're not signed in!");
         }
 
         let srv_state = req.app_data::<Data<ServerState>>().unwrap();
@@ -249,8 +249,8 @@ pub async fn auth_refresh(
         }
     }
 
-    error!("Refresh token cookie not set.");
-    HttpResponse::BadRequest().body("You're not signed in!")
+    debug!("Refresh token cookie not set.");
+    HttpResponse::Unauthorized().body("You're not signed in!")
 }
 
 /**

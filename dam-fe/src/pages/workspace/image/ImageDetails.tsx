@@ -1,7 +1,7 @@
 import {
     useState, useEffect, useTransition, ChangeEvent, useRef,
 } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { WorkspaceGrid } from '../Workspace';
 import { LinkModel, Image, Rendition } from '../../../models';
@@ -79,9 +79,11 @@ const ImageDetails = () => {
 
     const imageTitleRef = useRef();
 
+    const navigate = useNavigate();
+
     const {
         getImage, updateImage, getRenditions, addRenditions, deleteRendition,
-    } = useAPI();
+    } = useAPI(navigate);
     const { imageId } = useParams();
 
     const getImageId: () => number | undefined = () => {
@@ -316,14 +318,10 @@ const ImageDetails = () => {
     useEffect(() => {
         setBreadcrumbLinks([
             {
-                text: 'Workspace',
+                text: '< Back to Workspace',
                 to: '/workspace',
             },
-            {
-                text: 'Product Images',
-                to: '/workspace/tree/product-images',
-            },
-            'Scrumtools.io Logo!',
+            'Image Details' + (image?.slug ? ' (' + image.slug + ')' : '')
         ]);
 
         getImageDetails();

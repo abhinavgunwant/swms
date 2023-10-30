@@ -60,9 +60,9 @@ const NewFolder = () => {
 
     const store = useWorkspaceStore();
 
-    const { addFolder } = useAPI();
-
     const navigate = useNavigate();
+
+    const { addFolder } = useAPI(navigate);
 
     const onSlugChanged = (e: ChangeEvent<HTMLInputElement>) => {
         if (editSlug && validSlug(e.target.value)) {

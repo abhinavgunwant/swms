@@ -8,7 +8,7 @@ import {
     CircularProgress,
 } from '@mui/material/';
 
-import UserState from '../store/workspace/UserState';
+import UserState, { SessionState } from '../store/workspace/UserState';
 import useUserStore from '../store/workspace/UserStore';
 import { sessionFromToken } from '../utils/token';
 
@@ -43,9 +43,11 @@ const ProcessingAnimation = () => <FlexCentered>
 
 const userSelector = (state: UserState) => ({
     session: state.session,
+    sessionState: state.sessionState,
     sessionToken: state.sessionToken,
     setSessionToken: state.setSessionToken,
     setSession: state.setSession,
+    setSessionState: state.setSessionState,
 });
 
 const Home = (): React.ReactElement => {
@@ -112,6 +114,7 @@ const Home = (): React.ReactElement => {
 
             userStore.setSessionToken(loginResponse.s);
             userStore.setSession(session);
+            userStore.setSessionState(SessionState.LoggedIn);
 
             navigate('/workspace');
             return;
@@ -152,6 +155,20 @@ const Home = (): React.ReactElement => {
                 checkSession();
                 sessionChecked.current = true;
             }
+        }
+
+        if (userStore.sessionState === SessionState.SessionTimedout) {
+            startTransition(() => {
+                setShowError(true);
+                setError('You session timed out, please login again!');
+            });
+        }
+
+        if (userStore.sessionState === SessionState.SessionError) {
+            startTransition(() => {
+                setShowError(true);
+                setError('Couldn\'t verify your session, please login again!');
+            });
         }
     }, []);
 

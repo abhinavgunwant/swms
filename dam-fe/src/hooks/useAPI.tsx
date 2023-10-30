@@ -6,6 +6,7 @@ import {
 } from '../models';
 
 import { apiCall } from '../utils/misc';
+import { NavigateFunction } from 'react-router-dom';
 
 //const HOST = 'http://localhost:8080';
 const PATH_PRE = `/api/admin`;
@@ -39,7 +40,7 @@ type GetFolderType = Promise<{
     success: boolean, message?: string, folder?: Folder
 }>;
 
-const useAPI = () => {
+const useAPI = (navigate?: NavigateFunction) => {
     const wsStore = useWorkspaceStore();
 
     return {
@@ -49,7 +50,7 @@ const useAPI = () => {
                 headers: APPLICATION_JSON,
                 body: JSON.stringify({ username, password }),
                 credentials: 'include',
-            }, false);
+            }, navigate, false);
 
             try {
                 if (response.status === 200) {
@@ -68,7 +69,7 @@ const useAPI = () => {
          * Gets a list of all the users at once.
          */
         getUsers: async () => {
-            const response = await apiCall(`${ PATH_PRE }/users`);
+            const response = await apiCall(`${ PATH_PRE }/users`, {}, navigate);
 
             try {
                 const json = await response.json();
@@ -93,7 +94,7 @@ const useAPI = () => {
                 headers: APPLICATION_JSON,
                 method: 'POST',
                 body: JSON.stringify(user),
-            });
+            }, navigate);
 
             try {
                 const json = await response.json();
@@ -125,7 +126,7 @@ const useAPI = () => {
                 headers: APPLICATION_JSON,
                 method: 'PUT',
                 body: JSON.stringify(user),
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 return true;
@@ -138,7 +139,7 @@ const useAPI = () => {
          * Gets all the roles in the system.
          */
         getRoles: async () => {
-            const response = await apiCall(`${ PATH_PRE }/roles`);
+            const response = await apiCall(`${ PATH_PRE }/roles`, {}, navigate);
 
             if (response.status === 200) {
                 try {
@@ -156,7 +157,7 @@ const useAPI = () => {
                 headers: APPLICATION_JSON,
                 method: mode === 'new' ? 'POST' : 'PUT',
                 body: JSON.stringify(role),
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 return true;
@@ -170,7 +171,7 @@ const useAPI = () => {
                 headers: APPLICATION_JSON,
                 method: 'DELETE',
                 body: JSON.stringify(role),
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 return true;
@@ -183,7 +184,7 @@ const useAPI = () => {
          * Gets the list of projects from dam api and sets it in store.
          */
         getProjects: async () => {
-            const response = await apiCall(`${ PATH_PRE }/projects-for-user`);
+            const response = await apiCall(`${ PATH_PRE }/projects-for-user`, {}, navigate);
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -196,7 +197,9 @@ const useAPI = () => {
          */
         getImages: async (slug:string, type:string='PROJECT') => {
             const response = await apiCall(
-                `${ PATH_PRE }/get-children?type=${type}&path=${slug}`
+                `${ PATH_PRE }/get-children?type=${type}&path=${slug}`,
+                {},
+                navigate
             );
 
             if (response.status === 200) {
@@ -212,7 +215,9 @@ const useAPI = () => {
             // console.log('getChildren: slug: ', slug, 'type: ', type);
 
             const response = await apiCall(
-                `${ PATH_PRE }/get-children?type=${type}&path=${slug}`
+                `${ PATH_PRE }/get-children?type=${type}&path=${slug}`,
+                {},
+                navigate
             );
 
             if (response.status === 200) {
@@ -241,7 +246,7 @@ const useAPI = () => {
          * Gets a single image.
          */
         getImage: async (imageId: number) => {
-            const response = await apiCall(`${ PATH_PRE }/image/${ imageId }`);
+            const response = await apiCall(`${ PATH_PRE }/image/${ imageId }`, {}, navigate);
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -256,7 +261,7 @@ const useAPI = () => {
                 headers: APPLICATION_JSON,
                 method: 'PUT',
                 body: JSON.stringify(image),
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 const respJson = await response.json();
@@ -282,7 +287,7 @@ const useAPI = () => {
                 method: 'POST',
                 body: JSON.stringify(project),
                 headers: APPLICATION_JSON,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 const json = await response.json();
@@ -301,7 +306,9 @@ const useAPI = () => {
          */
         deleteProject: async (pid: number) => {
             const response = await apiCall(
-                `${ PATH_PRE }/project/${ pid }`, { method: 'DELETE' }
+                `${ PATH_PRE }/project/${ pid }`,
+                { method: 'DELETE' },
+                navigate
             );
 
             if (response.status === 200) {
@@ -319,7 +326,7 @@ const useAPI = () => {
             const response = await apiCall(`/api/image`, {
                 method: 'POST',
                 body: formData,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 const uploadResp = await response.json();
@@ -334,6 +341,7 @@ const useAPI = () => {
                         headers: APPLICATION_JSON,
                         body: JSON.stringify(uploadImg),
                     },
+                    navigate
                 )
 
                 const resp2Json = await resp2.json();
@@ -363,7 +371,7 @@ const useAPI = () => {
                 `${ PATH_PRE }/image?id=${ imageIDs.join(',') }`, {
                 method: 'DELETE',
                 headers: APPLICATION_JSON,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 // return await response.json();
@@ -383,7 +391,7 @@ const useAPI = () => {
                 method: 'POST',
                 headers: APPLICATION_JSON,
                 body: JSON.stringify({ renditions, eager }),
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 return success(true, 'Success!');
@@ -408,7 +416,9 @@ const useAPI = () => {
 
         getRenditions: async (imageId: number): SuccessRenditionType => {
             const response = await apiCall(
-                `${ PATH_PRE }/renditions?image-id=${ imageId }`
+                `${ PATH_PRE }/renditions?image-id=${ imageId }`,
+                {},
+                navigate
             );
 
             if (response.status === 200) {
@@ -433,7 +443,7 @@ const useAPI = () => {
                 `${ PATH_PRE }/rendition/${ renditionId }`, {
                 headers: APPLICATION_JSON,
                 method: 'DELETE',
-            });
+            }, navigate);
 
             try {
                 return await response.json();
@@ -449,7 +459,7 @@ const useAPI = () => {
                     method: 'POST',
                     body: JSON.stringify(folder),
                     headers: APPLICATION_JSON,
-                });
+                }, navigate);
 
                 if (response.status === 200) {
                     return { success: true };
@@ -466,7 +476,7 @@ const useAPI = () => {
         getFolder: async (folderId: number): GetFolderType => {
             const response = await apiCall(`${PATH_PRE}/folder/${folderId}/`, {
                 headers: APPLICATION_JSON,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 const folder: Folder = await response.json();
@@ -485,7 +495,7 @@ const useAPI = () => {
                 `${ PATH_PRE }/folder?id=${ folderId }`, {
                 method: 'DELETE',
                 headers: APPLICATION_JSON,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 return success(true, await response.text() || 'Success!');
@@ -507,7 +517,7 @@ const useAPI = () => {
             const response = await apiCall(
                 `${ PATH_PRE }/search/user?name=${ queryText }`, {
                 headers: APPLICATION_JSON,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 const list: SelectUserModel[] = await response.json();
@@ -525,7 +535,7 @@ const useAPI = () => {
             const response = await apiCall(
                 `${ PATH_PRE }/project/validate-slug?slug=${ slug }`, {
                 headers: APPLICATION_JSON,
-            });
+            }, navigate);
 
             if (response.status === 200) {
                 const valid = await response.json();

@@ -2,7 +2,7 @@ import {
     useState, useEffect, useTransition, Fragment,
 } from 'react';
 
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import {
     TextField as MuiTextField, Typography, Grid, IconButton, Box, Button,
@@ -54,7 +54,8 @@ const FolderDetails = () => {
 
     const [ _, startTransition ] = useTransition();
 
-    const { getFolder } = useAPI();
+    const navigate = useNavigate();
+    const { getFolder } = useAPI(navigate);
     const { folderId } = useParams();
 
     const store = useWorkspaceStore();
