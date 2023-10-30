@@ -69,7 +69,8 @@ const Workspace = ():React.ReactElement => {
     /**
      * ID of the image to be previewed
      */
-    const [ previewId, setPreviewId ] = useState<number>();
+    const [ previewId, setPreviewId ] = useState<number>(-1);
+    const [ previewSlug, setPreviewSlug ] = useState<string>('');
 
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const [ _, startTransition ] = useTransition();
@@ -105,8 +106,9 @@ const Workspace = ():React.ReactElement => {
         navigate('/workspace/folder/' + folderId);
     }
 
-    const onPreviewClicked = (id: number) => startTransition(() => {
+    const onPreviewClicked = (id: number, slug: string) => startTransition(() => {
         setShowPreview(true);
+        setPreviewSlug(slug + '/default');
         setPreviewId(id);
     });
 
@@ -368,7 +370,7 @@ const Workspace = ():React.ReactElement => {
                                             show: !store.selecting,
                                             action: (e: MouseEvent<HTMLDivElement>) => {
                                                 e.stopPropagation();
-                                                onPreviewClicked(t.id);
+                                                onPreviewClicked(t.id, t.slug);
                                             }
                                         },
                                         {
@@ -457,6 +459,8 @@ const Workspace = ():React.ReactElement => {
         <ImagePreview
             show={ showPreview }
             imageId={ previewId }
+            slug={ previewSlug }
+            previewType="rendition"
             onClose={ onPreviewClosed } />
 
         <Error on={ showError }> { errorText } </Error>

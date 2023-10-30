@@ -199,9 +199,12 @@ export const ImagePreview = (props: ImagePreviewProps) => {
                         <img
                             src={
                                 props.previewType === 'rendition' ?
-                                    '/api/image'
-                                    + store.currentPath.replace('workspace/tree/', '')
-                                    + props.slug
+                                    (
+                                        '/api/image/'
+                                        + store.currentPath.replace('workspace/tree/', '')
+                                        + '/'
+                                        + props.slug
+                                    ).replaceAll('//', '/')
                                 :
                                 '/api/admin/image-file/' + props.imageId
                             }
