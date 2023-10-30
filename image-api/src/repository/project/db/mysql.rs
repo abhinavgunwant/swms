@@ -180,10 +180,10 @@ impl ProjectRepository for MySQLProjectRepository {
         self.connection.exec_drop(
             r"INSERT INTO PROJECT (
                 ID, NAME, DESCRIPTION, SLUG, RESTRICT_USERS, CREATED_BY,
-                MODIFIED_BY, CREATED_ON, MODIFIED_ON
+                MODIFIED_BY
             ) VALUES (
                 :id, :name, :description, :slug, :restrict_users, :created_by,
-                NULL, CURRENT_TIMESTAMP(), NULL
+                :created_by
             )",
             params! {
                 "id" => &project.id,
