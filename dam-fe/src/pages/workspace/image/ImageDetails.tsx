@@ -131,9 +131,10 @@ const ImageDetails = () => {
         }
     }
 
-    const onRenditionClicked = () => startTransition(
-        () => setShowRenditionDialog(true)
-    );
+    const onRenditionClicked = () => startTransition(() => {
+        setShowRenditionDialog(true);
+        setRenDiagMode('new');
+    });
 
     const onEagerRenditionChecked = (e: ChangeEvent<HTMLInputElement>) => {
         startTransition(() => setEagerRendition(e.target.checked));

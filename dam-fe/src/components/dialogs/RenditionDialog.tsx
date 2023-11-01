@@ -1,10 +1,11 @@
 import {
-    useState, useEffect, useTransition, MouseEvent, ChangeEvent,
+    useState, useEffect, useTransition, MouseEvent, ChangeEvent, Fragment,
+    useRef,
 } from 'react';
 
 import {
     Dialog, DialogTitle, DialogContent, Button, Grid, TextField as _TextField,
-    FormControl, Select, MenuItem, InputLabel, Alert,
+    FormControl, Select, MenuItem, InputLabel, Alert, CircularProgress,
 } from '@mui/material';
 
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -40,6 +41,10 @@ const TextField = styled(_TextField)`
 `;
 
 export const RenditionDialog = (props: NewRenditionDialogProps) => {
+    // Used in edited mode to enable save button.
+    const [ timeoutError, setTimeoutError ] = useState<boolean>(false);
+    const [ updated, setUpdated ] = useState<boolean>(false);
+    const [ saving, setSaving ] = useState<boolean>(false);
     const [ height, setHeight ] = useState<number>(0);
     const [ width, setWidth ] = useState<number>(0);
     const [ targetDevice, setTargetDevice ] = useState<string>('');
@@ -48,6 +53,8 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars 
     const [ _, startTransition ] = useTransition();
+
+    const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
     const createRendition: () => Rendition = () => {
         const now = (new Date()).toISOString();
@@ -69,31 +76,69 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
     };
 
     const onSaveClicked = () => {
-        if (typeof width !== 'number' || typeof height !== 'number') {
+        if (typeof width !== 'number' || typeof height !== 'number' || saving) {
             return;
         }
 
-        props.onRenditionSaved(createRendition());
-    }
+        // if this dialog is not closed within 30 seconds, give the timeout
+        // error
+        setTimeout(() => startTransition(() => setTimeoutError(true)), 30000);
 
-    const onEditClicked = () => {
-        if (props.onRenditionUpdated) {
-            props.onRenditionUpdated(createRendition());
+        if (props.mode === 'edit') {
+            if (props.onRenditionUpdated) {
+                props.onRenditionUpdated(createRendition());
+            }
+        } else {
+            props.onRenditionSaved(createRendition());
         }
-    }
 
-    const onTargetDeviceChanged = (e: ChangeEvent<HTMLInputElement>) =>
+        startTransition(() => setSaving(true));
+    };
+
+    const onTargetDeviceChanged = (e: ChangeEvent<HTMLInputElement>) => {
         setTargetDevice(e.target.value);
-    const onSlugChanged = (e: ChangeEvent<HTMLInputElement>) =>
+        if (!updated) {
+            setUpdated(true);
+        }
+    };
+
+    const onSlugChanged = (e: ChangeEvent<HTMLInputElement>) => {
         setSlug(e.target.value);
-    const onWidthChanged = (e: ChangeEvent<HTMLInputElement>) =>
+
+        if (!updated) {
+            setUpdated(true);
+        }
+    };
+
+    const onWidthChanged = (e: ChangeEvent<HTMLInputElement>) => {
         setWidth(parseInt(e.target.value));
-    const onHeightChanged = (e: ChangeEvent<HTMLInputElement>) =>
+
+        if (!updated) {
+            setUpdated(true);
+        }
+    };
+
+    const onHeightChanged = (e: ChangeEvent<HTMLInputElement>) => {
         setHeight(parseInt(e.target.value));
-    const onEncodingChanged = (e: SelectChangeEvent<string>) =>
+
+        if (!updated) {
+            setUpdated(true);
+        }
+    };
+
+    const onEncodingChanged = (e: SelectChangeEvent<string>) => {
         setEncoding(e.target.value);
 
+        if (!updated) {
+            setUpdated(true);
+        }
+    };
+
     const onClose = (e: any) => {
+        if (saving) {
+            return;
+        }
+
         props.onDialogClosed(e);
 
         startTransition(() => {
@@ -125,14 +170,27 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
             setTargetDevice('');
             setSlug('');
             setEncoding('');
+            setSaving(false);
+            setTimeoutError(false);
+            setUpdated(false);
         });
     }, [ props.open, props.renditionToEdit, props.mode ]);
+
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    });
 
     return <Dialog
         onClose={ (e) => onClose(e) }
         open={ props.open }>
 
-        <DialogTitle>New Rendition</DialogTitle>
+        <DialogTitle>
+            { props.mode === 'edit' ? 'Edit ' : 'New ' } Rendition
+        </DialogTitle>
 
         <StyledDialogContent>
             <Grid container>
@@ -140,6 +198,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                     <TextField
                         label="Target Device"
                         variant="standard"
+                        disabled={ saving }
                         value={ targetDevice }
                         onChange={ onTargetDeviceChanged } />
                 </Grid>
@@ -148,6 +207,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                     <TextField
                         label="Slug"
                         variant="standard"
+                        disabled={ saving }
                         value={ slug }
                         onChange={ onSlugChanged }
                         error={ props.error && props.errorField == 'slug' }
@@ -173,6 +233,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                             labelId="new-image-rendition-encoding"
                             label="Encoding"
                             variant="standard"
+                            disabled={ saving }
                             value={ encoding }
                             onChange={ onEncodingChanged }
                             sx={{ marginTop: '4rem' }}>
@@ -188,6 +249,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                         label="Width"
                         variant="standard"
                         type="number"
+                        disabled={ saving }
                         value={ width }
                         onFocus={ (e) => e.target.select() }
                         onChange={ onWidthChanged } />
@@ -198,6 +260,7 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                         label="Height"
                         variant="standard"
                         type="number"
+                        disabled={ saving }
                         value={ height }
                         onFocus={ (e) => e.target.select() }
                         onChange={ onHeightChanged } />
@@ -210,23 +273,43 @@ export const RenditionDialog = (props: NewRenditionDialogProps) => {
                     </Grid>
                 }
 
+                {
+                    timeoutError &&
+                    <Grid item xs={ 12 } sx={{ marginTop: '1rem' }}>
+                        <Alert severity="warning">
+                            It&apos;s taking longer than usual to connect to
+                            the server, you can close this dialog by clicking
+                            &quot;Close&quot; button below.
+                            <br />
+                            Please check the status of this save after some
+                            time!
+                        </Alert>
+                    </Grid>
+                }
+
                 <Grid item sx={{ marginTop: '1rem' }}>
-                    {
-                        props.mode === 'edit' ?
-                            <Button
-                                variant="contained"
-                                onClick={ onEditClicked }>
-                                Edit
-                            </Button>
-                        :
-                            <Button
-                                variant="contained"
-                                onClick={ onSaveClicked }>
-                                Save
-                            </Button>
-                    }
+                    <Button
+                        variant="contained"
+                        disabled={ !updated }
+                        onClick={ onSaveClicked }>
+                        {
+                            saving ?
+                                <Fragment>
+                                    <CircularProgress
+                                        size={ 16 }
+                                        color="secondary"
+                                        sx={{
+                                            marginRight: '1rem',
+                                        }} />
+                                    Saving
+                                </Fragment>
+                            :
+                                'Save'
+                        }
+                    </Button>
 
                     <Button
+                        disabled={ saving }
                         onClick={ (e) => onClose(e) }
                         sx={{ marginLeft: '1rem' }}>
                         Cancel
