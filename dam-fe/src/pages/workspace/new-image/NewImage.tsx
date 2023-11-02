@@ -54,6 +54,7 @@ const thumbnailRendition: Rendition = {
 
 const defaultRendition: Rendition = {
     ...thumbnailRendition,
+    id: 1,
     height: 0,
     width: 0,
     slug: 'default',
@@ -182,15 +183,18 @@ const NewImage = () => {
         startTransition(() => setEagerRendition(e.target.checked));
     }
 
-    const onRenditionClicked = () => startTransition(
-        () => setShowRenditionDialog(true)
-    );
+    const onRenditionClicked = () => startTransition(() => {
+        setRenDiagMode('new');
+        setShowRenditionDialog(true);
+    });
 
     const onRenditionDialogClosed = () =>
         startTransition(() => setShowRenditionDialog(false));
 
     const onRenditionSaved = (rendition: Rendition) => {
         if (rendition) {
+            rendition.id = renditionList.length;
+
             startTransition(() => {
                 setRenditionList([...renditionList, rendition]);
                 setShowRenditionDialog(false);
@@ -202,10 +206,16 @@ const NewImage = () => {
      * After the rendition has been edited using the dialog.
      */
     const onRenditionUpdated = (rendition: Rendition) => {
+        console.log('rendition', rendition);
         if (rendition) {
             const list = [ ...renditionList ];
 
-            list.splice(renSelIndex, 1, rendition);
+            for (let i=0; i<list.length; ++i) {
+                if (i === renSelIndex) {
+                    list[i] = rendition;
+                    break;
+                }
+            }
 
             startTransition(() => {
                 setRenditionList(list);
