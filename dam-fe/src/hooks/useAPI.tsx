@@ -240,6 +240,12 @@ const useAPI = (navigate?: NavigateFunction) => {
                 wsStore.setImageList([]);
                 wsStore.setFolderList([]);
             }
+
+            if (response.status >= 500) {
+                wsStore.setError(
+                    "Some error occured, please ask admin to check logs."
+                );
+            }
         },
 
         /**

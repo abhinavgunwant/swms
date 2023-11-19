@@ -34,6 +34,18 @@ export default interface WorkspaceState {
     currentPath: string,
     breadcrumbList: Array<LinkModel | string>,
 
+    /**
+     * Whether the passed imageID matches the selected images.
+     */
+    isSelected: (imageID: number) => boolean;
+
+    /**
+     * Whether the passed imageID matches the selected images.
+     */
+    isFolderSelected: (folderID: number) => boolean;
+
+    error: false | string,
+
     setSelecting: (sel: boolean) => void;
     addImageToSelected: (imageID: number) => void;
     addFolderToSelected: (folderID: number) => void;
@@ -49,15 +61,6 @@ export default interface WorkspaceState {
     setCurrentProject: (currentProject: Project) => void;
     setCurrentPath: (currentPath: string) => void;
     setBreadcrumbList: (breadcrumbList: Array<LinkModel | string>) => void,
-
-    /**
-     * Whether the passed imageID matches the selected images.
-     */
-    isSelected: (imageID: number) => boolean;
-
-    /**
-     * Whether the passed imageID matches the selected images.
-     */
-    isFolderSelected: (folderID: number) => boolean;
+    setError: (error: false | string) => void,
 }
 

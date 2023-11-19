@@ -15,4 +15,5 @@ export * from './UserListing';
 export * from './UserPermissions';
 export * from './UserRole';
 export * from './Session';
+export * from './Dialog';
 

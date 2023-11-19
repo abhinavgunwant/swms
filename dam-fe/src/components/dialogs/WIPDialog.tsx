@@ -1,12 +1,9 @@
 import { Typography } from '@mui/material';
 
 import { CustomDialog } from '../';
+import { Dialog } from '../../models';
 
-interface WIPDialogProps {
-    open: boolean,
-    optText?: string,
-    onClose: () => void,
-}
+interface WIPDialogProps extends Dialog { optText?: string }
 
 /**
  * "This feature is under development" dialog.

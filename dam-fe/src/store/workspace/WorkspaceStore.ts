@@ -31,6 +31,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
             },
             currentPath: '',
             breadcrumbList: [],
+            error: false,
 
             setSelecting: (sel) => set((state) => ({ ...state, selecting: sel})),
             addImageToSelected: (imageID) => set(
@@ -128,6 +129,9 @@ const useWorkspaceStore = create<WorkspaceState>()(
             ),
             setBreadcrumbList: (breadcrumbList: Array<LinkModel | string>) => set(
                 (state) => ({ ...state, breadcrumbList: breadcrumbList })
+            ),
+            setError: (error: false | string) => set(
+                (state) => ({ ...state, error })
             ),
         })
 );

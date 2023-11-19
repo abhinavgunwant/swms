@@ -15,7 +15,9 @@ import WorkspaceTopRow from './WorkspaceTopRow';
 import {
     Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab,
 } from '../../components';
-import { DeleteItemDialog, NewImageDialog, WIPDialog } from '../../components/dialogs';
+import {
+    DeleteItemDialog, NewImageDialog, WIPDialog, ErrorDialog
+} from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
 
@@ -113,6 +115,11 @@ const Workspace = ():React.ReactElement => {
     });
 
     const onPreviewClosed = () => startTransition(() => setShowPreview(false));
+
+    const onErrorDialogClosed = () => startTransition(() => {
+        setShowError(false);
+        setErrorText('');
+    });
 
     const loadImages = async () => {
         // console.log('current folder: ', store.currentFolder);
@@ -268,6 +275,17 @@ const Workspace = ():React.ReactElement => {
             });
         }
     }, [ showDeleteDialog ]);
+
+    useEffect(() => {
+        if (store.error) {
+            if (showError === false) {
+                startTransition(() => {
+                    setShowError(true);
+                    setErrorText(store.error || '');
+                });
+            }
+        }
+    }, [ store.error ]);
 
     return <div className="page page--workspace">
         <WorkspaceTopRow links={ store.breadcrumbList } />
@@ -463,7 +481,10 @@ const Workspace = ():React.ReactElement => {
             previewType="rendition"
             onClose={ onPreviewClosed } />
 
-        <Error on={ showError }> { errorText } </Error>
+        <ErrorDialog
+            open={ showError }
+            text={ errorText }
+            onClose={ onErrorDialogClosed } />
 
         <DeleteItemDialog
             open={ showDeleteDialog }
