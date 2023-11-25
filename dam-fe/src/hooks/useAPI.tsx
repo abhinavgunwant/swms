@@ -262,6 +262,21 @@ const useAPI = (navigate?: NavigateFunction) => {
             return false;
         },
 
+        /**
+         * Gets original blob and saves it as an object URL.
+         */
+        getImageBlobUrl: async (imageId: number): Promise<string> => {
+            const response = await apiCall(
+                `${ PATH_PRE }/image-file/${ imageId }`, {}, navigate
+            );
+
+            if (response.status === 200) {
+                return URL.createObjectURL(await response.blob());
+            }
+
+            return '';
+        },
+
         updateImage: async (image: Image) => {
             const response = await apiCall( `${ PATH_PRE }/image`, {
                 headers: APPLICATION_JSON,

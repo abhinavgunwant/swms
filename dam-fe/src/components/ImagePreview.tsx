@@ -7,6 +7,8 @@ import {
     PhotoSizeSelectActual,
 } from '@mui/icons-material';
 
+import useAPI from '../hooks/useAPI';
+
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 
 import styled from '@emotion/styled';
@@ -73,14 +75,26 @@ type ImageFit = 'default' | 'original' | 'screen';
 const ZOOM_INCREMENT = 0.25;
 
 export const ImagePreview = (props: ImagePreviewProps) => {
+    const [ imageUrl, setImageUrl ] = useState<string>('');
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ originalWidth, setOriginalWidth ] = useState<number>();
     const [ originalHeight, setOriginalHeight ] = useState<number>();
     const [ zoom, setZoom ] = useState<number>(1);
 
+    const [ _, startTransition ] = useTransition();
+
     const imageRef = useRef<HTMLImageElement>(null);
     const imgSectionRef = useRef<HTMLDivElement>(null);
     const store = useWorkspaceStore();
+
+    const { getImageBlobUrl } = useAPI();
+
+    const loadOriginalImage = async () => {
+        if (props.imageId && props.previewType === 'image') {
+            const blobUrl = await getImageBlobUrl(props.imageId);
+            startTransition(() => setImageUrl(blobUrl));
+        }
+    }
 
     const onImageLoaded = () => {
         setLoading(false);
@@ -164,11 +178,14 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     }
 
     useEffect(() => {
+        loadOriginalImage();
+    }, [ props.imageId, props.previewType ]);
+
+    useEffect(() => {
         if (!props.show) {
             setLoading(true);
         } else {
             setZoom(1);
-
         }
     }, [ props.show ]);
 
@@ -206,7 +223,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
                                         + props.slug
                                     ).replaceAll('//', '/')
                                 :
-                                '/api/admin/image-file/' + props.imageId
+                                imageUrl
                             }
                             onLoad={ onImageLoaded }
                             ref={ imageRef } />
