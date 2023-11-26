@@ -16,6 +16,7 @@ import { UploadImage, Rendition } from '../../../models';
 import useAPI from '../../../hooks/useAPI';
 
 import { Breadcrumbs, SemiEditableTextField } from "../../../components";
+import { SaveButtonContent } from '../../../components/misc';
 
 import {
     RenditionDialog, RenditionDialogMode
@@ -341,21 +342,7 @@ const NewImage = () => {
                 style={{ marginRight: '0.5rem' }}
                 disabled={ title === '' || slug === '' || !file }
                 onClick={ onSave }>
-                {
-                    saving ?
-                        <Fragment>
-                            <CircularProgress
-                                size={ 16 }
-                                color="secondary"
-                                sx={{
-                                    color: '#ffffff',
-                                    marginRight: '1rem',
-                                }} />
-                            Saving
-                        </Fragment>
-                    :
-                        'Save'
-                }
+                <SaveButtonContent saving={ saving } />
             </Button>
 
             <Button variant="outlined" onClick={ onCancel }>Cancel</Button>

@@ -521,6 +521,25 @@ const useAPI = (navigate?: NavigateFunction) => {
             return success(false, 'NOT_FOUND');
         },
 
+        updateFolder: async (folder: Folder) => {
+            const response = await apiCall(`${PATH_PRE}/folder/`, {
+                headers: APPLICATION_JSON,
+                method: 'PUT',
+                body: JSON.stringify(folder),
+            }, navigate);
+
+            if (response.status === 200) {
+                return { success: true };
+            } else {
+                try {
+                    const rJson = await response.json();
+                    return rJson;
+                } catch(e) { console.log(e); }
+            }
+
+            return success(false, 'Some unknown error occured');
+        },
+
         deleteFolders: async (folderId: Array<number>) => {
             if (folderId.length === 0) {
                 return success(false, 'Invalid Image!');

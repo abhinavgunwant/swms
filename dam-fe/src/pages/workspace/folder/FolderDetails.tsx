@@ -1,17 +1,19 @@
 import {
-    useState, useEffect, useTransition, Fragment,
+    useState, useEffect, useTransition, Fragment, ChangeEventHandler, useRef,
 } from 'react';
 
 import { useParams, useNavigate } from 'react-router-dom';
 
 import {
     TextField as MuiTextField, Typography, Grid, IconButton, Box, Button,
+    Alert, AlertTitle,
 } from '@mui/material';
 
 import { Edit, Delete } from '@mui/icons-material';
 
 import { Loading, Breadcrumbs } from '../../../components';
 import { DeleteItemDialog } from '../../../components/dialogs';
+import { SaveButtonContent } from '../../../components/misc';
 import { WorkspaceGrid } from '../Workspace';
 
 import useAPI from '../../../hooks/useAPI';
@@ -45,20 +47,24 @@ const FolderDetails = () => {
     const [ breadcrumbLinks, setBreadcrumbLinks ] =
         useState<Array<LinkModel | string>>(['Workspace']);
     const [ folder, setFolder ] = useState<Folder>();
-    const [ editedFolder, setEditedFolder ] = useState<Folder|null>(null);
     const [ edit, setEdit ] = useState<boolean>();
     const [ loading, setLoading ] = useState<boolean>(true);
     const [ folderNotFound, setFolderNotFound ] = useState<boolean>(false);
     const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
     const [ edited, setEdited ] = useState<boolean>(false);
+    const [ saving, setSaving ] = useState<boolean>(false);
+    const [ showError, setShowError ] = useState<boolean>(false);
+    const [ errorMessage, setErrorMessage ] = useState<string>('');
 
     const [ _, startTransition ] = useTransition();
 
     const navigate = useNavigate();
-    const { getFolder } = useAPI(navigate);
+    const { getFolder, updateFolder } = useAPI(navigate);
     const { folderId } = useParams();
 
     const store = useWorkspaceStore();
+
+    const originalFolder = useRef<Folder | undefined>(undefined);
 
     const getFolderId: () => number | undefined = () => {
         try {
@@ -72,38 +78,114 @@ const FolderDetails = () => {
         return undefined;
     };
 
+    const loadFolder = async () => {
+        const id = getFolderId();
+
+        if (typeof id === 'number') {
+            const fldr = await getFolder(id);
+
+            if (fldr.success) {
+                originalFolder.current = fldr.folder;
+
+                startTransition(() => {
+                    setFolder(fldr.folder);
+                    setLoading(false);
+                    setEdit(false);
+                });
+
+                // console.log(folder);
+
+                return;
+            }
+
+            if (fldr.message === 'NOT_FOUND') {
+                startTransition(() => {
+                    setFolderNotFound(true);
+                    setLoading(false);
+                    setEdit(false);
+                });
+            }
+        }
+    };
+
     const onEdit = () => startTransition(() => setEdit(true));
-    const onCancel = () => startTransition(() => setEdit(false));
+    const onCancel = () => startTransition(() => {
+        setEdit(false);
+        setFolder(originalFolder.current);
+    });
+
+    /**
+     * When user clicks save.
+     *
+     * TODO: implement the form validation logic from response.
+     */
+    const onSave = async () => {
+        if (saving) {
+            return;
+        }
+
+        setSaving(true);
+        if (folder) {
+            const resp = await updateFolder(folder);
+
+            if (!resp || !resp.success) {
+                startTransition(() => {
+                    setShowError(true);
+
+                    if (resp && resp.message) {
+                        setErrorMessage(resp.message);
+                    } else {
+                        setErrorMessage(
+                            'Some unknown error occured while updating folder'
+                        );
+                    }
+                });
+            } else {
+                startTransition(() => setShowError(false));
+                loadFolder();
+            }
+        }
+    }
 
     const onDeleteDialogClosed = () => startTransition(
         () => setShowDeleteDialog(false)
     );
 
-    useEffect(() => {
-        const loadFolder = async () => {
-            const id = getFolderId();
+    const onFolderTitleChanged: ChangeEventHandler<HTMLInputElement> = (e) => {
+        if (folder) {
+            setFolder({ ...folder, title: e.target.value });
 
-            if (typeof id === 'number') {
-                const fldr = await getFolder(id);
-
-                if (fldr.success) {
-                    startTransition(() => {
-                        setFolder(fldr.folder);
-                        setLoading(false);
-                    });
-                    console.log(folder);
-
-                    return;
-                }
-
-                if (fldr.message === 'NOT_FOUND') {
-                    startTransition(() => {
-                        setFolderNotFound(true);
-                        setLoading(false);
-                    });
-                }
+            if (!edited) {
+                startTransition(() => setEdited(true));
             }
-        };
+        }
+    };
+
+    const onFolderSlugChanged: ChangeEventHandler<HTMLInputElement> = (e) => {
+        if (folder) {
+            setFolder({ ...folder, slug: e.target.value });
+
+            if (!edited) {
+                startTransition(() => setEdited(true));
+            }
+        }
+    };
+
+    const onFolderDescriptionChanged: ChangeEventHandler<HTMLInputElement> = (e) => {
+        if (folder) {
+            setFolder({ ...folder, description: e.target.value });
+
+            if (!edited) {
+                startTransition(() => setEdited(true));
+            }
+        }
+    };
+
+     useEffect(() => {
+        setBreadcrumbLinks([
+            { text: '< Back to Workspace', to: '/workspace' },
+            'Folder Details' + (folder?.slug ? ' (' + folder.slug + ')' : '')
+        ]);
 
         loadFolder();
     }, []);
@@ -141,10 +223,23 @@ const FolderDetails = () => {
                             </PageTitle>
                         </Grid>
 
+                        {
+                            showError &&
+                            <Grid item xs={ 12 }>
+                                <Alert severity="error">
+                                    <AlertTitle>
+                                        There was an error updating folder
+                                    </AlertTitle>
+                                    { errorMessage }
+                                </Alert>
+                            </Grid>
+                        }
+
                         <Grid item xs={ 12 } md={ 6 }>
                             <TextField
                                 value={ folder?.title }
                                 disabled={ !edit }
+                                onChange={ onFolderTitleChanged }
                                 label="Title" />
                         </Grid>
 
@@ -152,6 +247,7 @@ const FolderDetails = () => {
                             <TextField
                                 value={ folder?.slug }
                                 disabled={ !edit }
+                                onChange={ onFolderSlugChanged }
                                 label="Slug" />
                         </Grid>
 
@@ -160,6 +256,7 @@ const FolderDetails = () => {
                                 value={ folder?.description }
                                 disabled={ !edit }
                                 rows={ 3 }
+                                onChange={ onFolderDescriptionChanged }
                                 label="Description"
                                 multiline />
                         </Grid>
@@ -198,11 +295,14 @@ const FolderDetails = () => {
                                 <Button
                                     variant="contained"
                                     style={{marginRight: '0.5rem'}}
-                                    disabled={ editedFolder == null }>
-                                    Save
+                                    onClick={ onSave }
+                                    disabled={ !edited }>
+                                    <SaveButtonContent saving={ saving } />
                                 </Button>
 
-                                <Button variant="outlined" onClick={ onCancel }>
+                                <Button
+                                    variant="outlined"
+                                    onClick={ onCancel }>
                                     Cancel
                                 </Button>
                             </Grid>
