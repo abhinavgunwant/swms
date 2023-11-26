@@ -23,6 +23,8 @@ import { Delete, Visibility } from '@mui/icons-material';
 
 import useAPI, { SuccessType } from '../../../hooks/useAPI';
 
+import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
+
 import { styled } from '@mui/material/styles';
 
 const TextField = styled(MuiTextField)`
@@ -80,6 +82,8 @@ const ImageDetails = () => {
     const imageTitleRef = useRef();
 
     const navigate = useNavigate();
+
+    const store = useWorkspaceStore();
 
     const {
         getImage, updateImage, getRenditions, addRenditions, deleteRendition,
@@ -469,6 +473,7 @@ const ImageDetails = () => {
         <ImagePreview
             show={ showPreview }
             previewType={ previewType }
+            projectId={ store.currentProject.id }
             slug={ previewSlug }
             imageId={ getImageId() }
             onClose={ onPreviewClosed } />

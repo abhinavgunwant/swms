@@ -6,7 +6,10 @@ use qstring::QString;
 use log::{ debug, error, info };
 
 use crate::{
-    api::service::remove::{ remove_images, remove_folders },
+    api::{
+        resp_400, resp_404, resp_500,
+        service::remove::{ remove_images, remove_folders },
+    },
     auth::AuthMiddleware, server::{db::DBError, config::ServerConfig}, repository::Repository,
     model::{ user::User, project::{ Project, validate_project } },
 };
@@ -22,6 +25,47 @@ pub struct ProjectResponse {
 pub struct AddUserToProjectRequest {
     project_id: u32,
     users: Vec<u32>,
+}
+
+#[get("/api/admin/project/{project_id}")]
+pub async fn get_project(
+    req: HttpRequest,
+    repo: Data<dyn Repository + Sync + Send>,   
+    _: AuthMiddleware
+) -> HttpResponse {
+    let project_id: u32;
+
+    match req.match_info().get("project_id") {
+        Some(p_id) => {
+            match p_id.parse::<u32> () {
+                Ok (p_id) => { project_id = p_id; }
+                Err (_) => { return resp_400(); }
+            }
+        }
+
+        None => { return resp_400(); }
+    }
+
+    match repo.get_project_repo() {
+        Ok(mut proj_repo) => {
+            match proj_repo.get(project_id) {
+                Ok (project) => HttpResponse::Ok().json(project),
+
+                Err (e) => {
+                    match e {
+                        DBError::NotFound => resp_404(),
+                        _ => resp_500()
+                    }
+                }
+            }
+        }
+
+        Err(e) => {
+            error!("Error while getting user repository: {}", e);
+
+            resp_500()
+        }
+    }
 }
 
 #[get("/api/admin/projects")]

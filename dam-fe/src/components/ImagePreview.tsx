@@ -7,6 +7,9 @@ import {
     PhotoSizeSelectActual,
 } from '@mui/icons-material';
 
+import { Project, Image } from '../models';
+import { DEFAULT_PROJECT } from '../models/Project';
+
 import useAPI from '../hooks/useAPI';
 
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
@@ -56,6 +59,7 @@ const CloseButton = muiStyled(ControlButton)`
 interface ImagePreviewProps {
     imageId?: number,
     slug?: string,
+    projectId?: number,
     previewType?: 'image' | 'rendition';
     show: boolean,
     onClose: () => void,
@@ -87,12 +91,47 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     const imgSectionRef = useRef<HTMLDivElement>(null);
     const store = useWorkspaceStore();
 
-    const { getImageBlobUrl } = useAPI();
+    const { getImage, getProject, getImageBlobUrl } = useAPI();
 
-    const loadOriginalImage = async () => {
+    const loadImage = async () => {
         if (props.imageId && props.previewType === 'image') {
             const blobUrl = await getImageBlobUrl(props.imageId);
             startTransition(() => setImageUrl(blobUrl));
+            return;
+        }
+
+        let projectFetched: boolean = false;
+        let image: Image | null = null;
+        let project: Project = DEFAULT_PROJECT;
+
+        if (!props.projectId && props.imageId) {
+            image = await getImage(props.imageId);
+        }
+
+        if (store.currentProject.id === 0 && image) {
+            project = await getProject(image.projectId);
+
+            if (project.id !== 0) {
+                store.setCurrentProject(project);
+                projectFetched = true;
+            }
+        } else {
+            project = store.currentProject;
+        }
+
+        let relPath = store.currentPath.replace('workspace/tree/', '');
+
+        // in case the page is refreshed, relPath will be empty string
+        if (projectFetched && project.id !== 0 || !relPath) {
+            relPath = project.slug + '/' + relPath;
+        }
+
+        const apiPath = (
+            `/api/image/${ relPath }/${ props.slug }`
+        ).replaceAll('//', '/');
+
+        if (imageUrl !== apiPath) {
+            startTransition(() => setImageUrl(apiPath.replaceAll('//', '/')));
         }
     }
 
@@ -178,16 +217,13 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     }
 
     useEffect(() => {
-        loadOriginalImage();
-    }, [ props.imageId, props.previewType ]);
-
-    useEffect(() => {
         if (!props.show) {
             setLoading(true);
         } else {
             setZoom(1);
+            loadImage();
         }
-    }, [ props.show ]);
+    }, [ props.show, props.imageId, props.previewType, props.slug ]);
 
     useEffect(() => {
         if (
@@ -214,17 +250,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
                     props.imageId ?
                     <Fragment>
                         <img
-                            src={
-                                props.previewType === 'rendition' ?
-                                    (
-                                        '/api/image/'
-                                        + store.currentPath.replace('workspace/tree/', '')
-                                        + '/'
-                                        + props.slug
-                                    ).replaceAll('//', '/')
-                                :
-                                imageUrl
-                            }
+                            src={ imageUrl }
                             onLoad={ onImageLoaded }
                             ref={ imageRef } />
                         { loading && <CircularProgress /> }

@@ -30,3 +30,15 @@ async fn am_i_logged_in(_: AuthMiddleware) -> HttpResponse {
     HttpResponse::Ok().body("You're signed in!")
 }
 
+fn resp_400() -> HttpResponse {
+    HttpResponse::BadRequest().body("Bad Request")
+}
+
+fn resp_404() -> HttpResponse {
+    HttpResponse::NotFound().body("Not Found")
+}
+
+fn resp_500() -> HttpResponse {
+    HttpResponse::InternalServerError().body("Internal Server Error")
+}
+

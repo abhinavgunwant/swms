@@ -4,6 +4,7 @@ use chrono::{ DateTime, Utc };
 use crate::model::encoding::Encoding;
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Image {
     pub id: u32,
     pub name: String, // Original Filename

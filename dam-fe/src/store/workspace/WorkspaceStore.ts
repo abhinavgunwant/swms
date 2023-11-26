@@ -4,7 +4,7 @@ import create from 'zustand';
 import WorkspaceState from './WorkspaceState';
 import LinkModel from '../../models/LinkModel';
 import Folder, { DEFAULT_FOLDER } from '../../models/Folder';
-import Project from '../../models/Project';
+import Project, { DEFAULT_PROJECT } from '../../models/Project';
 
 const useWorkspaceStore = create<WorkspaceState>()(
     // devtools(
@@ -18,17 +18,7 @@ const useWorkspaceStore = create<WorkspaceState>()(
             folderList: [],
             projectList: [],
             currentFolder: DEFAULT_FOLDER,
-            currentProject: {
-                id: 0,
-                name: '',
-                slug: '',
-                description: '',
-                restrictUsers: false,
-                createdBy: 0,
-                modifiedBy: 0,
-                createdOn: '',
-                modifiedOn: '',
-            },
+            currentProject: DEFAULT_PROJECT,
             currentPath: '',
             breadcrumbList: [],
             error: false,

@@ -5,6 +5,8 @@ import {
     UserListing, Role, Folder, Image,
 } from '../models';
 
+import { DEFAULT_PROJECT } from '../models/Project';
+
 import { apiCall } from '../utils/misc';
 import { NavigateFunction } from 'react-router-dom';
 
@@ -178,6 +180,18 @@ const useAPI = (navigate?: NavigateFunction) => {
             }
 
             return false;
+        },
+
+        getProject: async (projectId: number) => {
+            const response = await apiCall(
+                `${ PATH_PRE }/project/${ projectId }`, {}, navigate
+            );
+
+            if (response.status === 200) {
+                return await response.json();
+            }
+
+            return DEFAULT_PROJECT;
         },
 
         /**
