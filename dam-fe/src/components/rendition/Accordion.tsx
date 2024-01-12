@@ -18,6 +18,7 @@ interface AccordionProps {
     showEagerCheckbox?: boolean,
     eagerRendition: boolean,
 
+    onURLCopy?: (rendition: Rendition) => void,
     onRenditionPreview?: (slug: string) => void,
     onEditRendition: (indx: number) => void,
     onDeleteRendition: (indx: number) => void,
@@ -29,7 +30,7 @@ export const Accordion = (
     {
         expand, showPreview, renditionList, showEagerCheckbox, eagerRendition,
         onEditRendition, onDeleteRendition, onRenditionClicked,
-        onEagerRenditionChecked, onRenditionPreview,
+        onEagerRenditionChecked, onRenditionPreview, onURLCopy,
     } : AccordionProps
 ) => {
     const [ expanded, setExpanded ] = useState<boolean>(false);
@@ -73,6 +74,7 @@ export const Accordion = (
                                 rendition={ r }
                                 onEditRendition={() => onEditRendition(i)}
                                 onDeleteRendition={() => onDeleteRendition(i)}
+                                onURLCopy={ onURLCopy }
                                 key={ i } />
                         )
                     }

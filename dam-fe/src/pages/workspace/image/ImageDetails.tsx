@@ -17,11 +17,13 @@ import {
 } from '../../../components/dialogs';
 
 import {
-    TextField as MuiTextField, Typography, Grid, IconButton, Box,
+    TextField as MuiTextField, Typography, Grid, IconButton, Box, Tooltip,
+    ClickAwayListener,
 } from '@mui/material';
-import { Delete, Visibility } from '@mui/icons-material';
+import { Delete, Visibility, ContentCopy } from '@mui/icons-material';
 
 import useAPI, { SuccessType } from '../../../hooks/useAPI';
+import useImageURL from '../../../hooks/useImageURL';
 
 import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
 
@@ -68,6 +70,7 @@ const ImageDetails = () => {
     const [ updatingSlug, setUpdatingSlug ] = useState<boolean>(false);
     const [ showDeleteDialog, setShowDeleteDialog ] = useState<boolean>(false);
     const [ showRenditionDialog, setShowRenditionDialog ] = useState<boolean>(false);
+    const [ showCopyToolTip, setShowCopyToolTip ] = useState<boolean>(false);
     const [ renditionListUpdated, setRenditionListUpdated ] = useState<boolean>(false);
     // Rendition Dialog Mode
     const [ renDiagMode, setRenDiagMode ] = useState<RenditionDialogMode>('new');
@@ -88,6 +91,9 @@ const ImageDetails = () => {
     const {
         getImage, updateImage, getRenditions, addRenditions, deleteRendition,
     } = useAPI(navigate);
+
+    const getImageURL = useImageURL();
+
     const { imageId } = useParams();
 
     const getImageId: () => number | undefined = () => {
@@ -206,6 +212,49 @@ const ImageDetails = () => {
             });
         }
     }
+
+    const onURLCopyClickOutside = () => startTransition(
+        () => setShowCopyToolTip(false)
+    );
+
+    const onURLCopy = async () => {
+        let found = false;
+        // Copy URL of the default rendition
+        for (let i=0; i<renditionList.length; ++i) {
+            if (renditionList[i].slug === 'default') {
+                await onRenditionURLCopy(renditionList[i]);
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            startTransition(() => setShowCopyToolTip(true));
+
+            setTimeout(onURLCopyClickOutside, 2000);
+        }
+    };
+
+    const onRenditionURLCopy = async (rendition: Rendition) => {
+        if (rendition && store.currentProject.id && image && image.slug) {
+            let imagePath = '';
+            if (rendition.slug === 'default') {
+                imagePath = await getImageURL(
+                    store.currentProject.id, rendition.imageId, image.slug
+                );
+            } else {
+                imagePath = await getImageURL(
+                    store.currentProject.id,
+                    rendition.imageId,
+                    image.slug + '/' + rendition.slug,
+                );
+            }
+
+            const imageURL = location.origin + imagePath;
+
+            navigator.clipboard.writeText(imageURL);
+        }
+    };
 
     const onPreview = () => startTransition(() => {
         setShowPreview(true);
@@ -362,6 +411,22 @@ const ImageDetails = () => {
                                 Image Details
                                 
                                 <Box>
+                                    <ClickAwayListener
+                                        onClickAway={ onURLCopyClickOutside }>
+                                        <Tooltip
+                                            title="URL Copied!"
+                                            open={ showCopyToolTip }
+                                            onClose={ onURLCopyClickOutside }
+                                            placement="top"
+                                            disableFocusListener
+                                            disableHoverListener>
+                                            <IconButton
+                                                onClick={ onURLCopy }>
+                                                <ContentCopy />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </ClickAwayListener>
+
                                     <IconButton
                                         onClick={ onPreview }>
                                         <Visibility />
@@ -453,6 +518,7 @@ const ImageDetails = () => {
                             <Accordion
                                 expand={ true }
                                 showPreview={ true }
+                                onURLCopy={ onRenditionURLCopy  }
                                 onRenditionPreview={ onRenditionPreview }
                                 renditionList={ renditionList }
                                 eagerRendition={ eagerRendition }

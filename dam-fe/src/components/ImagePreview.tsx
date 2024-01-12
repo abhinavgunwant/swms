@@ -7,12 +7,8 @@ import {
     PhotoSizeSelectActual,
 } from '@mui/icons-material';
 
-import { Project, Image } from '../models';
-import { DEFAULT_PROJECT } from '../models/Project';
-
 import useAPI from '../hooks/useAPI';
-
-import useWorkspaceStore from '../store/workspace/WorkspaceStore';
+import useImageURL from '../hooks/useImageURL';
 
 import styled from '@emotion/styled';
 import { styled as muiStyled } from '@mui/material/styles';
@@ -89,9 +85,9 @@ export const ImagePreview = (props: ImagePreviewProps) => {
 
     const imageRef = useRef<HTMLImageElement>(null);
     const imgSectionRef = useRef<HTMLDivElement>(null);
-    const store = useWorkspaceStore();
 
-    const { getImage, getProject, getImageBlobUrl } = useAPI();
+    const { getImageBlobUrl } = useAPI();
+    const getImageURL = useImageURL();
 
     const loadImage = async () => {
         if (props.imageId && props.previewType === 'image') {
@@ -100,38 +96,15 @@ export const ImagePreview = (props: ImagePreviewProps) => {
             return;
         }
 
-        let projectFetched: boolean = false;
-        let image: Image | null = null;
-        let project: Project = DEFAULT_PROJECT;
+        if (props.projectId && props.imageId && props.slug) {
+            const _imageURL = await getImageURL(
+                props.projectId, props.imageId, props.slug
+            );
 
-        if (!props.projectId && props.imageId) {
-            image = await getImage(props.imageId);
-        }
-
-        if (store.currentProject.id === 0 && image) {
-            project = await getProject(image.projectId);
-
-            if (project.id !== 0) {
-                store.setCurrentProject(project);
-                projectFetched = true;
+            if (imageUrl !== _imageURL) {
+                console.log('previewing URL:', _imageURL);
+                startTransition(() => setImageUrl(_imageURL));
             }
-        } else {
-            project = store.currentProject;
-        }
-
-        let relPath = store.currentPath.replace('workspace/tree/', '');
-
-        // in case the page is refreshed, relPath will be empty string
-        if (projectFetched && project.id !== 0 || !relPath) {
-            relPath = project.slug + '/' + relPath;
-        }
-
-        const apiPath = (
-            `/api/image/${ relPath }/${ props.slug }`
-        ).replaceAll('//', '/');
-
-        if (imageUrl !== apiPath) {
-            startTransition(() => setImageUrl(apiPath.replaceAll('//', '/')));
         }
     }
 

@@ -1,10 +1,11 @@
-import { MouseEventHandler } from 'react';
+import { MouseEventHandler, useState, useTransition } from 'react';
 
 import {
-    Typography, IconButton, ListItem, ListItemText, ListItemSecondaryAction
+    Typography, IconButton, ListItem, ListItemText, ListItemSecondaryAction,
+    Tooltip, ClickAwayListener,
 } from '@mui/material';
 
-import { Edit, Delete, Visibility } from '@mui/icons-material';
+import { Edit, Delete, Visibility, ContentCopy  } from '@mui/icons-material';
 
 import Rendition from '../../models/Rendition';
 
@@ -18,18 +19,41 @@ const SubText = emoStyled.span`
 interface ItemProps {
     rendition: Rendition,
     showPreview?: boolean,
+    onURLCopy?: (rendition: Rendition) => void,
     onShowPreview?: () => void,
     onEditRendition: () => void,
     onDeleteRendition: () => void,
 }
 
 export const Item = (props: ItemProps) => {
+    const [ showTooltip, setShowTooltip ] = useState<boolean>(false);
+
+    const [ _, startTransition ] = useTransition();
+
     const onEdit: MouseEventHandler = () => props.onEditRendition();
     const onDelete: MouseEventHandler = () => props.onDeleteRendition();
 
     const onShowPreview = () => {
         if (props.onShowPreview) {
             props.onShowPreview();
+        }
+    };
+
+    /**
+     * Hides the "URL Copied!" tooltip.
+     */
+    const hideTooltip = () => startTransition(() => setShowTooltip(false));
+
+    /**
+     * Copies the URL.
+     */
+    const copyURL = () => {
+        if (props.onURLCopy) {
+            props.onURLCopy(props.rendition);
+
+            startTransition(() => setShowTooltip(true));
+
+            setTimeout(hideTooltip, 2000);
         }
     };
 
@@ -50,6 +74,25 @@ export const Item = (props: ItemProps) => {
         </ListItemText>
 
         <ListItemSecondaryAction>
+            {
+                props.onURLCopy &&
+                <ClickAwayListener
+                    onClickAway={ hideTooltip }>
+                    <Tooltip
+                        title="URL Copied!"
+                        open={ showTooltip }
+                        onClose={ hideTooltip }
+                        placement="top"
+                        disableFocusListener
+                        disableHoverListener>
+                        <IconButton
+                            onClick={ copyURL }>
+                            <ContentCopy />
+                        </IconButton>
+                    </Tooltip>
+                </ClickAwayListener>
+            }
+
             {
                 props.showPreview &&
                 <IconButton onClick={ onShowPreview }>
