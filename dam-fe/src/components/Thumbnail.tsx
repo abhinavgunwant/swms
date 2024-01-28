@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import {
-    Grid, Card, CardActions, CardContent, CardMedia, IconButton, Typography
+    Grid, Card, CardActions, CardContent, CardMedia, IconButton, Typography,
+    ClickAwayListener, Tooltip,
 } from '@mui/material';
 
 import { Folder, FolderSpecial } from '@mui/icons-material';
@@ -130,6 +131,26 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
             <ThumbnailActions disableSpacing>
                 {
                     props?.actions?.map((action, i) => {
+                        if (action.tooltip && action.show) {
+                            return <ClickAwayListener
+                                onClickAway={ action.onHideTooltip }>
+                                <Tooltip
+                                    title={ action.tooltip }
+                                    open={ action.showTooltip }
+                                    onClose={ action.onHideTooltip }
+                                    placement="top"
+                                    disableFocusListener
+                                    disableHoverListener>
+                                    <IconButton
+                                        aria-label={ action.label }
+                                        onClick={ (e) => action?.action(e) }
+                                        key={ i }>
+                                        { action.icon }
+                                    </IconButton>
+                                </Tooltip>
+                            </ClickAwayListener>;
+                        }
+
                         if (action.show) {
                             return <IconButton
                                 aria-label={ action.label }

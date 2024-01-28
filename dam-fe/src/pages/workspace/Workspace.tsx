@@ -8,7 +8,7 @@ import { Box, Grid, List, CircularProgress } from '@mui/material';
 
 import {
     Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove,
-    Description,
+    Description, ContentCopy,
 } from '@mui/icons-material';
 
 import WorkspaceTopRow from './WorkspaceTopRow';
@@ -20,6 +20,7 @@ import {
 } from '../../components/dialogs';
 
 import useAPI from '../../hooks/useAPI';
+import useImageURL from '../../hooks/useImageURL';
 
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 
@@ -28,6 +29,36 @@ import Folder, { DEFAULT_FOLDER } from '../../models/Folder';
 import { generateThumbnailURL } from '../../utils/PathUtils';
 
 import { styled } from '@mui/material/styles';
+
+/**
+ * Since the copy button fetches the image (rendition, to be precise) url
+ * through an API, we need some state representations for:
+ * - When the button is idle (no processing/api calls).
+ * - When the url is being fetched from the API (right after the copyt button
+ *      is pressed).
+ * - Success or error in fetching the rendition url.
+ */
+type CopyButtonStates = 'loading' | 'success' | 'error' | 'idle';
+
+interface CopyButtonIconProps {
+    copyButtonState: CopyButtonStates,
+}
+
+const CopyButtonIcon = (props: CopyButtonIconProps) => {
+    switch (props.copyButtonState) {
+        case 'loading':
+            return <CircularProgress />
+
+        case 'success':
+            return <Check sx={{ color: 'green' }} />
+
+        case 'error':
+            return <Close sx={{ color: 'red' }} />
+
+        default:
+            return <ContentCopy />;
+    }
+};
 
 export const WorkspaceGrid = styled(Grid)`
     height: calc(100vh - 9.25rem);
@@ -74,6 +105,10 @@ const Workspace = ():React.ReactElement => {
     const [ previewId, setPreviewId ] = useState<number>(-1);
     const [ previewSlug, setPreviewSlug ] = useState<string>('');
 
+    const [ copyImageId, setCopyImageId ] = useState<number>(-1);
+    const [ copyButtonState, setCopyButtonState ] =
+        useState<CopyButtonStates>('idle');
+
     /* eslint-disable @typescript-eslint/no-unused-vars */
     const [ _, startTransition ] = useTransition();
 
@@ -88,6 +123,7 @@ const Workspace = ():React.ReactElement => {
     //console.log('Workspace path: ', path);
 
     const { getChildren, getFolder } = useAPI(navigate);
+    const getImageURL = useImageURL();
 
     const onImageThumbnailClicked = (imageId: number) => {
         store.setCurrentPath(window.location.pathname as string);
@@ -107,6 +143,70 @@ const Workspace = ():React.ReactElement => {
 
         navigate('/workspace/folder/' + folderId);
     }
+
+    const showCopyTooltip = (imageId: number) => imageId === copyImageId;
+
+    const onHideCopyTooltip = () => startTransition(
+        () => setCopyButtonState('idle')
+    );
+
+    const copyButtonTooltip = (imageId: number) => {
+        if (!showCopyTooltip(imageId)) {
+            return '';
+        }
+
+        if (copyButtonState === 'success') {
+            return 'URL Copied!';
+        }
+
+        if (copyButtonState  === 'error') {
+            return 'Error Copying URL! Please try again...';
+        }
+
+        return '';
+    }
+
+    const onCopyClicked = async (imageId: number, slug: string) => {
+        if (store.currentProject && store.currentProject.id) {
+            try {
+                startTransition(() => {
+                    setCopyImageId(imageId);
+                    setCopyButtonState('loading');
+                });
+
+                const url = await getImageURL(
+                    store.currentProject.id, imageId, slug + '/default'
+                );
+
+                if (url) {
+                    let imageUrl;
+
+                    if (location.origin) {
+                        imageUrl = location.origin + url;
+                    } else {
+                        imageUrl = url;
+                    }
+
+                    startTransition(() => setCopyButtonState('success'));
+
+                    navigator.clipboard.writeText(imageUrl);
+
+                } else {
+                    startTransition(() => setCopyButtonState('error'));
+                    // TODO: error here
+                }
+
+                setTimeout(() => {
+                    startTransition(() => setCopyButtonState('idle'));
+                }, 3000);
+            } catch (e) {
+                console.log(e);
+                // TODO: error here
+            }
+        } else {
+            // TODO: error here
+        }
+    };
 
     const onPreviewClicked = (id: number, slug: string) => startTransition(() => {
         setShowPreview(true);
@@ -383,6 +483,24 @@ const Workspace = ():React.ReactElement => {
                                             },
                                         },
                                         {
+                                            label: 'copy',
+                                            icon: copyImageId === t.id ?
+                                                <CopyButtonIcon
+                                                    copyButtonState={
+                                                        copyButtonState
+                                                    } />
+                                                :
+                                                <ContentCopy />,
+                                            show: true,
+                                            tooltip: copyButtonTooltip(t.id),
+                                            showTooltip: showCopyTooltip(t.id),
+                                            onHideTooltip: onHideCopyTooltip,
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                onCopyClicked(t.id, t.slug);
+                                            },
+                                        },
+                                        {
                                             label: 'preview',
                                             icon: <Visibility />,
                                             show: !store.selecting,
@@ -421,8 +539,30 @@ const Workspace = ():React.ReactElement => {
                                     key={t.id}
                                     id={ t.id }
                                     name={ t.name }
+                                    slug={ t.slug }
                                     thumbnailLocation=""
                                     isImage={true}
+                                    actions={[
+                                        {
+                                            label: 'copy',
+                                            icon: copyImageId === t.id ?
+                                                <CopyButtonIcon
+                                                    copyButtonState={
+                                                        copyButtonState
+                                                    } />
+                                                :
+                                                <ContentCopy />,
+                                            show: true,
+                                            text: 'Copy URL',
+                                            tooltip: copyButtonTooltip(t.id),
+                                            showTooltip: showCopyTooltip(t.id),
+                                            onHideTooltip: onHideCopyTooltip,
+                                            action: (e: MouseEvent<HTMLDivElement>) => {
+                                                e.stopPropagation();
+                                                onCopyClicked(t.id, t.slug);
+                                            },
+                                        },
+                                    ]}
                                     onClick={
                                         () => onImageThumbnailClicked(t.id)
                                     } />

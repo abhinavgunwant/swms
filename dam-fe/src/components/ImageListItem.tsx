@@ -2,10 +2,10 @@ import { Fragment } from 'react';
 
 import {
     ListItem, ListItemIcon, ListItemButton, ListItemAvatar, Avatar, Checkbox,
-    Divider, Box, Button, ListItemText, Typography,
+    Divider, Box, Button, ListItemText, Typography, ClickAwayListener, Tooltip
 } from '@mui/material';
 
-import { DriveFileMove, Delete } from '@mui/icons-material';
+import { DriveFileMove, Delete, ContentCopy } from '@mui/icons-material';
 
 import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
@@ -20,6 +20,7 @@ const ActionBox = styled(Box)`
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    gap: 1rem;
 `;
 
 const ButtonLeftMargin = styled(Button)`
@@ -89,20 +90,51 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
             
             <ActionBox>
                 {
-                    props.isImage &&
-                    <ButtonLeftMargin
-                        variant="outlined"
-                        startIcon={ <DriveFileMove /> }>
-                        Move
-                    </ButtonLeftMargin>
-                }
+                    props?.actions?.map((action, i) => {
+                        console.log('action:', action);
+                        if (action && action.text && action.show) {
+                            if (action.tooltip) {
+                                return <ClickAwayListener
+                                    onClickAway={ action.onHideTooltip }>
+                                    <Tooltip
+                                        title={ action.tooltip }
+                                        open={ action.showTooltip }
+                                        onClose={ action.onHideTooltip }
+                                        placement="top"
+                                        disableFocusListener
+                                        disableHoverListener>
+                                        <Button
+                                            variant="outlined"
+                                            color="primary"
+                                            startIcon={ action?.icon }
+                                            aria-label={ action.label }
+                                            onClick={ (e) => action?.action(e) }
+                                            key={ i }>
+                                            { action?.text || '' }
+                                        </Button>
+                                    </Tooltip>
+                                </ClickAwayListener>;
+                            }
 
-                <ButtonLeftMargin
+                            return <Button
+                                variant="outlined"
+                                color="primary"
+                                startIcon={ action?.icon }
+                                onClick={ (e) => action?.action(e) }
+                                key={ i }>
+                                { action?.text || '' }
+                            </Button>;
+                        }
+
+                        return 'test';
+                    })
+                }
+                <Button
                     variant="contained"
                     color="error"
                     startIcon={ <Delete /> }>
                     Delete
-                </ButtonLeftMargin>
+                </Button>
             </ActionBox>
         </ListItem>
 

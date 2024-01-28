@@ -9,6 +9,10 @@ interface ThumbnailAction {
     action: React.MouseEventHandler<HTMLDivElement>
         | React.MouseEventHandler<HTMLButtonElement>
         | React.MouseEventHandler<HTMLElement> | DefaultFunction | ((e:any) => void),
+    text?: string,
+    tooltip?: string,
+    showTooltip?: boolean,
+    onHideTooltip?: () => void,
 }
 
 /**
