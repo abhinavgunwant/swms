@@ -491,7 +491,7 @@ const Workspace = ():React.ReactElement => {
                                                     } />
                                                 :
                                                 <ContentCopy />,
-                                            show: true,
+                                            show: !store.selecting,
                                             tooltip: copyButtonTooltip(t.id),
                                             showTooltip: showCopyTooltip(t.id),
                                             onHideTooltip: onHideCopyTooltip,
