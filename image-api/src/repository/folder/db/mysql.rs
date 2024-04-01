@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{ Local, TimeZone };
 use mysql::*;
 use mysql::prelude::*;
 use std::result::Result;
@@ -58,6 +58,9 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
                         None => modified_by = 0
                     }
 
+                    let created_on = row.take("CREATED_ON").unwrap();
+                    let updated_on = row.take("MODIFIED_ON").unwrap();
+
                     Ok(Folder {
                         id: row.take("ID").unwrap(),
                         title: row.take("TITLE").unwrap(),
@@ -67,8 +70,8 @@ fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
                         parent_folder_id,
                         created_by: row.take("CREATED_BY").unwrap(),
                         modified_by,
-                        created_on: Utc::now(),
-                        modified_on: Utc::now(),
+                        created_on: Local.from_utc_datetime(&created_on).into(),
+                        modified_on: Local.from_utc_datetime(&updated_on).into(),
                     })
                 }
 
@@ -130,6 +133,9 @@ fn get_folders_from_row(row_wrapped: Result<Vec<Row>, Error>)
                     None => modified_by = 0
                 }
 
+                let created_on = row.take("CREATED_ON").unwrap();
+                let updated_on = row.take("MODIFIED_ON").unwrap();
+
                 folders.push(Folder {
                     id: row.take("ID").unwrap(),
                     title: row.take("TITLE").unwrap(),
@@ -139,8 +145,8 @@ fn get_folders_from_row(row_wrapped: Result<Vec<Row>, Error>)
                     parent_folder_id,
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_by,
-                    created_on: Utc::now(),
-                    modified_on: Utc::now(),
+                    created_on: Local.from_utc_datetime(&created_on).into(),
+                    modified_on: Local.from_utc_datetime(&updated_on).into(),
                 });
             }
 

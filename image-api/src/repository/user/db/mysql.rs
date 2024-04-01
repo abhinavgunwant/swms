@@ -1,7 +1,7 @@
 use std::result::Result;
 
 use log::{ info, debug, error };
-use chrono::Utc;
+use chrono::{ Local, TimeZone, Utc };
 use mysql::*;
 use mysql::prelude::*;
 use crate::{
@@ -20,6 +20,9 @@ fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
                 Some(row_ref) => {
                     let mut row = row_ref.clone();
 
+                    let created_on = row.take("CREATED_ON").unwrap();
+                    let updated_on = row.take("MODIFIED_ON").unwrap();
+
                     Ok(User {
                         id: row.take("ID").unwrap(),
                         name: row.take("NAME").unwrap(),
@@ -29,8 +32,8 @@ fn get_user_from_row(row_wrapped: Result<Option<Row>, Error>)
                         user_role: row.take("USER_ROLE").unwrap(),
                         created_by: row.take("CREATED_BY").unwrap(),
                         modified_by: row.take("MODIFIED_BY").unwrap(),
-                        created_on: Utc::now(),
-                        modified_on: Utc::now(),
+                        created_on: Local.from_utc_datetime(&created_on).into(),
+                        modified_on: Local.from_utc_datetime(&updated_on).into(),
                         last_login_on: Utc::now(),
                     })
                 }
@@ -56,6 +59,9 @@ fn get_users_from_rows(row_wrapped: Result<Vec<Row>, Error>)
             for row_ref in rows.iter() {
                 let mut row = row_ref.clone();
 
+                let created_on = row.take("CREATED_ON").unwrap();
+                let updated_on = row.take("MODIFIED_ON").unwrap();
+
                 users.push(User {
                     id: row.take("ID").unwrap(),
                     name: row.take("NAME").unwrap(),
@@ -65,8 +71,8 @@ fn get_users_from_rows(row_wrapped: Result<Vec<Row>, Error>)
                     user_role: row.take("USER_ROLE").unwrap(),
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_by: row.take("MODIFIED_BY").unwrap(),
-                    created_on: Utc::now(),
-                    modified_on: Utc::now(),
+                    created_on: Local.from_utc_datetime(&created_on).into(),
+                    modified_on: Local.from_utc_datetime(&updated_on).into(),
                     last_login_on: Utc::now(),
                 });
             }

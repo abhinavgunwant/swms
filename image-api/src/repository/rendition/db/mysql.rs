@@ -6,7 +6,7 @@ use crate::{
     server::db::DBError,
     db::utils::mysql::{ get_rows_from_query, get_row_from_query },
 };
-use chrono::Utc;
+use chrono::{ Local, TimeZone };
 use mysql::*;
 use mysql::prelude::*;
 use log::{ info, debug, error };
@@ -18,6 +18,9 @@ fn get_rendition_from_row(row_wrapped: Result<Option<Row>, Error>) -> Result<Ren
                 Some (r) => {
                     let mut row: Row = r.clone();
 
+                    let created_on = row.take("CREATED_ON").unwrap();
+                    let updated_on = row.take("MODIFIED_ON").unwrap();
+
                     Ok(Rendition {
                         id: row.take("ID").unwrap(),
                         image_id: row.take("IMAGE_ID").unwrap(),
@@ -27,9 +30,9 @@ fn get_rendition_from_row(row_wrapped: Result<Option<Row>, Error>) -> Result<Ren
                         slug: row.take("SLUG").unwrap(),
                         is_published: true,
                         encoding: Encoding::JPG,
-                        created_on: Utc::now(),
+                        created_on: Local.from_utc_datetime(&created_on).into(),
                         created_by: row.take("CREATED_BY").unwrap(),
-                        modified_on: Utc::now(),
+                        modified_on: Local.from_utc_datetime(&updated_on).into(),
                         modified_by: row.take("MODIFIED_BY").unwrap(),
                     })
                 }
@@ -58,6 +61,9 @@ fn get_renditions_from_row(row_wrapped: Result<Vec::<Row>, Error>)
             for row_ in rows.iter() {
                 let mut row = row_.clone();
 
+                let created_on = row.take("CREATED_ON").unwrap();
+                let updated_on = row.take("MODIFIED_ON").unwrap();
+
                 renditions.push(Rendition {
                     id: row.take("ID").unwrap(),
                     image_id: row.take("IMAGE_ID").unwrap(),
@@ -67,9 +73,9 @@ fn get_renditions_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     slug: row.take("SLUG").unwrap(),
                     is_published: true,
                     encoding: Encoding::JPG,
-                    created_on: Utc::now(),
+                    created_on: Local.from_utc_datetime(&created_on).into(),
                     created_by: row.take("CREATED_BY").unwrap(),
-                    modified_on: Utc::now(),
+                    modified_on: Local.from_utc_datetime(&updated_on).into(),
                     modified_by: 0,
                 });
             }

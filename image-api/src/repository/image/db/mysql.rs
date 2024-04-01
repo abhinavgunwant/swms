@@ -1,5 +1,5 @@
 use std::result::Result;
-use chrono::Utc;
+use chrono::{ Local, TimeZone };
 use mysql::*;
 use mysql::prelude::*;
 use log::{ info, debug, error };
@@ -18,6 +18,9 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
                 Some (r) => {
                     let mut row: Row = r.clone();
 
+                    let created_on = row.take("CREATED_ON").unwrap();
+                    let updated_on = row.take("MODIFIED_ON").unwrap();
+
                     Ok (Image {
                         id: row.take("ID").unwrap(),
                         name: row.take("ORIGINAL_FILENAME").unwrap(),
@@ -31,10 +34,8 @@ fn get_image_from_row (row_wrapped: Result<Option<Row>, Error>) -> Result<Image,
                         folder_id: row.take("FOLDER_ID").unwrap_or_default(),
                         created_by: row.take("CREATED_BY").unwrap(),
                         modified_by: row.take("MODIFIED_BY").unwrap(),
-                        created_on: Utc::now(),
-                        // created_on: row.take("created_on").unwrap(),
-                        modified_on: Utc::now(),
-                        // modified_on: row.take("modified_on").unwrap(),
+                        created_on: Local.from_utc_datetime(&created_on).into(),
+                        modified_on: Local.from_utc_datetime(&updated_on).into(),
                         encoding: Encoding::JPG,
                         //metadata_id: 0,
                     })
@@ -83,6 +84,9 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     None => folder_id = 0
                 }
 
+                let created_on = row.take("CREATED_ON").unwrap();
+                let updated_on = row.take("MODIFIED_ON").unwrap();
+
                 images.push(Image {
                     id: row.take("ID").unwrap(),
                     name: row.take("ORIGINAL_FILENAME").unwrap(),
@@ -93,13 +97,12 @@ fn get_images_from_row(row_wrapped: Result<Vec::<Row>, Error>)
                     width: row.take("WIDTH").unwrap(),
                     is_published: true,
                     project_id: row.take("PROJECT_ID").unwrap(),
-                    // folder_id: row.take("FOLDER_ID").unwrap(),
                     folder_id,
                     //metadata_id: 0,
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_by: 0,
-                    created_on: Utc::now(),
-                    modified_on: Utc::now(),
+                    created_on: Local.from_utc_datetime(&created_on).into(),
+                    modified_on: Local.from_utc_datetime(&updated_on).into(),
                 });
             }
 

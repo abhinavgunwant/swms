@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{ Local, TimeZone, Utc, DateTime };
 use mysql::*;
 use mysql::prelude::*;
 use std::result::Result;
@@ -27,6 +27,20 @@ fn get_project_from_row(row_wrapped: Result<Option<Row>, Error>)
                         None => { restrict_users = false; }
                     }
 
+                    let created_on: DateTime<Utc> = match row.take("CREATED_ON") {
+                        Some(datetime) => {
+                            Local.from_utc_datetime(&datetime).into()
+                        }
+                        None => { Utc::now() }
+                    };
+
+                    let modified_on: DateTime<Utc> = match row.take("MODIFIED_ON") {
+                        Some(datetime) => {
+                            Local.from_utc_datetime(&datetime).into()
+                        }
+                        None => { Utc::now() }
+                    };
+
                     Ok(Project {
                         id: row.take("ID").unwrap(),
                         name: row.take("NAME").unwrap(),
@@ -35,8 +49,8 @@ fn get_project_from_row(row_wrapped: Result<Option<Row>, Error>)
                         restrict_users,
                         created_by: row.take("CREATED_BY").unwrap(),
                         modified_by: row.take("MODIFIED_BY").unwrap(),
-                        created_on: Utc::now(),
-                        modified_on: Utc::now(),
+                        created_on,
+                        modified_on,
                     })
                 }
 
@@ -81,6 +95,20 @@ fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
                     None => { modified_by = 0; }
                 }
 
+                let created_on: DateTime<Utc> = match row.take("CREATED_ON") {
+                    Some(datetime) => {
+                        Local.from_utc_datetime(&datetime).into()
+                    }
+                    None => { Utc::now() }
+                };
+
+                let modified_on: DateTime<Utc> = match row.take("MODIFIED_ON") {
+                    Some(datetime) => {
+                        Local.from_utc_datetime(&datetime).into()
+                    }
+                    None => { Utc::now() }
+                };
+
                 projects.push(Project {
                     id: row.take("ID").unwrap(),
                     name: row.take("NAME").unwrap(),
@@ -89,8 +117,8 @@ fn get_projects_from_row(row_wrapped: Result<Vec<Row>, Error>)
                     restrict_users,
                     created_by: row.take("CREATED_BY").unwrap(),
                     modified_by,
-                    created_on: Utc::now(),
-                    modified_on: Utc::now(),
+                    created_on,
+                    modified_on,
                 });
             }
 
