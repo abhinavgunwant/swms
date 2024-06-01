@@ -9,6 +9,7 @@ import { DriveFileMove, Delete, ContentCopy } from '@mui/icons-material';
 
 import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
+import { ThumbnailAction } from '../models/ThumbnailExtendProps';
 
 import { styled } from '@mui/material/styles';
 
@@ -57,6 +58,12 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
         }
     };
 
+    const onClickAway = (action: ThumbnailAction) => {
+        if (action && action.onHideTooltip) {
+            action.onHideTooltip();
+        }
+    };
+
     return <Fragment>
         <ListItem>
             {
@@ -95,7 +102,7 @@ export const ImageListItem = (props: ThumbnailExtendedProps) => {
                         if (action && action.text && action.show) {
                             if (action.tooltip) {
                                 return <ClickAwayListener
-                                    onClickAway={ action.onHideTooltip }>
+                                    onClickAway={ () => onClickAway(action) }>
                                     <Tooltip
                                         title={ action.tooltip }
                                         open={ action.showTooltip }

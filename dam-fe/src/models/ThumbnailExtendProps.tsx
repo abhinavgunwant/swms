@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 
 type DefaultFunction = () => void;
 
-interface ThumbnailAction {
+export interface ThumbnailAction {
     label: string,
     icon: ReactNode,
     show: boolean,
@@ -30,5 +30,6 @@ export default interface ThumbnailExtendedProps {
     actions?: ThumbnailAction[],
     isImage?: boolean;
     selected?: boolean,
+    slug?: string,
 };
 

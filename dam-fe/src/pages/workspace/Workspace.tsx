@@ -8,7 +8,7 @@ import { Box, Grid, List, CircularProgress } from '@mui/material';
 
 import {
     Check, Deselect, Visibility, Delete, SelectAll, Add, DriveFileMove,
-    Description, ContentCopy,
+    Description, ContentCopy, Close,
 } from '@mui/icons-material';
 
 import WorkspaceTopRow from './WorkspaceTopRow';

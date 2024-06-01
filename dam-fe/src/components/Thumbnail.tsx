@@ -7,7 +7,7 @@ import {
 
 import { Folder, FolderSpecial } from '@mui/icons-material';
 
-import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
+import ThumbnailExtendedProps, { ThumbnailAction } from '../models/ThumbnailExtendProps';
 
 import { styled } from '@mui/material/styles';
 
@@ -42,6 +42,12 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
     const cardRef = useRef<HTMLDivElement|null>(null);
     const imgRef = useRef<HTMLImageElement|null>(null);
     const intObserverRef = useRef<IntersectionObserver>();
+
+    const onClickAway = (action: ThumbnailAction) => {
+        if (action && action.onHideTooltip) {
+            action.onHideTooltip();
+        }
+    };
 
     useEffect(() => {
         if (props.thumbnailLocation) {
@@ -133,7 +139,7 @@ export const Thumbnail = (props: ThumbnailExtendedProps) => {
                     props?.actions?.map((action, i) => {
                         if (action.tooltip && action.show) {
                             return <ClickAwayListener
-                                onClickAway={ action.onHideTooltip }>
+                                onClickAway={ () => onClickAway(action) }>
                                 <Tooltip
                                     title={ action.tooltip }
                                     open={ action.showTooltip }
