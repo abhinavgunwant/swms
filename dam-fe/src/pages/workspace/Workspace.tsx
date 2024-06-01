@@ -13,7 +13,7 @@ import {
 
 import WorkspaceTopRow from './WorkspaceTopRow';
 import {
-    Thumbnail, ImageListItem, ImagePreview, Error, WorkspaceFab,
+    Thumbnail, ImageListItem, ImagePreview, WorkspaceFab,
 } from '../../components';
 import {
     DeleteItemDialog, NewImageDialog, WIPDialog, ErrorDialog

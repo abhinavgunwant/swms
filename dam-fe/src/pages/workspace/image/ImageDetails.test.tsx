@@ -1,4 +1,4 @@
-import { act } from 'react-dom/test-utils';
+// import { act } from 'react-dom/test-utils';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import ImageDetails from './ImageDetails';

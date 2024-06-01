@@ -1,5 +1,3 @@
-import ThumbnailItemModel from "../../models/ThumbnailItemModel";
-import ProjectListItemModel from "../../models/ProjectListItemModel";
 import Project from '../../models/Project';
 import LinkModel from '../../models/LinkModel';
 import Image from "../../models/Image";

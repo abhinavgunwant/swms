@@ -43,8 +43,6 @@ const NewProject = () => {
     const [ showSlugError, setShowSlugError ] = useState<boolean>(false);
     const [ showSlugValidError, setShowSlugValidError ]
         = useState<boolean>(false);
-    const [ showValidatingSlugMessage, setValidatingSlugMessage]
-        = useState<boolean>(false);
     const [ showTitleError, setShowTitleError ] = useState<boolean>(false);
     const [ titleEdited, setTitleEdited ] = useState<boolean>(false);
     const [ slugEdited, setSlugEdited ] = useState<boolean>(false);
@@ -170,8 +168,6 @@ const NewProject = () => {
             setShowUnknownError(true);
         });
     }
-
-    const getSlug = () => slug;
 
     const onCancel = () => {
         navigate("/workspace")

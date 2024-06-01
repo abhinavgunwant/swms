@@ -21,8 +21,6 @@ import useAPI from '../../../hooks/useAPI';
 import LinkModel from '../../../models/LinkModel';
 import Folder from '../../../models/Folder';
 
-import useWorkspaceStore from '../../../store/workspace/WorkspaceStore';
-
 import { styled } from '@mui/material/styles';
 
 const TextField = styled(MuiTextField)`
@@ -61,8 +59,6 @@ const FolderDetails = () => {
     const navigate = useNavigate();
     const { getFolder, updateFolder } = useAPI(navigate);
     const { folderId } = useParams();
-
-    const store = useWorkspaceStore();
 
     const originalFolder = useRef<Folder | undefined>(undefined);
 

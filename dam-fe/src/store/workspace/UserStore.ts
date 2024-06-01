@@ -4,7 +4,6 @@ import { SessionState } from './UserState';
 
 import UserState from './UserState';
 
-//const useUserStore = create<UserState>()((set) => ({
 export const userStore = createStore<UserState>((set) => ({
     // Session Token
     sessionToken: '',

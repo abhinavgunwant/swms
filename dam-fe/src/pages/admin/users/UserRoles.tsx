@@ -3,19 +3,17 @@ import { useNavigate } from 'react-router-dom';
 
 import {
     IconButton, Table, TableHead, TableRow, TableCell, TableBody,
-    TableContainer, TableSortLabel, Checkbox, TablePagination,
+    TableContainer, TableSortLabel, Checkbox,
 } from '@mui/material';
 
-import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
+import { Edit as EditIcon, Delete, Add } from '@mui/icons-material';
 
-import { Breadcrumbs, Search, CustomFab, Loading, CustomDialog } from '../../../components';
+import { Breadcrumbs, CustomFab, Loading, CustomDialog } from '../../../components';
 
 import useAPI from '../../../hooks/useAPI';
 import Role from '../../../models/Role';
 import { useAdminStore } from '../../../store';
-import
-    UserPermissions, { UserPermissionsKeyToNameMapping }
-from '../../../models/UserPermissions';
+import { UserPermissionsKeyToNameMapping } from '../../../models/UserPermissions';
 
 import { styled } from '@mui/material/styles';
 

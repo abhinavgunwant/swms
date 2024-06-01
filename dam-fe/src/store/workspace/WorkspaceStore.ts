@@ -1,5 +1,4 @@
 import create from 'zustand';
-// import { devtools, persist } from 'zustand/middleware';
 
 import WorkspaceState from './WorkspaceState';
 import LinkModel from '../../models/LinkModel';

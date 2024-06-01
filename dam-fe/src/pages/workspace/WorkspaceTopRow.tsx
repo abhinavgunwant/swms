@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Button from '@mui/material/Button';
 import ViewListIcon from '@mui/icons-material/ViewList';
@@ -8,7 +5,6 @@ import GridViewIcon from '@mui/icons-material/GridView';
 
 import Breadcrumbs from '../../components/Breadcrumbs';
 
-import LinkModel from '../../models/LinkModel';
 import useWorkspaceStore from '../../store/workspace/WorkspaceStore';
 import BreadcrumbProps from '../../models/props/BreadcrumbProps';
 

@@ -4,7 +4,7 @@ import AdminState from './AdminState';
 import UserListing from '../../models/UserListing';
 import Role from '../../models/Role';
 
-export const useAdminStore = create<AdminState>()((set, get) => ({
+export const useAdminStore = create<AdminState>()((set, _get) => ({
     roles: [],
 
     setUserToEdit: (userToEdit: UserListing) => set((state) => ({

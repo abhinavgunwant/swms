@@ -9,7 +9,6 @@ export enum SessionState {
 
 export default interface UserState {
     sessionToken: string,
-    // Session
     session: Session,
     sessionState: SessionState,
 

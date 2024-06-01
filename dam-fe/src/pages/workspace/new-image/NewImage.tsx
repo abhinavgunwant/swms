@@ -1,13 +1,8 @@
-import {
-    useEffect, useState, useRef, useTransition, ChangeEvent, Fragment,
-} from 'react';
+import { useEffect, useState, useRef, useTransition, ChangeEvent } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import {
-    Typography, Grid, TextField, Button, Box,
-    CircularProgress,
-} from '@mui/material';
+import { Typography, Grid, TextField, Button, Box } from '@mui/material';
 
 import { UploadFile } from '@mui/icons-material';
 

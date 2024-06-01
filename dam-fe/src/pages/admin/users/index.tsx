@@ -4,10 +4,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Box, Typography, FormControl, InputLabel, Select, MenuItem, List,
-    ListItem, ListItemText, ListItemButton, IconButton, Table, TableHead,
+    Box, IconButton, Table, TableHead,
     TableRow, TableCell, TableBody, TableContainer, TableSortLabel, Checkbox,
-    TablePagination, CircularProgress,
+    TablePagination,
 } from '@mui/material';
 
 import { Edit as EditIcon, Delete, Add, LockReset } from '@mui/icons-material';
@@ -38,7 +37,6 @@ const ContentBox = matStyled(Box)`
 const columns: string[] = [ 'Login ID', 'Name', 'Email', 'Actions' ];
 
 const Users = () => {
-    const [ searchTerm, setSearchTerm ] = useState<string>('');
     const [ pageSize, setPageSize ] = useState<number>(10);
     const [ page, setPage ] = useState<number>(0);
     const [ selectAll, setSelectAll ] = useState<boolean>(false);
@@ -67,7 +65,7 @@ const Users = () => {
     };
 
     const onPageChanged = (
-        e: React.MouseEvent<HTMLButtonElement> | null,
+        _e: React.MouseEvent<HTMLButtonElement> | null,
         _page: number
     ) => startTransition(() => setPage(_page));
 

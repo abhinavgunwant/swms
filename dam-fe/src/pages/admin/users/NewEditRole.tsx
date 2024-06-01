@@ -1,5 +1,5 @@
 import {
-    useState, useEffect, ReactNode, ChangeEventHandler, ChangeEvent, memo,
+    useState, useEffect, ChangeEventHandler, ChangeEvent, memo,
     Fragment, useTransition,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +8,7 @@ import {
     TextField, Checkbox, FormGroup, FormControlLabel, Grid, Typography, Button,
 } from '@mui/material';
 
-import { Breadcrumbs, Search, CustomFab, Loading } from '../../../components';
+import { Breadcrumbs } from '../../../components';
 
 import Role, { RoleImpl } from '../../../models/Role';
 import { useAdminStore } from '../../../store';
@@ -85,7 +85,6 @@ interface NewEditRoleProps {
 const NewEditRole = (props: NewEditRoleProps) => {
     const [ role, setRole ] = useState<Role>();
     const [ nameError, setNameError ] = useState<boolean>(false);
-    const [ roleName, setRoleName ] = useState<string>('');
 
     const [ _, startTransition ] = useTransition();
 

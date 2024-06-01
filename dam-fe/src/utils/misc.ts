@@ -1,8 +1,7 @@
-import { NavigateFunction, useNavigate } from 'react-router-dom';
+import { NavigateFunction } from 'react-router-dom';
 
 import { SessionState } from '../store/workspace/UserState';
 import { userStore } from '../store/workspace/UserStore';
-// import useWorkspaceStore from '../store/workspace/WorkspaceStore';
 
 import { sessionFromToken } from './token';
 

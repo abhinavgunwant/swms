@@ -1,6 +1,4 @@
-import { expect, test } from 'vitest';
-import actualCreate, { StateCreator } from 'zustand';
-import WorkspaceState from './WorkspaceState';
+import { test } from 'vitest';
 
 test ('workspace store test', () => {
     // TODO: implement this!

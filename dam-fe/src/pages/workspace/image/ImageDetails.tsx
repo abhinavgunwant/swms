@@ -133,11 +133,9 @@ const ImageDetails = () => {
     const onDeleteRendition = async (indx: number) => {
         if (renditionList.length) {
             const deleteResp = await deleteRendition(renditionList[indx].id);
+            console.log(deleteResp);
 
             refreshRenditions();
-            // const list = [ ...renditionList ];
-            // list.splice(indx, 1);
-            // startTransition(() => setRenditionList(list));
         }
     }
 

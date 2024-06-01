@@ -5,7 +5,7 @@ import {
     Divider, Box, Button, ListItemText, Typography, ClickAwayListener, Tooltip
 } from '@mui/material';
 
-import { DriveFileMove, Delete, ContentCopy } from '@mui/icons-material';
+import { Delete } from '@mui/icons-material';
 
 import ThumbnailExtendedProps from '../models/ThumbnailExtendProps';
 import useWorkspaceStore from '../store/workspace/WorkspaceStore';
@@ -22,10 +22,6 @@ const ActionBox = styled(Box)`
     justify-content: flex-end;
     align-items: center;
     gap: 1rem;
-`;
-
-const ButtonLeftMargin = styled(Button)`
-    margin-left: 1rem;
 `;
 
 const ImageText = styled(ListItemText)`
