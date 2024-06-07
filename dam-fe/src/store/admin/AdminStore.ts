@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 
 import AdminState from './AdminState';
 import UserListing from '../../models/UserListing';
