@@ -5,9 +5,12 @@ use mysql::Error::{
     IoError, DriverError, UrlError, TlsError, CodecError, MySqlError
 };
 
+#[derive(PartialEq)]
 pub enum DBError {
+    /// Database or table does not exist/not found
     NotFound,
     IOError,
+    AccessDenied,
     DriverError,
     ConnectionError,
     OtherError,
@@ -21,6 +24,7 @@ impl Display for DBError {
             Self::DriverError=> write!(f, "DBError: DriverError"),
             Self::ConnectionError => write!( f, "DBError: ConnectionError"),
             Self::OtherError => return write!(f, "DBError: OtherError"),
+            Self::AccessDenied => return write!(f, "DBError: AccessDenied"),
         }
     }
 }

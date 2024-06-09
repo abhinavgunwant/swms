@@ -29,6 +29,10 @@ fn main() -> std::io::Result<()> {
 
     source.pop();
     source.push("dam-fe");
+
+    // TODO: Check here if "dist" directory exists
+    //      - If the directory does not exists, check if the frontend can be
+    //      built.
     source.push("dist");
 
     dest.push("static");

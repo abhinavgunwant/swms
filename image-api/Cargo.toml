@@ -6,17 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4"
-actix-web-static-files = "4.0"
-actix-multipart = "0.4.0"
+actix-web = "4.6.0"
+actix-web-static-files = "4.0.1"
+actix-multipart = "0.6.1"
 actix-form-data = "0.6.2"
-actix-cors = "0.6.3"
-static-files = "0.2.1"
+actix-cors = "0.7"
+static-files = "0.2.3"
 futures = "0.3.21"
 raster = "0.2.0"
-mysql = "25.0.0"
-mysql_common = { version = "0.32.2", features = [ "chrono" ] }
-chrono = { version = "0.4", features = [ "serde" ] }
+mysql = "25.0.1"
+mysql_common = { version = "0.32.3", features = [ "chrono" ] }
+chrono = { version = "0.4.38", features = [ "serde" ] }
 num-traits = "0.2"
 num-derive = "0.2"
 cached = "0.39.0"
@@ -26,7 +26,7 @@ serde_json = "1.0.85"
 argon2 = "0.4.1"
 qstring = "0.7.2"
 regex = "1.7.0"
-jsonwebtoken = "8.3.0"
+jsonwebtoken = "9.3.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 log = "0.4.20"

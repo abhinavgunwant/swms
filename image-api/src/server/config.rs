@@ -32,7 +32,7 @@ pub enum DBType {
     MySQL
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DBConnectionInfo {
     pub db_name: String,
@@ -40,6 +40,16 @@ pub struct DBConnectionInfo {
     pub port: u16,
     pub username: String,
     pub password: String,
+}
+
+impl Default for DBConnectionInfo {
+    fn default() -> Self { Self {
+        db_name: String::from("swms"),
+        host: String::from("localhost"),
+        port: 3306,
+        username: String::from("swms"),
+        password: String::from("swms1234"),
+    } }
 }
 
 const DEF_ROOT_DIR_NAME: &str = "swms";
@@ -172,15 +182,17 @@ impl Default for ServerConfig {
 
 impl ServerConfig {
     pub fn print_info(&self) {
-        info!("** Got the following configs:\n\
+        info!("Config file: {}", Self::get_config_path());
+
+        info!("Got the following configs in config file:\n\
               --> upload directory: {}\n\
               --> rendition cache directory: {}\n\
               --> server host: {}\n\
               --> server port: {}",
-              self.upload_dir,
-              self.rendition_cache_dir,
-              self.hostname,
-              self.port,
+            self.upload_dir,
+            self.rendition_cache_dir,
+            self.hostname,
+            self.port,
         );
     }
 
@@ -215,6 +227,14 @@ impl ServerConfig {
                 )
             }
         }
+    }
+
+    pub fn get_hostname(&self) -> &str {
+        self.hostname.as_str()
+    }
+
+    pub fn get_port(&self) -> u16 {
+        self.port.clone()
     }
 }
 

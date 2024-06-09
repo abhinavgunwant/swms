@@ -3,6 +3,10 @@ pub mod db;
 use crate::{ server::db::DBError, model::folder::Folder };
 
 pub trait FolderRepository {
+    /// Finds out if the folder repository exists along wth verifying
+    /// all the columns
+    fn verify(&mut self) -> Result<(), DBError>;
+
     fn get(&mut self, id: u32) -> Result<Folder, DBError>;
     fn get_from_slug(&mut self, slug: String) -> Result<Folder, DBError>;
     fn get_all_from_project(&mut self, project_id: u32) -> Result<Vec<Folder>, DBError>;

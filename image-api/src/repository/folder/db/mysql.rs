@@ -1,7 +1,7 @@
 use chrono::{ Local, TimeZone };
 use mysql::*;
 use mysql::prelude::*;
-use std::result::Result;
+use std::{ collections::HashSet, result::Result, sync::Arc };
 use log::{ info, debug, error };
 
 use crate::{
@@ -14,6 +14,11 @@ use crate::{
 pub struct MySQLFolderRepository {
     pub connection: PooledConn,
 }
+
+const COLUMNS: &'static [&'static str] = &[
+    "ID", "TITLE", "DESCRIPTION", "CREATED_BY", "MODIFIED_BY", "CREATED_ON",
+    "MODIFIED_ON", "SLUG", "PROJECT_ID", "PARENT_FOLDER_ID"
+];
 
 fn get_folder_from_row(row_wrapped: Result<Option<Row>, Error>)
     -> std::result::Result<Folder, DBError> {
@@ -162,6 +167,54 @@ fn get_folders_from_row(row_wrapped: Result<Vec<Row>, Error>)
 }
 
 impl FolderRepository for MySQLFolderRepository {
+    fn verify(&mut self) -> Result<(), DBError> {
+        match self.connection.prep("DESC FOLDER") {
+            Ok (statement) => {
+                let rows_exec: Result<Vec<Row>, mysql::Error>
+                    = self.connection.exec(&statement, Params::Empty);
+
+                info!("0");
+                match rows_exec {
+                    Ok(mut rows) => {
+                        // TODO: return the missing columns in the table
+                        // let mut columns_in_table = HashSet::new();
+
+                        info!("1");
+                        for row in rows.iter_mut() {
+                            info!("2");
+                            if let Some(field) = row.take::<String, &str>("Field") {
+                                // TODO: return the missing columns in the table
+                                // columns_in_table.insert(field.to_uppercase());
+                                info!("field: {}", field);
+                            };
+                        }
+
+                        // TODO: return the missing columns in the table
+                        // for col in COLUMNS.iter() {
+                        //     if (!columns_in_table.contains(col)) {
+                        //         break;
+                        //     }
+                        // }
+
+                        return Ok(());
+                    }
+
+                    Err(e) => {
+                        if let mysql::Error::MySqlError(mysql_err) = e {
+                            if mysql_err.code == 1146 {
+                                return Err(DBError::NotFound);
+                            }
+                        }
+                    }
+                }
+            }
+
+            Err (_) => {}
+        };
+
+        return Err(DBError::OtherError);
+    }
+
     /**
      * Gets a project based on it's ID.
      */
